@@ -1,0 +1,58 @@
+# 概要
+OVN はネットワーク上の各ノードにコンポーネントを配置する、分散型環境下で動作します。
+
+## OVN Central
+現在は1 ホストのみサポートされています。これは、クラウド管理プラットフォームのような外部システムに対して、統合されたAPI として振る舞います。
+そのOVN 中央となるnorthbound database というものがあります。
+これは、論理スイッチやポートといった上位レイヤの論理的構成を管理しています。
+southbound database は、northdb の論理的構成と物理的構成の対応を管理します。
+
+## OVN Host
+VM のような仮想ネットワークエンドポイントとなる、すべてのノードに分散されます。
+またOVN Host は"chassis controller" が含まれており、権威ある情報源として、物理ネットワーク情報のアップストリームをovn-southdb に接続します。
+そして、openflow コントローラとして動作するためにsouthbound をOVS へ接続します。
+
+# 構成
+Ubuntu 20.04.
+
+```
+ovn-central-01: 192.168.1.61
+ovn-host-01: 192.168.1.62
+ovn-host-02: 192.168.1.63
+```
+
+## Open vSwitch のビルド
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+# apt-get update
+```
+
+ubuntu の公式パッケージとしてインストールするなら、次のコマンド？
+
+* ovn-central-01
+```
+ovn-central-01 # apt-get install -y ovn-central ovn-common ovn-doc
+```
+
+* ovn-host-01,ovn-host-02
+```
+apt-get install -y ovn-host ovn-common ovn-doc
+```
+
+## Open vSwitch のビルド(2)
+
+```
+# apt-get install openvswitch-switch openvswitch-common openvswitch-switch-dpdk ovn-central ovn-common ovn-host
+# systemctl enable --now openvswitch-switch
+# ovs-vsctl add-br br-int
+
+# systemctl enable --now ovn-central
+```
+
+# 参考
+* [A Primer on OVN](https://blog.spinhirne.com/posts/an-introduction-to-ovn/a-primer-on-ovn/)
+* [OVN AND DHCP: A MINIMAL EXAMPLE](https://blog.oddbit.com/post/2019-12-19-ovn-and-dhcp/)
+* [Installing Open vSwitch](https://docs.openvswitch.org/en/latest/intro/install/)
+* [Open vSwitch on Linux, FreeBSD and NetBSD](https://docs.openvswitch.org/en/latest/intro/install/general/)
+

@@ -1,0 +1,379 @@
+## Open vSwitch のビルド(2)
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+# apt-get install -y openvswitch-switch openvswitch-common openvswitch-switch-dpdk ovn-central ovn-common ovn-host
+# systemctl enable --now openvswitch-switch
+# ovs-vsctl add-br br-int
+```
+
+* ovn-central-01
+```
+ovn-central-01 # systemctl enable --now ovn-central
+ovn-central-01 # ovn-sbctl set-connection ptcp:6642
+ovn-central-01 # ss -tlnp | grep 6642
+```
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+all-nodes # ovs-vsctl set open_vswitch . \
+    external_ids:ovn-remote=tcp:192.168.2.41:6642 \
+    external_ids:ovn-encap-ip=$(ip addr show enp9s0 | awk '$1 == "inet" {print $2} ' | cut -f1 -d /) \
+    external_ids:ovn-encap-type=geneve \
+    external_ids:system-id=$(hostname)
+```
+
+* ovn-remote – this is the address of the controller
+* ovn-encap-ip – this is the local address that will be used for tunnel endpoints
+* ovn-encap-type – the encapsulation mechanism to use for tunnels
+* system-id – a unique identifier for the local host
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+ovn-central-01 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-central-01, ovn-encap-ip="192.168.1.61", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-central-01}
+
+ovn-host-01 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-host-01, ovn-encap-ip="192.168.1.62", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-host-01}
+
+ovn-host-02 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-host-02, ovn-encap-ip="192.168.1.63", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-host-02}
+```
+
+この時点ですべてのノードは、他のすべてのノードと接続するトンネルインターフェースができています。
+`ovn-host-01`で`ovs-vsctl show` コマンドを実行すると、以下のような出力を確認することができます。
+
+* ovn-host-01
+```
+ovn-host-01 # ovs-vsctl show
+d7a35d94-ea38-4183-9329-a8fd772cc4e6
+    Bridge br-int
+        Port ovn-ovn-ho-0
+            Interface ovn-ovn-ho-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.1.63"}
+        Port ovn-ovn-ce-0
+            Interface ovn-ovn-ce-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.1.61"}
+        Port br-int
+            Interface br-int
+                type: internal
+    ovs_version: "2.13.3"
+```
+
+# 仮想ネットワークの作成
+## 仮想スイッチの作成
+
+`ovn-central-01` で`ovn-nbctl ls-add` コマンドを実行して、仮想スイッチを追加します。
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-nbctl ls-add net0
+ovn-central-01 # ovn-nbctl show
+switch 49f1ca88-9f0c-4525-b164-10d5a53032db (net0)
+```
+
+## DHCP アドレスレンジの定義
+次に、DHCP で割り振られるIP アドレスレンジを指定します。
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-nbctl set logical_switch net0 other_config:subnet="10.0.0.0/24" other_config:exclude_ips="10.0.0.1..10.0.0.10"
+```
+
+## DHCP オプションの設定
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-nbctl dhcp-options-create 10.0.0.0/24
+```
+
+```
+ovn-central-01 # CIDR_UUID=$(ovn-nbctl --bare --columns=_uuid find dhcp_options cidr="10.0.0.0/24")
+ovn-central-01 # echo $CIDR_UUID
+99544dd9-4c34-4773-be67-316b6799dbef
+```
+
+```
+ovn-central-01 # ovn-nbctl dhcp-options-set-options ${CIDR_UUID} lease_time=3600 router=10.0.0.1 server_id=10.0.0.1 server_mac=c0:ff:ee:00:00:01
+ovn-central-01 # ovn-nbctl list dhcp_options
+_uuid               : 99544dd9-4c34-4773-be67-316b6799dbef
+cidr                : "10.0.0.0/24"
+external_ids        : {}
+options             : {lease_time="3600", router="10.0.0.1", server_id="10.0.0.1", server_mac="c0:ff:ee:00:00:01"}
+```
+
+`dhcp-options-create` コマンドを使う代わりの方法として、`create` コマンドを使ってDHCP オプションを付与することもできます。
+
+```
+ovn-central-01 ##CIDR_UUID=$(ovn-nbctl create dhcp_options cidr=10.0.0.0/24 options='"lease_time"="3600" "router"="10.0.0.1" "server_id"="10.0.0.1" "server_mac"="c0:ff:ee:00:00:01"')
+```
+
+## 論理ポート作成
+以下3 つの論理ポートを作成します。
+
+* port1: c0:ff:ee:00:00:11
+* port2: c0:ff:ee:00:00:12
+* port3: c0:ff:ee:00:00:13
+
+先程作成した、仮想スイッチにポートを追加します。
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-nbctl lsp-add net0 port1
+ovn-central-01 # ovn-nbctl lsp-set-addresses port1 "c0:ff:ee:00:00:11 dynamic"
+ovn-central-01 # ## MAC アドレスを指定しなくても作成することができます
+ovn-central-01 # # ovn-nbctl lsp-set-addresses port1 "dynamic"
+```
+
+最後に、先程作成したDHCP オプションとポートを関連付けます。
+
+```
+ovn-central-01 # ovn-nbctl lsp-set-dhcpv4-options port1 $CIDR_UUID
+```
+
+これと同様のことを、port2,port3 に実行します。
+```
+ovn-central-01 # ovn-nbctl lsp-add net0 port2
+ovn-central-01 # ovn-nbctl lsp-set-addresses port2 "c0:ff:ee:00:00:12 dynamic"
+ovn-central-01 # ovn-nbctl lsp-set-dhcpv4-options port2 $CIDR_UUID
+
+ovn-central-01 # ovn-nbctl lsp-add net0 port3
+ovn-central-01 # ovn-nbctl lsp-set-addresses port3 "c0:ff:ee:00:00:13 dynamic"
+ovn-central-01 # ovn-nbctl lsp-set-dhcpv4-options port3 $CIDR_UUID
+```
+
+```
+ovn-central-01 # ovn-nbctl show
+switch 49f1ca88-9f0c-4525-b164-10d5a53032db (net0)
+    port port2
+        addresses: ["c0:ff:ee:00:00:12 dynamic"]
+    port port3
+        addresses: ["c0:ff:ee:00:00:13 dynamic"]
+    port port1
+        addresses: ["c0:ff:ee:00:00:11 dynamic"]
+
+ovn-central-01 # ovn-nbctl list logical_switch_port
+_uuid               : 77e71c20-78d3-41c6-b34a-5c70046348cd
+addresses           : ["c0:ff:ee:00:00:11 dynamic"]
+dhcpv4_options      : 99544dd9-4c34-4773-be67-316b6799dbef
+dhcpv6_options      : []
+dynamic_addresses   : "c0:ff:ee:00:00:11 10.0.0.11"
+enabled             : []
+external_ids        : {}
+ha_chassis_group    : []
+name                : port1
+options             : {}
+parent_name         : []
+port_security       : []
+tag                 : []
+tag_request         : []
+type                : ""
+up                  : false
+
+_uuid               : 1c073278-19f8-444e-983f-6cb939ed9695
+addresses           : ["c0:ff:ee:00:00:12 dynamic"]
+dhcpv4_options      : 99544dd9-4c34-4773-be67-316b6799dbef
+dhcpv6_options      : []
+dynamic_addresses   : "c0:ff:ee:00:00:12 10.0.0.12"
+enabled             : []
+external_ids        : {}
+ha_chassis_group    : []
+name                : port2
+options             : {}
+parent_name         : []
+port_security       : []
+tag                 : []
+tag_request         : []
+type                : ""
+up                  : false
+
+_uuid               : 2c106164-b995-4c27-b825-3ade7769235f
+addresses           : ["c0:ff:ee:00:00:13 dynamic"]
+dhcpv4_options      : 99544dd9-4c34-4773-be67-316b6799dbef
+dhcpv6_options      : []
+dynamic_addresses   : "c0:ff:ee:00:00:13 10.0.0.13"
+enabled             : []
+external_ids        : {}
+ha_chassis_group    : []
+name                : port3
+options             : {}
+parent_name         : []
+port_security       : []
+tag                 : []
+tag_request         : []
+type                : ""
+up                  : false
+
+ovn-central-01 # ovn-nbctl --columns dynamic_addresses list logical_switch_port
+dynamic_addresses   : "c0:ff:ee:00:00:11 10.0.0.11"
+
+dynamic_addresses   : "c0:ff:ee:00:00:12 10.0.0.12"
+
+dynamic_addresses   : "c0:ff:ee:00:00:13 10.0.0.13"
+```
+
+`ovn-trace` コマンドを使って、DHCP リクエストをテスト送信してみましょう。
+すると、下記のような出力結果を確認することができます。
+
+```
+ovn-central-01 # ovn-trace --summary net0 'inport=="port1" && eth.src==c0:ff:ee:00:00:11 && ip4.src==0.0.0.0 && ip.ttl==1 && ip4.dst==255.255.255.255 && udp.src==68 && udp.dst==67'
+# udp,reg14=0x1,vlan_tci=0x0000,dl_src=c0:ff:ee:00:00:11,dl_dst=00:00:00:00:00:00,nw_src=0.0.0.0,nw_dst=255.255.255.255,nw_tos=0,nw_ecn=0,nw_ttl=1,tp_src=68,tp_dst=67
+ingress(dp="net0", inport="port1") {
+    next;
+    reg0[3] = put_dhcp_opts(offerip = 10.0.0.11, lease_time = 3600, netmask = 255.255.255.0, router = 10.0.0.1, server_id = 10.0.0.1);
+    /* We assume that this packet is DHCPDISCOVER or DHCPREQUEST. */;
+    next;
+    eth.dst = eth.src;
+    eth.src = c0:ff:ee:00:00:01;
+    ip4.src = 10.0.0.1;
+    udp.src = 67;
+    udp.dst = 68;
+    outport = inport;
+    flags.loopback = 1;
+    output;
+    egress(dp="net0", inport="port1", outport="port1") {
+        next;
+        output;
+        /* output to "port1", type "" */;
+    };
+};
+```
+
+# ネットワークインタフェースの取り付け
+ここまでで作成してきたスイッチに、ネットワークインタフェースを取り付けて、挙動を見てみましょう。
+
+## OVS ポート作成
+`ovn-host-01`の`br-int` に、先程作成したnorthbound db に保存されている、スイッチのポートを取り付けます。
+スイッチのポートを指定するときは、MAC アドレスと`iface-id` で指定する値を、先程作成したものと一致させるようにしてください。
+
+```
+ovn-host-01 # ovs-vsctl add-port br-int port1 -- set interface port1 type=internal mac='["c0:ff:ee:00:00:11"]' external_ids:iface-id=port1
+```
+
+`ovn-vsctl show` コマンドを実行すると、`port1` が追加されているのが確認できます。
+
+```
+ovn-host-01 # ovs-vsctl show
+d7a35d94-ea38-4183-9329-a8fd772cc4e6
+    Bridge br-int
+        Port ovn-ovn-ho-0
+            Interface ovn-ovn-ho-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.1.63"}
+        Port ovn-ovn-ce-0
+            Interface ovn-ovn-ce-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.1.61"}
+        Port port1
+            Interface port1
+                type: internal
+        Port br-int
+            Interface br-int
+                type: internal
+    ovs_version: "2.13.3"
+```
+
+`ovn-central-01` で、`ovn-sbctl show` コマンドを実行すると、port1 が取り付けられていることがわかります。
+
+```
+ovn-central-01 # ovn-sbctl show
+Chassis ovn-host-01
+    hostname: ovn-host-01
+    Encap geneve
+        ip: "192.168.1.62"
+        options: {csum="true"}
+    Port_Binding port1           # <- ovn-host-01 にport1 が付いている
+Chassis ovn-central-01
+    hostname: ovn-central-01
+    Encap geneve
+        ip: "192.168.1.61"
+        options: {csum="true"}
+Chassis ovn-host-02
+    hostname: ovn-host-02
+    Encap geneve
+        ip: "192.168.1.63"
+        options: {csum="true"}
+```
+
+## DHCP を使用するポートの設定
+次は、実際にこのDHCP が設定されたポートを使用する、仮想のマシン(今回はLinux のネームスペース)を作成していきます。
+
+```
+ovn-host-01 # ip netns add vm1
+ovn-host-01 # ip link set netns vm1 port1
+ovn-host-01 # ip -n vm1 addr add 127.0.0.1/8 dev lo
+ovn-host-01 # ip -n vm1 link set lo up
+```
+
+```
+ovn-host-01 # ip netns exec vm1 dhclient -v -i port1 --no-pid
+Internet Systems Consortium DHCP Client 4.4.1
+Copyright 2004-2018 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/port1/c0:ff:ee:00:00:11
+Sending on   LPF/port1/c0:ff:ee:00:00:11
+Sending on   Socket/fallback
+DHCPREQUEST for 10.0.0.11 on port1 to 255.255.255.255 port 67 (xid=0x5eb5dc3a)
+DHCPACK of 10.0.0.11 from 10.0.0.1 (xid=0x3adcb55e)
+RTNETLINK answers: File exists
+bound to 10.0.0.11 -- renewal in 1621 seconds.
+```
+
+## port2 の設定
+続いて`ovn-host-01` にport2 を設定します。
+
+```
+ovn-host-01 # ovs-vsctl add-port br-int port2 -- set interface port2 type=internal mac='["c0:ff:ee:00:00:12"]' external_ids:iface-id=port2
+ovn-host-01 # ip netns add vm2
+ovn-host-01 # ip link set netns vm2 port2
+ovn-host-01 # ip -n vm2 addr add 127.0.0.1/8 dev lo
+ovn-host-01 # ip -n vm2 link set lo up
+ovn-host-01 # ip netns exec vm2 dhclient -v -i port2 --no-pid
+Internet Systems Consortium DHCP Client 4.4.1
+Copyright 2004-2018 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/port2/c0:ff:ee:00:00:12
+Sending on   LPF/port2/c0:ff:ee:00:00:12
+Sending on   Socket/fallback
+DHCPDISCOVER on port2 to 255.255.255.255 port 67 interval 3 (xid=0xad87cc19)
+DHCPOFFER of 10.0.0.12 from 10.0.0.1
+DHCPREQUEST for 10.0.0.12 on port2 to 255.255.255.255 port 67 (xid=0x19cc87ad)
+DHCPACK of 10.0.0.12 from 10.0.0.1 (xid=0xad87cc19)
+bound to 10.0.0.12 -- renewal in 1458 seconds.
+```
+
+## port3 の設定
+今度は`ovn-host-02` にport3 を設定してみます。
+
+```
+ovn-host-02 # ovs-vsctl add-port br-int port3 -- set interface port3 type=internal mac='["c0:ff:ee:00:00:13"]' external_ids:iface-id=port3
+ovn-host-02 # ip netns add vm3
+ovn-host-02 # ip link set netns vm3 port3
+ovn-host-02 # ip -n vm3 addr add 127.0.0.1/8 dev lo
+ovn-host-02 # ip -n vm3 link set lo up
+ovn-host-02 # ip netns exec vm3 dhclient -v -i port3 --no-pid
+Internet Systems Consortium DHCP Client 4.4.1
+Copyright 2004-2018 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/port3/c0:ff:ee:00:00:13
+Sending on   LPF/port3/c0:ff:ee:00:00:13
+Sending on   Socket/fallback
+Created duid "\000\001\000\001(a\262\342\300\377\356\000\000\023".
+DHCPDISCOVER on port3 to 255.255.255.255 port 67 interval 3 (xid=0x2da8cd0c)
+DHCPOFFER of 10.0.0.13 from 10.0.0.1
+DHCPREQUEST for 10.0.0.13 on port3 to 255.255.255.255 port 67 (xid=0xccda82d)
+DHCPACK of 10.0.0.13 from 10.0.0.1 (xid=0x2da8cd0c)
+bound to 10.0.0.13 -- renewal in 1785 seconds.
+```
+
+# 参考
+* [OVN AND DHCP: A MINIMAL EXAMPLE](https://blog.oddbit.com/post/2019-12-19-ovn-and-dhcp/)
+

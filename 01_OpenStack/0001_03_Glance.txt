@@ -1,0 +1,496 @@
+= Glance =
+
+; Glance Installation
+: https://docs.openstack.org/glance/wallaby/install/
+
+= Image サービス概要 =
+イメージサービスのGlance は、ユーザに対して、発見、登録、そして仮想マシンの取得機能を提供し、REST API を使って実現されています。
+ユーザは、様々な場所にあるイメージサービスをもとに、シンプルなファイルシステムからOpenStack Object Storage のようなオブジェクトストレージシステムの作成を可能にします。<br /><br />
+
+今回の説明では、説明をシンプルにするために、ホストマシンのディレクトリ上にイメージを保管する<code>file</code> バックエンドモードを使用して説明していきます。
+ホスト側のイメージ格納先は、デフォルトで、<code>/var/lib/glance/images/</code> となっています。<br />
+前提として、ホストマシンは数GB 程度のディスク空き容量を必要とします。
+また、Glance がコントローラノードにインストールされると、イメージ情報がホストのローカルディレクトリに格納されるのが一般的なので、マルチノードGlance デプロイメントとしては、好ましくない点も注意してください。
+その他の要求は、次のリンクに記載があります。
+
+; Glance Configuration Options
+: https://docs.openstack.org/glance/wallaby/configuration/index.html
+
+OpenStack のイメージサービスは、IaaS の中心です。
+それは、ディスクやサーバイメージ、メタデータ定義をエンドユーザ又はOpenStack Compute コンポーネントから受け付けます。<br />
+また、OpenStack ではキャッシュをサポートするために、定期処理もサポートしています。
+レプリケーションは可用性を向上させ、監視、アップデータなど様々です。
+
+== glance-api ==
+イメージ及びストレージの検索/取得のためのImage API 呼び出しを許可します。
+
+== glance-registry ==
+プロセスと、イメージに関するメタ情報を取得します。
+メタ情報には、サイズと種類についても含みます。
+これは、OpenStack Image サービスによって利用されるプライベートなサービスです。
+ユーザに公開することがないようにします。
+
+== Database ==
+イメージのメタ情報を保管するために利用れます。
+DB は好きなものを利用できます。
+
+== Storage repository for image files ==
+様々なリポジトリタイプがサポートされています。
+通常のファイルシステム、Object Storage、RADOS ブロックデバイス、VMWare データストア、HTTP などをサポートしています。
+
+== Metadata definition service ==
+ベンダの共通API、管理者、サービス、ユーザが定義できるメタ情報共通のAPI。
+このメタ情報は、イメージ、アーティファクト、ヴォリューム、フレーバ、アグリゲータ等の異なるタイプのメタデータとして使われます。
+
+= インストールと設定 =
+
+; Install and configure
+: https://docs.openstack.org/glance/wallaby/install/install-ubuntu.html
+
+Glance をコントローラノードにインストールしていきます。
+
+== Prerequisites ==
+Image service を構築する前に、DB、サービスの認証情報、API エンドポイントを作成する必要があります。<br /><br />
+
+DB を作成するために、以下の手順を行います。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# mysql
+
+MariaDB [(none)]> CREATE DATABASE glance;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'p@ssw0rd';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY 'p@ssw0rd';
+MariaDB [(none)]> quit
+</syntaxhighlight>
+
+<code>admin-openrc</code> をロードします。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# . ./admin-openrc
+</syntaxhighlight>
+
+
+サービスの認証情報を作成するために、以下のステップを実行します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack user create --domain default --password=p@ssw0rd glance
++---------------------+----------------------------------+
+| Field               | Value                            |
++---------------------+----------------------------------+
+| domain_id           | f120ded94594467abe4be838d17bd7ad |
+| enabled             | True                             |
+| id                  | 8c6567992682404391d11750a02657ea |
+| name                | glance                           |
+| options             | {}                               |
+| password_expires_at | None                             |
++---------------------+----------------------------------+
+</syntaxhighlight>
+
+<code>glance</code> ユーザに<code>admin</code> ロールを追加して、<code>service</code> プロジェクトに追加します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack role add --project service --user glance admin
+</syntaxhighlight>
+
+<code>glance</code> サービスエンティティを作成します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack service create --name glance --description "OpenStack Image" image
++-------------+----------------------------------+
+| Field       | Value                            |
++-------------+----------------------------------+
+| description | OpenStack Image                  |
+| enabled     | True                             |
+| id          | 4605fd4dbc624015b14580f7f0b7c32c |
+| name        | glance                           |
+| type        | image                            |
++-------------+----------------------------------+
+</syntaxhighlight>
+
+Image サービスAPI エンドポイントを作成します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne image public http://openstack-controller-node01:9292
++--------------+-----------------------------------------+
+| Field        | Value                                   |
++--------------+-----------------------------------------+
+| enabled      | True                                    |
+| id           | 9ac68c7e0b86498c91f3c15502e02090        |
+| interface    | public                                  |
+| region       | RegionOne                               |
+| region_id    | RegionOne                               |
+| service_id   | 4605fd4dbc624015b14580f7f0b7c32c        |
+| service_name | glance                                  |
+| service_type | image                                   |
+| url          | http://openstack-controller-node01:9292 |
++--------------+-----------------------------------------+
+
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne image internal http://openstack-controller-node01:9292
++--------------+-----------------------------------------+
+| Field        | Value                                   |
++--------------+-----------------------------------------+
+| enabled      | True                                    |
+| id           | f31419eb9c574738b5275bc3150cf9cc        |
+| interface    | internal                                |
+| region       | RegionOne                               |
+| region_id    | RegionOne                               |
+| service_id   | 4605fd4dbc624015b14580f7f0b7c32c        |
+| service_name | glance                                  |
+| service_type | image                                   |
+| url          | http://openstack-controller-node01:9292 |
++--------------+-----------------------------------------+
+
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne image admin http://openstack-controller-node01:9292
++--------------+-----------------------------------------+
+| Field        | Value                                   |
++--------------+-----------------------------------------+
+| enabled      | True                                    |
+| id           | 241623abb2b24dbf997a139bacc1cc13        |
+| interface    | admin                                   |
+| region       | RegionOne                               |
+| region_id    | RegionOne                               |
+| service_id   | 4605fd4dbc624015b14580f7f0b7c32c        |
+| service_name | glance                                  |
+| service_type | image                                   |
+| url          | http://openstack-controller-node01:9292 |
++--------------+-----------------------------------------+
+</syntaxhighlight>
+
+== コンポーネントのインストールと設定 ==
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# apt-get install -y glance
+</syntaxhighlight>
+
+<code>/etc/glance/glance-api.conf</code> ファイルを編集し、以下の通り編集していきます。
+
+* /etc/glance/glance-api.conf @ openstack-controller-node01
+<syntaxhighlight lang="text">
+[database]
+...
+connection = mysql+pymysql://glance:p@ssw0rd@openstack-controller-node01/glance
+...
+</syntaxhighlight>
+
+次に、Identity サービスのアクセスについて、設定していきます。
+
+* /etc/glance/glance-api.conf @ openstack-controller-node01
+<syntaxhighlight lang="text">
+[keystone_authtoken]
+...
+www_authenticate_uri = http://openstack-controller-node01:5000
+auth_url = http://openstack-controller-node01:5000
+memcached_servers = openstack-controller-node01:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = glance
+password = p@ssw0rd
+...
+
+[paste_deploy]
+...
+flavor = keystone
+</syntaxhighlight>
+
+次に<code>[glance_store]</code> セクションで、ローカルファイルシステムのイメージ保管場所を設定します。
+
+* /etc/glance/glance-api.conf @ openstack-controller-node01
+<syntaxhighlight lang="text">
+[glance_store]
+...
+stores = file,http
+default_store = file
+filesystem_store_datadir = /var/lib/glance/images/
+</syntaxhighlight>
+
+以上で、設定ファイルの編集は完了です。
+Image サービスデータベースを作成します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# su -s /bin/sh -c "glance-manage db_sync" glance
+</syntaxhighlight>
+
+コマンドに成功したら<code>glance-api</code> を再起動します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# systemctl restart glance-api
+openstack-controller-node01 ~# systemctl enable glance-api
+</syntaxhighlight>
+
+== 検証 ==
+
+; Verify operation
+: https://docs.openstack.org/glance/wallaby/install/verify.html
+
+<code>CirrOS</code> を使って、Image サービスの動作を確認していきます。
+CirrOS は、サイズが小さく、OpenStack のインストールを確認するのに、とても適しています。<br /><br />
+
+また、今回は簡易的にOS インストール手順を実行しますが、その他のイメージのダウンロードやビルド方法ついては、以下のリンクを参照してください。
+
+; OpenStack Virtual Machine Image Guide
+: https://docs.openstack.org/image-guide/
+
+OpenStack コマンドの認証を通すために、環境変数を設定します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01~# . ./admin-openrc
+</syntaxhighlight>
+
+CirrOS のイメージをダウンロードします。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01~# wget http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+</syntaxhighlight>
+
+CirrOS のイメージを、qcow2 ディスクフォーマットで、公開範囲はパブリックでイメージサービスにアップロードします。<br />
+以下<code>glance</code> コマンドの詳細なパラメータは以下のリンクで確認できます。
+
+; Image service (glance) command-line client
+: https://docs.openstack.org/python-glanceclient/latest/cli/details.html
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# glance image-create --name "cirros" --file ./cirros-0.4.0-x86_64-disk.img --disk-format qcow2 --container-format bare --visibility public
++------------------+----------------------------------------------------------------------------------+
+| Property         | Value                                                                            |
++------------------+----------------------------------------------------------------------------------+
+| checksum         | 443b7623e27ecf03dc9e01ee93f67afe                                                 |
+| container_format | bare                                                                             |
+| created_at       | 2021-04-17T00:10:40Z                                                             |
+| disk_format      | qcow2                                                                            |
+| id               | 9442e215-dc46-45cd-a713-552b56c62e62                                             |
+| min_disk         | 0                                                                                |
+| min_ram          | 0                                                                                |
+| name             | cirros                                                                           |
+| os_hash_algo     | sha512                                                                           |
+| os_hash_value    | 6513f21e44aa3da349f248188a44bc304a3653a04122d8fb4535423c8e1d14cd6a153f735bb0982e |
+|                  | 2161b5b5186106570c17a9e58b64dd39390617cd5a350f78                                 |
+| os_hidden        | False                                                                            |
+| owner            | d4d90c34c5674434bf32cbff933b0629                                                 |
+| protected        | False                                                                            |
+| size             | 12716032                                                                         |
+| status           | active                                                                           |
+| tags             | []                                                                               |
+| updated_at       | 2021-04-17T00:10:40Z                                                             |
+| virtual_size     | 46137344                                                                         |
+| visibility       | public                                                                           |
++------------------+----------------------------------------------------------------------------------+
+
+openstack-controller-node01 ~# glance image-list
++--------------------------------------+--------+
+| ID                                   | Name   |
++--------------------------------------+--------+
+| 9442e215-dc46-45cd-a713-552b56c62e62 | cirros |
++--------------------------------------+--------+
+</syntaxhighlight>
+
+イメージの登録に成功しました。
+
+= Glance の設定オプション =
+
+; Glance Configuration Options
+: https://docs.openstack.org/glance/wallaby/configuration/index.html
+
+== 基本設定 ==
+
+; Basic Configuration
+: https://docs.openstack.org/glance/wallaby/configuration/configuring.html
+
+Glance は、Glance API サーバ、Glance Registory サーバ(最近のOpenStack ではDeplicated)、様々なストレージバックエンドを使用するための設定が存在します。
+Glance の設定は、主にGlance API サーバの設定ファイルをベースに行われますが、その他の設定ファイルも参照しています。<br /><br />
+
+Glance サーバ起動時に、どの設定ファイルを参照するかを指定することができます。
+もし、設定ファイルを指定しなかった場合、Glance は以下のファイルを順番に参照しようとします。
+
+* ~/.glance
+* ~/
+* /etc/glance
+* /etc
+
+Glance API サーバの設定ファイル名は、<code>glance-api.conf</code> とすべきです。
+同様に、Glance Registry サーバの設定ファイルは<code>glance-registry.conf</code> というファイル名とすべきです。
+もし、Linux のパッケージマネージャからGlance をインストールした場合、サンプルの設定ファイルが<code>/etc/glance</code> ディレクトリ以下にできているかもしれません。<br /><br />
+
+また、設定ファイルは、依存関係(include)を表すこともできます。
+例えば、<code>glance-api.conf</code> が、<code>glance-api-paste.ini</code> ファイルに依存している場合は、以下のように記載することもできます。
+
+* /etc/glance/glance-api.conf
+<syntaxhighlight lang="console">
+[paste_deploy]
+config_file = /path/to/paste/config
+</syntaxhighlight>
+
+== 設定ファイルの一般的な共通オプション ==
+割愛
+
+== サーバ起動時のオプション ==
+割愛
+
+== Glance のログ設定 ==
+割愛
+
+== Glance ストレージバックエンドの設定 ==
+割愛<br /><br />
+
+その他、Glance API サーバに関する説明は割愛。
+必要に応じて、該当のページを見るようにすることを、推奨。
+
+== glance-api.conf ==
+
+: glance-api.conf
+; https://docs.openstack.org/glance/wallaby/configuration/glance_api.html
+
+割愛。
+
+== glance-cache.conf ==
+
+: glance-cache.conf
+; https://docs.openstack.org/glance/wallaby/configuration/glance_cache.html
+
+割愛。
+
+== glance-manage.conf ==
+
+: glance-manage.conf
+; https://docs.openstack.org/glance/wallaby/configuration/glance_manage.html
+
+割愛。
+
+== glance-scrubber.conf ==
+
+: glance-scrubber.conf
+; https://docs.openstack.org/glance/wallaby/configuration/glance_scrubber.html
+
+割愛。
+
+== Sample configuration for Glance API,  Glance Scrubber, Glance Manage, Glance Cache ==
+
+: Glance Sample Configuration
+; https://docs.openstack.org/glance/wallaby/configuration/sample-configuration.html
+
+割愛。
+
+= Glance ユーザガイド =
+
+; Glance User Guide
+: https://docs.openstack.org/glance/wallaby/user/index.html
+
+== Image 識別子 ==
+
+<syntaxhighlight lang="text">
+${GLANCE_SERVER_LOCATION}/v1/images/${ID}
+</syntaxhighlight>
+
+<code>${GLANCE_SERVER_LOCATION}</code> は、Glance サーバがインストールされているディレクトリになります。
+<code>${ID}</code> は、登録したイメージに一意に割り当てられたIDで、UUID が使用されています。
+
+== イメージステータス ==
+=== queued ===
+Glance のイメージになるために、たまされている状態。
+この状態では、まだイメージはアップロードされていない状態で、Glance には明示的にサイズ0 でないことが通知されます。
+
+=== saving ===
+Glance に、現在アップロードされている状態。
+HTTP のPOST メソッドでパス<code>/images/...</code> に対してリクエストを飛ばして、登録完了が返ってきたら、OpenStack のどこかのリージョンで、そのイメージが利用可能になっていることを意味します(完了したからと言って、すべてのリージョンで使用できるとは限りません)。
+
+=== uploading ===
+<code>import data-put</code> が呼ばれた状態です。
+この状態になっている間は、<code>PUT /file</code> リクエストは、許可されません。
+(PUT メソッドの/file を呼び出すことは、saving 状態になる点に注意してください。PUT メソッドの<code>/stage</code> はsaving 状態のイメージに対して許可されません。したがって、同じimage で両方のアップロード方式を利用することはできません)
+
+=== importing ===
+import されている状態で、使用する準備ができていない状態です。
+
+=== active ===
+Glance でimage が使用できる状態です。
+これは、image のアップロードが完了したとき、またはイメージサイズが明示的に0 に設定されたときに発生します。
+
+=== deactivate ===
+管理者ユーザ以外のアクセスが許可されいない状態です。
+イメージのダウンロード、エキスポート、クローニングを要求する操作を実行することができません。
+
+=== killed ===
+image のアップロード中にエラーが発生し、利用できない状態です。
+
+=== deleted ===
+Glance は、image に関する情報を保持していますが、使用できない状態です。
+この状態のimage は、後ほど自動的に削除されます。
+
+=== pending_delete ===
+delete と似た状態ですが、image データをまだ持っている状態です。
+この状態のimage は、復旧することができません。
+
+== image の状態遷移 ==
+[[Image:GlanceStatusMovement0001.png]]<br />
+
+=== pending ===
+Glance で、タスクが予約された状態です。
+また処理が実行されていない状態です。
+
+=== processing ===
+処理されるために取得された状態で、Glance の実行ロジックのバックグラウンドとして実行されている状態です。
+
+=== success ===
+Glance で、処理が成功した状態です。
+結果フィールドで、より詳細な情報を見ることができます。
+
+=== failure ===
+エラーが発生した状態で、処理が継続できない状態です。
+結果フィールドで、エラーの詳細を見ることができます。
+
+== ディスクとコンテナのフォーマット ==
+
+; Disk and Container Formats
+: https://docs.openstack.org/glance/wallaby/user/formats.html
+
+割愛。
+
+== メタデータ定義コンセプト ==
+
+; Metadata Definition Concepts
+: https://docs.openstack.org/glance/wallaby/user/metadefs-concepts.html
+
+== Glance Image public API の利用 ==
+
+; Using Glance’s Image Public APIs
+: https://docs.openstack.org/glance/wallaby/user/glanceapi.html
+
+v1 のAPI は既に廃止。
+
+== メタデータ定義Catalog Public API を使用する ==
+
+; Using Glance’s Metadata Definitions Catalog Public API
+: https://docs.openstack.org/glance/wallaby/user/glanceapi.html
+
+Version 1 のAPI については、廃止された。
+Version 2 のAPI については、以下のリンクからの記事になります。
+
+; Image Membership Changes in Version 2.0
+: https://docs.openstack.org/glance/wallaby/user/glanceapi.html#image-membership-changes-in-version-2-0
+
+また、Version 2 のAPI として、<code>Images v2 Stores API</code>, <code>Images v2 Tasks API</code> といった機能を持ち回せます。
+
+== API メッセージローカリゼーション ==
+クライアントは、メッセージの翻訳を、<code>Accept-Language</code> ヘッダを使って要求することができます。
+
+; API Message Localization
+: https://docs.openstack.org/glance/wallaby/user/glanceapi.html#api-message-localization
+
+; 14 Header Field Definitions
+: https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
+
+= Glance のクライアントツール =
+
+; Using Glance’s Client Tools
+: https://docs.openstack.org/glance/wallaby/user/glanceclient.html
+
+Glance のクライアントツールとして、主にPython 製のクライアントツールがある。
+オフィシャルページとしては、下記の通り。
+
+; Python Bindings for the OpenStack Images API
+: https://docs.openstack.org/python-glanceclient/latest/
+
+= 参考 =
+; Install OpenStack services
+: https://docs.openstack.org/install-guide/openstack-services.html#minimal-deployment-for-wallaby

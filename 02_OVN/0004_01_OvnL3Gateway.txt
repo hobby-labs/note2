@@ -1,0 +1,64 @@
+# OVN L3 Gateway
+
+* all nodes
+```
+# apt-get update
+# apt-get install -y openvswitch-switch openvswitch-common openvswitch-switch-dpdk ovn-central ovn-common ovn-host
+# systemctl enable --now openvswitch-switch
+# ovs-vsctl add-br br-int
+```
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-sbctl set-connection ptcp:6642
+ovn-central-01 # ss -tlnp | grep 6642
+```
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+all-nodes # ovs-vsctl set open_vswitch . \
+    external_ids:ovn-remote=tcp:192.168.2.41:6642 \
+    external_ids:ovn-encap-ip=$(ip addr show enp9s0 | awk '$1 == "inet" {print $2} ' | cut -f1 -d /) \
+    external_ids:ovn-encap-type=geneve \
+    external_ids:system-id=$(hostname)
+```
+
+```
+ovn-central-01 # ovn-sbctl show
+Chassis ovn-central-01
+    hostname: ovn-central-01
+    Encap geneve
+        ip: "192.168.2.41"
+        options: {csum="true"}
+Chassis ovn-host-01
+    hostname: ovn-host-01
+    Encap geneve
+        ip: "192.168.2.42"
+        options: {csum="true"}
+Chassis ovn-host-02
+    hostname: ovn-host-02
+    Encap geneve
+        ip: "192.168.2.43"
+        options: {csum="true"}
+```
+
+論理スイッチとポートを追加します。
+
+```
+ovn-central-01 # ovn-nbctl ls-add ls0
+ovn-central-01 # ovn-nbctl lsp-add ls0 ln_port
+ovn-central-01 # ovn-nbctl lsp-set-addresses ln_port unknown
+ovn-central-01 # ovn-nbctl lsp-set-type ln_port localnet
+ovn-central-01 # ovn-nbctl lsp-set-options ln_port network_name=physnet1
+
+ovn-central-01 # ovs-vsctl set open . external-ids:ovn-bridge-mappings=physnet1:br-ex
+
+ovn-central-01 # ovn-nbctl lr-add lr0
+ovn-central-01 # ovn-nbctl lrp-add lr0 lrp0 c0:ff:ee:00:00:01 192.168.5.0/24
+ovn-central-01 # 
+
+
+ovn-central-01 # ovn-nbctl set logical_router_port lrp0 options:redirect-chassis=ovn-central-01
+ovn-central-01 # ovn-nbctl lr-nat-add lr0 snat 192.168.1.91 10.0.0.0/24
+```
+

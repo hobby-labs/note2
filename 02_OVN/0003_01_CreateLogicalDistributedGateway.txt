@@ -1,0 +1,395 @@
+# 外部接続するための前提
+外部接続するために、OVN は下記の方法を提供しています。
+
+* 分散されたゲートウェイとして参照される、分散されたゲートウェイポート
+* 論理ゲートウェイルーター
+
+ここのページでは、分散されたゲートウェイで実現する方式について説明していきます。
+
+# パッケージのインストール
+
+* all nodes
+```
+# apt-get update
+# apt-get install -y openvswitch-switch openvswitch-common openvswitch-switch-dpdk ovn-central ovn-common ovn-host
+```
+
+* all nodes
+```
+# systemctl enable --now openvswitch-switch
+# #ovs-vsctl add-br br-int
+```
+
+* ovn-central-01
+```
+# ovn-sbctl set-connection ptcp:6642
+# ss -tlnp | grep 6642
+```
+
+各ノードから下記コマンドを実行して、`ovn-central-01`へ接続します。
+
+* ovn-central-01,ovn-host-01,ovn-host-02
+```
+all-nodes # ovs-vsctl set open_vswitch . \
+    external_ids:ovn-remote=tcp:192.168.2.31:6642 \
+    external_ids:ovn-encap-ip=$(ip addr show enp9s0 | awk '$1 == "inet" {print $2} ' | cut -f1 -d /) \
+    external_ids:ovn-encap-type=geneve \
+    external_ids:system-id=$(hostname)
+```
+
+接続が完了したら、`ovn-sbctl show` コマンドで、Chassis が登録されていることを確認します。
+
+```
+ovn-central-01 # ovn-sbctl show
+Chassis ovn-compute-02
+    hostname: ovn-compute-02
+    Encap geneve
+        ip: "192.168.2.35"
+        options: {csum="true"}
+Chassis ovn-compute-06
+    hostname: ovn-compute-06
+    Encap geneve
+        ip: "192.168.2.39"
+        options: {csum="true"}
+Chassis ovn-controller-02
+    hostname: ovn-controller-02
+    Encap geneve
+        ip: "192.168.2.32"
+        options: {csum="true"}
+Chassis ovn-controller-01
+    hostname: ovn-controller-01
+    Encap geneve
+        ip: "192.168.2.31"
+        options: {csum="true"}
+Chassis ovn-compute-03
+    hostname: ovn-compute-03
+    Encap geneve
+        ip: "192.168.2.36"
+        options: {csum="true"}
+Chassis ovn-controller-03
+    hostname: ovn-controller-03
+    Encap geneve
+        ip: "192.168.2.33"
+        options: {csum="true"}
+Chassis ovn-compute-04
+    hostname: ovn-compute-04
+    Encap geneve
+        ip: "192.168.2.37"
+        options: {csum="true"}
+Chassis ovn-compute-05
+    hostname: ovn-compute-05
+    Encap geneve
+        ip: "192.168.2.38"
+        options: {csum="true"}
+Chassis ovn-compute-01
+    hostname: ovn-compute-01
+    Encap geneve
+        ip: "192.168.2.34"
+        options: {csum="true"}
+```
+
+```
+@ovn-central-01 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-central-01, ovn-encap-ip="192.168.1.61", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-central-01}
+
+@ovn-host-01 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-host-01, ovn-encap-ip="192.168.1.62", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-host-01}
+
+@ovn-host-02 ~# ovs-vsctl --columns external_ids list open_vswitch
+external_ids        : {hostname=ovn-host-02, ovn-encap-ip="192.168.1.63", ovn-encap-type=geneve, ovn-remote="tcp:192.168.1.61:6642", rundir="/var/run/openvswitch", system-id=ovn-host-02}
+```
+
+トンネルインタフェースを確認します。
+
+```
+ovn-central-01 # ovs-vsctl show
+5f019e41-485b-4d2b-b536-3ec84368e8c0
+    Bridge br-int
+        fail_mode: secure
+        Port br-int
+            Interface br-int
+                type: internal
+        Port ovn-ovn-co-5
+            Interface ovn-ovn-co-5
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.38"}
+        Port ovn-ovn-co-6
+            Interface ovn-ovn-co-6
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.37"}
+        Port ovn-ovn-co-7
+            Interface ovn-ovn-co-7
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.34"}
+        Port ovn-ovn-co-4
+            Interface ovn-ovn-co-4
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.39"}
+        Port ovn-ovn-co-0
+            Interface ovn-ovn-co-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.32"}
+        Port ovn-ovn-co-3
+            Interface ovn-ovn-co-3
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.35"}
+        Port ovn-ovn-co-2
+            Interface ovn-ovn-co-2
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.36"}
+        Port ovn-ovn-co-1
+            Interface ovn-ovn-co-1
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.33"}
+    ovs_version: "2.13.3"
+```
+
+
+* ovn-central-01
+```
+ovn-central-01 # ovs-vsctl set open . external-ids:ovn-bridge-mappings=provider:br-provider
+ovn-central-01 # ovs-vsctl --may-exist add-br br-provider
+ovn-central-01 # ovs-vsctl --may-exist add-port br-provider enp1s0
+
+ovn-central-01 # ovn-sbctl show
+```
+
+* ovn-central-01
+```
+ovn-central-01 # ovn-nbctl ls-add sw0
+ovn-central-01 # ovn-nbctl lsp-add sw0 sw0-port1
+ovn-central-01 # ovn-nbctl lsp-set-addresses sw0-port1 "00:00:01:00:00:03 10.0.0.3"
+ovn-central-01 # 
+ovn-central-01 # ovn-nbctl ls-add sw1
+ovn-central-01 # ovn-nbctl lsp-add sw1 sw1-port1
+ovn-central-01 # ovn-nbctl lsp-set-addresses sw1-port1 "00:00:02:00:00:03 20.0.0.3"
+ovn-central-01 # 
+ovn-central-01 # ovn-nbctl lr-add lr0
+ovn-central-01 # # Connect sw0 to lr0
+ovn-central-01 # ovn-nbctl lrp-add lr0 lr0-sw0 00:00:00:00:ff:01 10.0.0.1/24
+ovn-central-01 # ovn-nbctl lsp-add sw0 sw0-lr0
+ovn-central-01 # ovn-nbctl lsp-set-type sw0-lr0 router
+ovn-central-01 # ovn-nbctl lsp-set-addresses sw0-lr0 router
+ovn-central-01 # ovn-nbctl lsp-set-options sw0-lr0 router-port=lr0-sw0
+ovn-central-01 # 
+ovn-central-01 # # Connect sw1 to lr0
+ovn-central-01 # ovn-nbctl lrp-add lr0 lr0-sw1 00:00:00:00:ff:02 20.0.0.1/24
+ovn-central-01 # ovn-nbctl lsp-add sw1 sw1-lr0
+ovn-central-01 # ovn-nbctl lsp-set-type sw1-lr0 router
+ovn-central-01 # ovn-nbctl lsp-set-addresses sw1-lr0 router
+ovn-central-01 # ovn-nbctl lsp-set-options sw1-lr0 router-port=lr0-sw1
+```
+
+`ovn-nbctl show` コマンドを実行して、作成した論理スイッチとルーターを確認してみましょう。
+先程作成した論理スイッチ(`sw0`, `sw1`)と論理ルーター(`lr0`)、論理スイッチポート(`sw0-lr0`, `sw1-lr0`)が作成されていることが確認できます。
+
+```
+ovn-central-01 # ovn-nbctl show
+switch 8c217aa8-f98d-49ff-b662-deb9a954d612 (sw0)
+    port sw0-lr0
+        type: router
+        router-port: lr0-sw0
+    port sw0-port1
+        addresses: ["00:00:01:00:00:03 10.0.0.3"]
+switch d83e2f64-72fe-4223-a4be-4d3c04487c0d (sw1)
+    port sw1-port1
+        addresses: ["00:00:02:00:00:03 20.0.0.3"]
+    port sw1-lr0
+        type: router
+        router-port: lr0-sw1
+router 1a974b3c-cbf6-43e5-adb4-55b5894ab843 (lr0)
+    port lr0-sw0
+        mac: "00:00:00:00:ff:01"
+        networks: ["10.0.0.1/24"]
+    port lr0-sw1
+        mac: "00:00:00:00:ff:02"
+        networks: ["20.0.0.1/24"]
+```
+
+provider 論理スイッチを作成します。
+```
+ovn-controller-01 # ovn-nbctl ls-add public
+ovn-controller-01 # # Create a localnet port
+ovn-controller-01 # ovn-nbctl lsp-add public ln-public
+ovn-controller-01 # ovn-nbctl lsp-set-type ln-public localnet
+ovn-controller-01 # ovn-nbctl lsp-set-addresses ln-public unknown
+ovn-controller-01 # ovn-nbctl lsp-set-options ln-public network_name=provider
+```
+
+# 分散ルーターポートの作成
+```
+ovn-controller-01 # ovn-nbctl lrp-add lr0 lr0-public 00:00:20:20:12:13 172.168.0.200/24
+ovn-controller-01 # ovn-nbctl lsp-add public public-lr0
+ovn-controller-01 # ovn-nbctl lsp-set-type public-lr0 router
+ovn-controller-01 # ovn-nbctl lsp-set-addresses public-lr0 router
+ovn-controller-01 # ovn-nbctl lsp-set-options public-lr0 router-port=lr0-public
+```
+
+# ゲートウェイルータポートをスケジュールする
+```
+ovn-controller-01 # ovn-nbctl set logical_router_port lr0-public options:redirect-chassis=ovn-controller-01
+ovn-controller-01 # ovn-nbctl list logical_router_port lr0-public
+_uuid               : da9ae796-2479-41b3-ae34-15fab5d8b477
+enabled             : []
+external_ids        : {}
+gateway_chassis     : []
+ha_chassis_group    : []
+ipv6_ra_configs     : {}
+mac                 : "00:00:20:20:12:13"
+name                : lr0-public
+networks            : ["172.168.0.200/24"]
+options             : {redirect-chassis=controller-0}
+peer                : []
+```
+
+`ovn-sbctl show` コマンドを実行すると、`ovn-controller-01` が`lr0-public` ルーターポートをホスティングしていることがわかります。
+
+```
+ovn-controller-01 # ovn-sbctl show
+...
+Chassis ovn-controller-01
+    hostname: ovn-controller-01
+    Encap geneve
+        ip: "192.168.2.31"
+        options: {csum="true"}
+    Port_Binding cr-lr0-public
+...
+```
+
+# HA モードをスケジューリングする
+HA モードでゲートウェイを使用するために、優先順位をつけます。
+起動しているホストの中で、最も優先順位の高いホストがルーターシャシーとして利用されます。
+以下の例では、`ovn-controller-02` シャシーを最も高い優先度で設定しているので、スケジューリング後に`ovn-sbctl show` コマンドを実行すると、`ovn-controller-02` に`cr-lr0-public` がバインディングされていることが確認できます。
+
+```
+ovn-controller-01 # ovn-nbctl lrp-set-gateway-chassis lr0-public ovn-controller-01 10
+ovn-controller-01 # ovn-nbctl lrp-set-gateway-chassis lr0-public ovn-controller-02 20
+ovn-controller-01 # ovn-nbctl lrp-set-gateway-chassis lr0-public ovn-controller-03 15
+
+ovn-controller-01 # ovn-nbctl list gateway_chassis
+_uuid               : 6e6a710e-ba04-45a0-8133-c22f90a34eb0
+chassis_name        : ovn-controller-03
+external_ids        : {}
+name                : lr0-public-ovn-controller-03
+options             : {}
+priority            : 15
+
+_uuid               : e1cfee46-4a30-4da5-a34b-89244dd595d0
+chassis_name        : ovn-controller-02
+external_ids        : {}
+name                : lr0-public-ovn-controller-02
+options             : {}
+priority            : 20
+
+_uuid               : 716e6a23-02e1-45f0-b5be-884185ce3ebb
+chassis_name        : ovn-controller-01
+external_ids        : {}
+name                : lr0-public-ovn-controller-01
+options             : {}
+priority            : 10
+
+ovn-controller-01 # ovn-nbctl list logical_router_port lr0-public
+_uuid               : dd44cb47-3d52-4918-ab1d-c10b3e0a4732
+enabled             : []
+external_ids        : {}
+gateway_chassis     : [6e6a710e-ba04-45a0-8133-c22f90a34eb0, 716e6a23-02e1-45f0-b5be-884185ce3ebb, e1cfee46-4a30-4da5-a34b-89244dd595d0]
+ha_chassis_group    : []
+ipv6_ra_configs     : {}
+mac                 : "00:00:20:20:12:13"
+name                : lr0-public
+networks            : ["172.168.0.200/24"]
+options             : {redirect-chassis=ovn-controller-01}
+peer                : []
+
+ovn-controller-01 # ovn-sbctl show
+Chassis ovn-compute-02
+    hostname: ovn-compute-02
+    Encap geneve
+        ip: "192.168.2.35"
+        options: {csum="true"}
+Chassis ovn-compute-06
+    hostname: ovn-compute-06
+    Encap geneve
+        ip: "192.168.2.39"
+        options: {csum="true"}
+Chassis ovn-controller-02
+    hostname: ovn-controller-02
+    Encap geneve
+        ip: "192.168.2.32"
+        options: {csum="true"}
+    Port_Binding cr-lr0-public
+Chassis ovn-controller-01
+    hostname: ovn-controller-01
+    Encap geneve
+        ip: "192.168.2.31"
+        options: {csum="true"}
+Chassis ovn-compute-03
+    hostname: ovn-compute-03
+    Encap geneve
+        ip: "192.168.2.36"
+        options: {csum="true"}
+Chassis ovn-controller-03
+    hostname: ovn-controller-03
+    Encap geneve
+        ip: "192.168.2.33"
+        options: {csum="true"}
+Chassis ovn-compute-04
+    hostname: ovn-compute-04
+    Encap geneve
+        ip: "192.168.2.37"
+        options: {csum="true"}
+Chassis ovn-compute-05
+    hostname: ovn-compute-05
+    Encap geneve
+        ip: "192.168.2.38"
+        options: {csum="true"}
+Chassis ovn-compute-01
+    hostname: ovn-compute-01
+    Encap geneve
+        ip: "192.168.2.34"
+        options: {csum="true"}
+...
+```
+
+補足として、以下のコマンドを実行することで、分散ルーターポートに関連付けされているゲートウェイシャシーを削除することができます。
+
+```
+ovn-controller-01 # ovn-nbctl lrp-del-gateway-chassis lr0-public ovn-controller-03
+```
+
+OVN はHA をサポートするために、Bidirectional Forwarding Detection(BFD) プロトコルを使用しています。
+分散ゲートウェイポートを構成しているゲートウェイシャシーがダウンすると、すべてのシャシーがそれを検知し、次に優先度の高井ゲートウェイシャシーがポートとして構成されます。  
+  
+
+より詳細な情報は[l3ha-support(OpenStack Document)](https://docs.openstack.org/networking-ovn/latest/admin/routing.html#l3ha-support) または、`man ovn-nb`, `man mvn-northd`, `man ovn-controller` コマンドを実行してください。
+
+# VM が外部へデータ送信した時の挙動
+```
+ovn-controller-01 # ovn-nbctl ls-add net0
+ovn-controller-01 # ovn-nbctl set logical_switch net0 other_config:subnet="172.168.0.0/24" other_config:exclude_ips="172.168.0.100..172.168.0.199"
+ovn-controller-01 # ovn-nbctl dhcp-options-create 172.168.0.0/24
+ovn-controller-01 # CIDR_UUID=$(ovn-nbctl --bare --columns=_uuid find dhcp_options cidr="172.168.0.0/24")
+ovn-controller-01 # echo $CIDR_UUID
+ovn-controller-01 # ovn-nbctl dhcp-options-set-options ${CIDR_UUID} lease_time=3600 router=172.168.0.1 server_id=172.168.0.1 server_mac=c0:ff:ee:00:00:01
+ovn-controller-01 # ovn-nbctl list dhcp_options
+
+ovn-controller-01 # ovn-nbctl lsp-add net0 port1
+ovn-controller-01 # ovn-nbctl lsp-set-addresses port1 "c0:ff:ee:00:00:11 dynamic"
+
+ovn-controller-01 # ovn-nbctl lsp-set-dhcpv4-options port1 $CIDR_UUID
+
+ovn-controller-01 # ovn-nbctl show
+
+ovn-controller-01 # ovn-nbctl list logical_switch_port
+
+```
+
+```
+ovn-compute-node01 # ovs-vsctl add-port br-int sw0 -- set interface sw0 type=internal mac='["c0:ff:ee:00:00:11"]' external_ids:iface-id=sw0
+ovn-compute-node01 # ovs-vsctl add-port br-int port1 -- set interface port1 type=internal mac='["c0:ff:ee:00:00:11"]' external_ids:iface-id=port1
+```
+
+
+# 参考
+* [How to create an Open Virtual Network distributed gateway router](https://developers.redhat.com/blog/2018/11/08/how-to-create-an-open-virtual-network-distributed-gateway-router#)
+

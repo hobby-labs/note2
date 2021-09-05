@@ -1,0 +1,215 @@
+# Ovn L3 Gateway を作成する
+
+* all nodes
+```
+# apt-get update
+# apt-get install -y openvswitch-switch openvswitch-common openvswitch-switch-dpdk ovn-central ovn-common ovn-host docker.io
+
+# systemctl enable --now openvswitch-switch
+```
+
+```
+ovn-central-01 # systemctl enable --now ovn-central
+ovn-central-01 # ovn-sbctl set-connection ptcp:6642 -- set connection . inactivity_probe=60000
+ovn-central-01 # ovn-nbctl set-connection ptcp:6641 -- set connection . inactivity_probe=60000
+ovn-central-01 # ss -tlnp | grep 664
+```
+
+* all nodes
+```
+all-nodes # ovs-vsctl set open_vswitch . \
+    external_ids:ovn-remote=tcp:192.168.2.41:6642 \
+    external_ids:ovn-encap-ip=$(ip addr show enp9s0 | awk '$1 == "inet" {print $2} ' | cut -f1 -d /) \
+    external_ids:ovn-encap-type=geneve \
+    external_ids:system-id=$(hostname)
+```
+
+```
+ovn-central-01 # ovn-sbctl show
+Chassis ovn-central-01
+    hostname: ovn-central-01
+    Encap geneve
+        ip: "192.168.2.41"
+        options: {csum="true"}
+Chassis ovn-host-02
+    hostname: ovn-host-02
+    Encap geneve
+        ip: "192.168.2.43"
+        options: {csum="true"}
+Chassis ovn-host-01
+    hostname: ovn-host-01
+    Encap geneve
+        ip: "192.168.2.42"
+        options: {csum="true"}
+```
+
+
+
+論理ルーターを作成する。
+
+```
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lr-add ovn-cluster
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lrp-add ovn-cluster ovn-cluster-fip-ns1 00:00:00:65:77:09 100.69.0.1/16
+```
+
+```
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 ls-add fip-ns1
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lsp-add fip-ns1 fip-ns1-ovn-cluster
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lsp-set-type fip-ns1-ovn-cluster router
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lsp-set-addresses fip-ns1-ovn-cluster 00:00:00:65:77:09
+ovn-central-01 # ovn-nbctl --db=tcp:192.168.2.41:6641 lsp-set-options fip-ns1-ovn-cluster router-port=ovn-cluster-fip-ns1
+```
+
+# `ovn-host1-01` でDocker を起動する。
+# 
+# ```
+# ovn-host-01 # # docker run -itd --name app1 halfcrazy/toolbox entrypoint.sh
+# ovn-host-01 # docker run -itd --network none --name app1 halfcrazy/toolbox entrypoint.sh
+# ovn-host-01 # # ovs-docker add-port br-int enp1s0 app1 --ipaddress=100.69.0.31/24 --mtu=1400
+# 
+# ovn-host-01 # ovs-vsctl show > before.txt
+# 
+# ovn-host-01 # ovs-docker add-port br-int eth1 app1 --ipaddress=100.69.0.31/24 --mtu=1300
+# ovn-host-01 # docker exec -ti app1 ip a
+# 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+#     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+#     inet 127.0.0.1/8 scope host lo
+#        valid_lft forever preferred_lft forever
+# 7: eth0@if8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+#     link/ether 02:42:ac:11:00:02 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+#     inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+#        valid_lft forever preferred_lft forever
+# 9: enp9s0@if10: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue state UP group default qlen 1000
+#     link/ether 6e:ec:2d:84:04:a4 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+#     inet 100.69.0.31/24 scope global enp9s0
+#        valid_lft forever preferred_lft forever
+# 
+# ovn-host-01 # ovs-vsctl show > after.txt
+# ovn-host-01 # diff -u before.txt after.txt
+# ```
+
+ネームスペースを作成します。
+
+```
+#ovn-host-01 # ovn-nbctl ls-add app1
+#ovn-host-01 # ovn-nbctl show
+switch fe0a3a21-1187-4891-b0b0-15f92ecdd2da (app1)
+
+ovn-host-01 # ovs-vsctl add-port br-int port1 -- set interface port1 type=internal external_ids:iface-id=port1
+ovn-host-01 # ovs-vsctl show
+62fb47ae-02c4-442d-91ff-18e47b09f8d2
+    Bridge br-int
+        fail_mode: secure
+        Port ovn-ovn-ho-0
+            Interface ovn-ovn-ho-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.43"}
+        Port br-int
+            Interface br-int
+                type: internal
+        Port ovn-ovn-ho-1
+            Interface ovn-ovn-ho-1
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.42"}
+        Port port1
+            Interface port1
+                type: internal
+    ovs_version: "2.13.3"
+```
+
+論理ネットワークの構成を確認してみましょう。
+Docker と接続している論理スイッチ`fip-ns1` と、そのスイッチが接続しているルーター`ovn-cluster` が確認できます。
+
+```
+ovn-central-01 # ovn-nbctl show
+switch 36c188ee-d71e-4958-94f1-152aeeac1414 (fip-ns1)
+    port fip-ns1-ovn-cluster
+        type: router
+        addresses: ["00:00:00:65:77:09"]
+        router-port: ovn-cluster-fip-ns1
+router 78eb6a17-ea90-4c80-94d3-f045bef62955 (ovn-cluster)
+    port ovn-cluster-fip-ns1
+        mac: "00:00:00:65:77:09"
+        networks: ["100.69.0.1/16"]
+```
+
+`ovn-host-01` で、物理構成を確認してみましょう。
+各ホスト(`ovn-central-01`, `ovn-host-02`)及び、インテグレーションスイッチ(`br-int`)、Docker のインタフェースと接続しているポートが確認できます。
+
+```
+ovn-host-01 # ovs-vsctl show
+6ee3fa07-e503-4301-96e6-22765c3d17bd
+    Bridge br-int
+        Port ovn-ovn-ce-0
+            Interface ovn-ovn-ce-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.41"}
+        Port ovn-ovn-ho-0
+            Interface ovn-ovn-ho-0
+                type: geneve
+                options: {csum="true", key=flow, remote_ip="192.168.2.43"}
+        Port f1aa43fa55644_l
+            Interface f1aa43fa55644_l
+        Port br-int
+            Interface br-int
+                type: internal
+    ovs_version: "2.13.3"
+```
+
+namespace を作成します。
+
+```
+ovn-host-01 # ip netns add vm1
+ovn-host-01 # ip link set netns vm1 port1
+ovn-host-01 # ip -n vm1 addr add 127.0.0.1/8 dev lo
+ovn-host-01 # ip -n vm1 link set lo up
+ovn-host-01 # ip -n vm1 addr add 100.69.0.31/24 dev port1
+ovn-host-01 # ip -n vm1 link set dev port1 mtu 1400
+ovn-host-01 # ip -n vm1 link set port1 up
+ovn-host-01 # ip -n vm1 route add default via 100.69.0.1
+
+ovn-central-01 # ovs-vsctl add-port br-int port3 -- set interface port3 type=internal external_ids:iface-id=port3
+ovn-host-01 # ip netns add vm3
+ovn-host-01 # ip link set netns vm3 port3
+ovn-host-01 # ip -n vm3 addr add 127.0.0.1/8 dev lo
+ovn-host-01 # ip -n vm3 link set lo up
+ovn-host-01 # ip -n vm3 addr add 100.69.0.33/24 dev port3
+ovn-host-01 # ip -n vm3 link set dev port3 mtu 1400
+ovn-host-01 # ip -n vm3 link set port3 up
+ovn-host-01 # ip -n vm3 route add default via 100.69.0.1
+```
+
+`ovn-host-01` に外部接続用のインタフェースを作成し、それを物理インタフェースに関連付けます。
+
+```
+ovn-host-01 # ovs-vsctl add-br br-ex
+ovn-host-01 # ovs-vsctl add-port br-ex enp1s0
+ovn-host-01 # ip addr add 192.168.1.91/24 dev br-ex
+ovn-host-01 # ip link set br-ex up
+```
+
+`ovn-central-01` にて論理スイッチ`public` を作成します。
+
+```
+ovn-central-01 # ovn-nbctl lrp-add ovn-cluster lrp-0000001 00:00:00:4C:3F:15 192.168.1.99/24
+ovn-central-01 # ovn-nbctl lrp-set-gateway-chassis lrp-0000001 ovn-central-01
+
+ovn-central-01 # ovn-nbctl ls-add public
+ovn-central-01 # ovn-nbctl lsp-add public ae9b52 -- set logical_switch_port ae9b52 type=router -- set logical_switch_port ae9b52 options:router-port=lrp-0000001
+ovn-central-01 # ovn-nbctl lsp-set-addresses ae9b52 00:00:00:4C:3F:15
+
+ovn-central-01 # ovn-nbctl lsp-add public provnet-d1ac28 -- set logical_switch_port provnet-d1ac28 type=localnet
+ovn-central-01 # ovn-nbctl lsp-set-addresses provnet-d1ac28 unknown
+ovn-central-01 # ovn-nbctl lsp-set-options provnet-d1ac28 network-name="fip-test"
+
+ovn-central-01 # ovs-vsctl set Open_vSwitch . external-ids:ovn-bridge-mappings=fip-test:br-ex
+```
+
+NAT を作成します。
+
+```
+ovn-central-01 # ovn-nbctl lr-nat-add ovn-cluster dnat_and_snat 192.168.1.98 100.69.0.31
+ovn-central-01 # ovn-nbctl lr-nat-add ovn-cluster snat 192.168.1.99 100.69.0.0/16
+```
+
+
