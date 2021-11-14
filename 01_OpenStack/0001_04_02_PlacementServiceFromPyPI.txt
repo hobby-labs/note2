@@ -151,12 +151,15 @@ password = p@ssw0rd
 == placement DB の作成 ==
 
 <syntaxhighlight lang="console">
-openstack-controller-node01 ~# placement-manage db sync
+openstack-controller-node01 ~# su -s /bin/sh -c "placement-manage db sync" placement
 </syntaxhighlight>
+
+<code>uwsgi</code> コマンドを使って、placement-api のテストサーバーを起動します。
+<code>--wsgi-file</code> オプションで指定するplacement-api コマンドのパスですが、公式ドキュメントでは<code>/usr/bin/placement-api</code> となっていましたが、私の環境では<code>/usr/bin/placement-api</code> となっていたので、そちらを使うようにします。
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# pip install uwsgi
-openstack-controller-node01 ~# uwsgi -M --http :8778 --wsgi-file /usr/local/bin/placement-api --processes 2 --threads 10
+openstack-controller-node01 ~# uwsgi -M --http :8778 --wsgi-file /usr/bin/placement-api --processes 2 --threads 10
 </syntaxhighlight>
 
 Placement が起動したら、curl コマンドで動作確認をしてみましょう。
@@ -182,7 +185,7 @@ openstack-controller-node01 # useradd -c "User for Placement API" -g placement -
 Listen 8778
 
 <VirtualHost *:8778>
-    WSGIScriptAlias / /usr/local/bin/placement-api
+    WSGIScriptAlias / /usr/bin/placement-api
     WSGIDaemonProcess placement-api processes=5 threads=1 user=placement group=placement display-name=%{GROUP}
     WSGIProcessGroup placement-api
     WSGIApplicationGroup %{GLOBAL}
