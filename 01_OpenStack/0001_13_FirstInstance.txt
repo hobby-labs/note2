@@ -42,7 +42,7 @@ openstack-controller-node01 # openstack subnet create --network private \
 openstack-controller-node01 # openstack network create --provider-network-type flat --provider-physical-network provider --external public
 
 openstack-controller-node01 # # Define subnet for the public network.
-openstack-controller-node01 # openstack subnet create --network public --allocation-pool start=192.168.1.160,end=192.1.1.200 --no-dhcp --subnet-range 192.168.1.0/24 public_subnet
+openstack-controller-node01 # openstack subnet create --network public --allocation-pool start=192.168.1.160,end=192.168.1.200 --no-dhcp --subnet-range 192.168.1.0/24 public_subnet
 openstack-controller-node01 # openstack subnet list
 +--------------------------------------+----------------+--------------------------------------+----------------+
 | ID                                   | Name           | Network                              | Subnet         |

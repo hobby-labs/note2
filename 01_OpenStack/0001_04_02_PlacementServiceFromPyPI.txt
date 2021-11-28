@@ -149,6 +149,8 @@ password = p@ssw0rd
 </syntaxhighlight>
 
 == placement DB の作成 ==
+下記コマンドを使って、DBを同期します。
+公式ドキュメントでは、placement ユーザの指定がありませんでしたが、ここでは念の為指定しておくようにします。
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# su -s /bin/sh -c "placement-manage db sync" placement

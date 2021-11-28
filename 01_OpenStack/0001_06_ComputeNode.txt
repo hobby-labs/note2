@@ -92,16 +92,17 @@ openstack-compute-node01 ~# systemctl restart nova-compute
 
 以下のコマンドは、```コントローラノード(openstack-controller-node01)``` で実行します。
 
-<syntaxhighlight lang="console">
-openstack-controller-node01 ~# . ./admin-openrc
-
-openstack-controller-node01 ~# openstack compute service list --service nova-compute
-+----+--------------+--------------------------------+------+---------+-------+----------------------------+
-| ID | Binary       | Host                           | Zone | Status  | State | Updated At                 |
-+----+--------------+--------------------------------+------+---------+-------+----------------------------+
-|  6 | nova-compute | openstack-block-storage-node01 | nova | enabled | up    | 2021-05-03T13:59:10.000000 |
-+----+--------------+--------------------------------+------+---------+-------+----------------------------+
-</syntaxhighlight>
+# // この手順は必要？
+# <syntaxhighlight lang="console">
+# openstack-controller-node01 ~# . ./admin-openrc
+# 
+# openstack-controller-node01 ~# openstack compute service list --service nova-compute
+# +----+--------------+--------------------------------+------+---------+-------+----------------------------+
+# | ID | Binary       | Host                           | Zone | Status  | State | Updated At                 |
+# +----+--------------+--------------------------------+------+---------+-------+----------------------------+
+# |  6 | nova-compute | openstack-block-storage-node01 | nova | enabled | up    | 2021-05-03T13:59:10.000000 |
+# +----+--------------+--------------------------------+------+---------+-------+----------------------------+
+# </syntaxhighlight>
 
 Compute ホストの検索を行います。
 
