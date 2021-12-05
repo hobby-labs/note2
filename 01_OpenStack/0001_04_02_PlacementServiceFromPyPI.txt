@@ -111,6 +111,12 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne plac
 +--------------+-----------------------------------------+
 </syntaxhighlight>
 
+== placement ユーザの作成 ==
+<syntaxhighlight lang="console">
+openstack-controller-node01 # groupadd placement
+openstack-controller-node01 # useradd -c "User for Placement API" -g placement -s /bin/false -m placement
+</syntaxhighlight>
+
 == openstack-placement のインストール ==
 
 <syntaxhighlight lang="console">
@@ -148,6 +154,11 @@ username = placement
 password = p@ssw0rd
 </syntaxhighlight>
 
+<syntaxhighlight lang="text">
+openstack-controller-node01 ~# chown root:placement /etc/placement/placement.conf
+openstack-controller-node01 ~# chmod 640 /etc/placement/placement.conf
+</syntaxhighlight>
+
 == placement DB の作成 ==
 下記コマンドを使って、DBを同期します。
 公式ドキュメントでは、placement ユーザの指定がありませんでしたが、ここでは念の為指定しておくようにします。
@@ -161,7 +172,7 @@ openstack-controller-node01 ~# su -s /bin/sh -c "placement-manage db sync" place
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# pip install uwsgi
-openstack-controller-node01 ~# uwsgi -M --http :8778 --wsgi-file /usr/bin/placement-api --processes 2 --threads 10
+openstack-controller-node01 ~# uwsgi -M --http :8778 --wsgi-file /usr/local/bin/placement-api --processes 2 --threads 10
 </syntaxhighlight>
 
 Placement が起動したら、curl コマンドで動作確認をしてみましょう。
@@ -170,15 +181,9 @@ Placement が起動したら、curl コマンドで動作確認をしてみま�
 openstack-controller-node01 ~# curl http://openstack-controller-node01:8778/
 </syntaxhighlight>
 
-
 動作確認が完了したら、`Ctrl + C` を押下してuwsgi コマンドを終了します。
 
 == Apache モジュールの設定 ==
-
-<syntaxhighlight lang="console">
-openstack-controller-node01 # groupadd placement
-openstack-controller-node01 # useradd -c "User for Placement API" -g placement -s /bin/false -m placement
-</syntaxhighlight>
 
 次にApache の設定ファイルを作成します(package マネージャに入っているものを参考に作成)。
 
