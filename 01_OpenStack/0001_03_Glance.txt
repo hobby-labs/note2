@@ -69,7 +69,6 @@ MariaDB [(none)]> quit
 openstack-controller-node01 ~# . ./admin-openrc
 </syntaxhighlight>
 
-
 サービスの認証情報を作成するために、以下のステップを実行します。
 
 <syntaxhighlight lang="console">

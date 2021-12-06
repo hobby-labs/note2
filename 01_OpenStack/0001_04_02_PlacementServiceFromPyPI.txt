@@ -192,7 +192,7 @@ openstack-controller-node01 ~# curl http://openstack-controller-node01:8778/
 Listen 8778
 
 <VirtualHost *:8778>
-    WSGIScriptAlias / /usr/bin/placement-api
+    WSGIScriptAlias / /usr/local/bin/placement-api
     WSGIDaemonProcess placement-api processes=5 threads=1 user=placement group=placement display-name=%{GROUP}
     WSGIProcessGroup placement-api
     WSGIApplicationGroup %{GLOBAL}

@@ -548,7 +548,8 @@ Ubuntu 20.04 LTS の場合は、以下のコマンドでapt リポジトリを�
 
 * All servers
 <syntaxhighlight lang="console">
-# add-apt-repository cloud-archive:wallaby
+# add-apt-repository cloud-archive:xena
+# #add-apt-repository cloud-archive:wallaby
 # #add-apt-repository cloud-archive:victoria
 # apt-get update && apt-get -y dist-upgrade
 </syntaxhighlight>
@@ -557,7 +558,7 @@ Ubuntu 20.04 LTS の場合は、以下のコマンドでapt リポジトリを�
 
 * All servers (Ubuntu 20.04 の場合)
 <syntaxhighlight lang="console">
-# apt-get install -y python3-openstackclient python-pip
+# apt-get install -y python3-openstackclient python3-pip
 </syntaxhighlight>
 
 = Install OpenStack =

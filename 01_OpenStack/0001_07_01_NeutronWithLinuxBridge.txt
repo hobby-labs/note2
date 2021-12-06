@@ -153,7 +153,7 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne netw
 コントローラノードに、コンポーネントをインストールします。
 
 <syntaxhighlight lang="console">
-openstack-controller-node01 ~# apt-get install neutron-server neutron-plugin-ml2 \
+openstack-controller-node01 ~# apt-get install -y neutron-server neutron-plugin-ml2 \
                                    neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent \
                                    neutron-metadata-agent
 </syntaxhighlight>
