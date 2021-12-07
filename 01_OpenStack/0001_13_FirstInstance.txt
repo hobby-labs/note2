@@ -52,6 +52,7 @@ openstack-controller-node01 # openstack subnet list
 +--------------------------------------+----------------+--------------------------------------+----------------+
 
 openstack-controller-node01 # openstack router create private_router
+openstack-controller-node01 # # 次のコマンドで、namespace にqrouter が作成される
 openstack-controller-node01 # openstack router set --external-gateway public private_router
 openstack-controller-node01 # openstack router add subnet private_router private_subnet
 openstack-controller-node01 # openstack router list
