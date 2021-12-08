@@ -53,7 +53,12 @@ openstack-controller-node01 # openstack subnet list
 
 openstack-controller-node01 # openstack router create private_router
 openstack-controller-node01 # # 次のコマンドで、namespace にqrouter が作成される
+
+openstack-controller-node01 # ## IP アドレスを指定しないでrouter を設定する場合
 openstack-controller-node01 # openstack router set --external-gateway public private_router
+openstack-controller-node01 # ## IP アドレスを指定してrouter を設定する場合
+openstack-controller-node01 # openstack router set --external-gateway public --fixed-ip subnet=192.168.1.0/24,ip-address=192.168.1.254 private_router
+
 openstack-controller-node01 # openstack router add subnet private_router private_subnet
 openstack-controller-node01 # openstack router list
 </syntaxhighlight>
