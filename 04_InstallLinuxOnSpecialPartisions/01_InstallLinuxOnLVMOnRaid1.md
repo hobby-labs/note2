@@ -9,7 +9,7 @@
 
 ```
 # sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" /dev/vda
-# sgdisk -n 2:0:+256M -t 2:fd00 -c 2:"Linux RAID" /dev/vda
+# sgdisk -n 2:0:+512M -t 2:fd00 -c 2:"Linux RAID" /dev/vda
 # sgdisk -n 3:0: -t 3:fd00 -c 3:"Linux RAID" /dev/vda
 
 # sgdisk -R /dev/vdb -G /dev/vda
@@ -17,8 +17,8 @@
 
 # Raid1 を作成する
 ```
-# mdadm -C /dev/md1 -l0 -n2 -f /dev/vd[ab]2
-# mdadm -C /dev/md2 -l0 -n2 -f /dev/vd[ab]3
+# mdadm -C /dev/md1 -l1 -n2 -f /dev/vd[ab]2
+# mdadm -C /dev/md2 -l1 -n2 -f /dev/vd[ab]3
 # cat /proc/mdstat
 
 # mdadm --detail /dev/md1
@@ -29,7 +29,7 @@
 `/dev/md1`, `/dev/md2` 環境上にLVM を作成します。
 
 ```
-# pvcreate /dev/md0 /dev/md1 /dev/md2
+# pvcreate /dev/md1 /dev/md2
 # pvdisplay
 ```
 
@@ -42,6 +42,11 @@
 ```
 # lvcreate -l 100%FREE -n lv-boot vg-boot
 # lvcreate -l 100%FREE -n lv-root vg-root
+```
+
+```
+# mkfs.vfat -F32 /dev/vda1
+# mkfs.vfat -F32 /dev/vdb1
 ```
 
 ## Ubuntu をインストールする
