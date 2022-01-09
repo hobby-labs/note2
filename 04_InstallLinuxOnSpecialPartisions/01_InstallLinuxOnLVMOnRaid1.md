@@ -8,7 +8,7 @@
 ```
 
 ```
-# sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" /dev/sda
+# sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" /dev/vda
 # sgdisk -n 2:0:+256M -t 2:fd00 -c 2:"Linux RAID" /dev/vda
 # sgdisk -n 3:0: -t 3:fd00 -c 3:"Linux RAID" /dev/vda
 
