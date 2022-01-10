@@ -248,8 +248,6 @@ root@ubuntu:~# lvs -a -o +devices
   Total: 4 [46.98 GiB] / in use: 4 [46.98 GiB] / in no VG: 0 [0   ]
 ```
 
-* 参考  
-[How to remove bad disk from LVM2 with the less data loss on other PVs?](https://serverfault.com/a/534283/253941)  
-
-[7.3. RECOVERING FROM LVM MIRROR FAILURE](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/logical_volume_manager_administration/mirrorrecover)
-
+# 参考
+* [How to remove bad disk from LVM2 with the less data loss on other PVs?](https://serverfault.com/a/534283/253941)  
+* [7.3. RECOVERING FROM LVM MIRROR FAILURE](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/logical_volume_manager_administration/mirrorrecover)
