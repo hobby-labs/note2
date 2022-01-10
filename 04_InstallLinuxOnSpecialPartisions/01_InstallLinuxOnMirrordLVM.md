@@ -50,29 +50,28 @@ lv-boot    /boot        ext4
 lv-root    /            xfs
 ```
 
-## EFI 領域をコピーする
-片方どちらかのディスクに障害があっても、必ず起動できるように、もう片方のディスクのEFI パーティションをコピーしておきます。
-
-```
-# dd if=/dev/vda1 of=/dev/vdb1
-```
+インストールが完了したら、次の手順に進みます。
 
 ## セカンダリデバイスのEFI 領域をfstab にコメントとして残しておく
 障害時に`/boot/efi` マウントポイントを復旧しやすくするために、スペア側のディスクの`/boot/efi` 領域をマウントする定義を書いておきましょう。
-そうすることで、もし`/dev/vda` に障害が発生してしまった時に、`/dev/vdb` 側のコメントを解除することで、スムーズに切り替えられるようになります。
 
 ```
 # uuid="$(blkid | grep -P '/dev/vdb1' | sed -e 's/.* UUID="\([^"]\+\)".*/\1/g')"
-# prinof '#/dev/disk/by-uuid/%s /boot/efi vfat defaults 0 1\n' "$uuid" >> /etc/fstab
+# printf '#/dev/disk/by-uuid/%s /boot/efi vfat defaults 0 1\n' "$uuid" >> /etc/fstab
 ```
+
+上記コマンドを実行すると、下記のようにプライマリデバイス(/dev/vda)側の`/dev/efi` マウント定義と、セカンダリデバイス(/dev/vdb)側の`/dev/efi` マウント定義(コメント)の両方が定義されています。
+そうすることで、もし`/dev/vda` に障害が発生してしまった時に、`/dev/vdb` 側のコメントを解除することで、スムーズに切り替えられるようになります。
 
 # エラーから復旧する
 片系のディスクが落ちて、そのディスクを付け替えた後の復旧手順。
-`/dev/vda` が故障して、それを新しいやつに取り替えた後を想定した手順です。
-作業対象のドライブレターを間違えるとシステムが破壊されうるので、注意してください。
+`/dev/vda` が故障して、それを新しいやつに取り替えた後を想定した手順です。  
+  
+まず、`pvdisplay` コマンドでLVM 物理ボリュームの状態を確認します。
+すると下記のような警告と、`PV Name` として`[unknown]` な物理ボリュームがあることがわかります。
 
 ```
-## pvdisplay
+# pvdisplay
 
 // ...
 
@@ -88,55 +87,54 @@ lv-root    /            xfs
   Free PE               0
   Allocated PE          5887
   PV UUID               JgVEs7-wr0q-cCvD-ybMb-eSZm-XHCe-a4yG4F
--> "[unknown]" なステータスの物理ボリュームが確認できる。
 
 // ...
 ```
 
 ## fstab に記載されている/boot/efi をマウントするデバイスが、生存している方のものか確認する
-fstab の/boot/efi 領域のマウントデバイスを変更する。
-/boot/efi 領域をマウントするデバイスが生きている方のデバイスかどうかを確認する。
+必要に応じて、fstab の/boot/efi 領域のマウントデバイスを変更する。
+`blkid` コマンドを実行し、現在正常に動いているデバイスのEFI 領域のファイルシステム(vfat)のUUID を確認します。
 
 ```
-# cat /etc/fstab
+# blkid
 ...
-/dev/disk/by-uuid/FFFF-FFF0 /boot/efi vfat defaults 0 1
-#/dev/disk/by-uuid/FFFF-FFF1 /boot/efi vfat defaults 0 1
-
-# ls -l /dev/disk/by-uuid/FFFF-FFF0
-ls: cannot access '/dev/disk/by-uuid/FFFF-FFF0': No such file or directory
-
-# ls -l /dev/disk/by-uuid/FFFF-FFF1
-lrwxrwxrwx 1 root root ...... /dev/disk/by-uuid/FFFF-FFF0 -> ../../vdb1
+/dev/vdb1: UUID="FFFF-FFF1" TYPE="vfat" PARTLABEL="EFI System" PARTUUID="ffffffff-ffff-ffff-ffff-fffffffffff1"
+...
 ```
 
-上記のように、現在fstab に記載されている方のデバイスが障害となって見えない場合は、スペアの方のデバイスで`/boot/efi` をマウントするように変更する。
-今回の例では、`/dev/disk/by-uuid/FFFF-FFF1` のコメントを解除して、`/dev/disk/by-uuid/FFFF-FFF0` をコメント化しておく。
+## /etc/fstab の書き換え(必要に応じて)
+
+次に`/etc/fstab` を確認し、`/boot/efi` 領域のデバイスが、`blkid`で確認したものと一致するか、確認します。
 
 * /etc/fstab
 ```
-...
-#/dev/disk/by-uuid/FFFF-FFF0 /boot/efi vfat defaults 0 1
+/dev/disk/by-uuid/FFFF-FFF0 /boot/efi vfat defaults 0 1
+#/dev/disk/by-uuid/FFFF-FFF1 /boot/efi vfat defaults 0 1
+```
+
+上記のように一致しない場合、`/etc/fstab` を書き換えます。
+UUID が一致しないということは、今回の障害で使えなくなったディスクが、今まで`/boot/efi` 領域として実際に読まれていたということです、今回の障害で使えなくなってしまいました。
+なので、今後も確実に起動できるよう`/etc/fstab` の`/boot/efi` 領域をマウントするデバイスを、現在生きている方のものに変えておきます。
+
+* /etc/fstab
+```
+/dev/disk/by-uuid/FFFF-FFF0 /boot/efi vfat defaults 0 1
+#/dev/disk/by-uuid/FFFF-FFF1 /boot/efi vfat defaults 0 1
+↓ ↓ ↓
 /dev/disk/by-uuid/FFFF-FFF1 /boot/efi vfat defaults 0 1
-...
 ```
 
-変更が完了したら、マシンを再起動しましょう。
-
-```
-# shutdown -r now
-```
-
-再起動する場合は、生きている方のディスクに、しっかりとブートローダがインストールできている状態です。
-もし、再起動してこない場合、Ubuntu インストール時にブートローダをもう方系のデバイスにコピーするのに失敗している可能性があります。
+インストール時に、しっかりと両方のディスクにEFI 領域が作成されていれば、これで安全にマシンの再起動ができる状態になっています。
 
 ## 新しいディスクを交換する
+新しいディスクをマシンに接続してください。
+ディスクを接続したら下記コマンドを実行して、ディスクのパーティションを再読込してください。
 
 ```
-# shutdown -h now
+# partprobe
 ```
 
-マシンが停止したら、故障したディスクを、新しいディスクに付け替えて起動します。
+ホットスワップに対応していない等、うまく認識しない環境の場合は、マシンを停止してからディスクを接続し、起動するなどして試してみてください。
 
 ## ドライブレターを確認する
 起動後、ドライブレターを確認します。
@@ -152,6 +150,7 @@ brw-rw---- 1 root disk 252, 19 Jan  9 17:25 /dev/vdb3
 ```
 
 上記の出力結果の例では、`/dev/vda` が新しくつないだディスクで、`/dev/vdb` が生き残っているディスクであることを意味します。
+新しくつないだディスク`/dev/vda` に対して、`/dev/vdb` の情報をコピーして復旧していきます。
 
 ## 復旧
 
