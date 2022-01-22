@@ -99,7 +99,7 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne netw
 
 以下のタイプのノードを含む、従来のアーキテクチャの本番用OpenStack デプロイメントツールに手動でインストール、または統合する際に必要なものについて説明します。
 
-* Controller: REST, API 等の音とロールプレーンを実行します
+* Controller: REST, API 等のコントロールプレーンを実行します
 * Network: L2, L3(routing), DHCP, Network サービスのメタデータエージェントを実行します。一般的に、プロバイダ(public)とプロジェクト(private) ネットワークをNAT 経由で接続しています
 * Compute: Networking サービスのために、ハイパーバイザやL2 エージェントを走らせています
 
@@ -224,7 +224,7 @@ flat_networks = provider
 
 [ml2_type_vlan]
 # ......
-network_vlan_ranges = enp1s0:1001:2000
+network_vlan_ranges = enp9s0:1001:2000
 # ......
 
 [securitygroup]
