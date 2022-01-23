@@ -311,7 +311,7 @@ OVN を使う場合は、特に設定は不要です。
 = Networking サービスを使うためのCompute サービス設定 =
 <code>/etc/nova/nova.conf</code> ファイルを設定します。
 
-* /etc/nova/nova.conf @ openstack-controller-node01
+* /etc/nova/nova.conf @ openstack-controller-node01, dev-compute01, dev-compute02, dev-compute03
 <syntaxhighlight lang="text">
 [neutron]
 auth_url = http://openstack-controller-node01:5000

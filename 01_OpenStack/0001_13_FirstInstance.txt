@@ -8,15 +8,26 @@
 
 // 内部サブネットと、外部サブネット両方作って、両方をルータに登録する必要ある？
 
-# == 追加対応 ==
-# 以下の対応が、現状必要か？
-# 
-# ; [OVN] Update of OVN to 2.13.0-28 causing ovn-controller br-int connection failures due required OpenFlow 1.5
-# : https://bugzilla.redhat.com/show_bug.cgi?id=1843811
-# 
-# <syntaxhighlight lang="console">
-# openstack-controller-node01 # ovs-vsctl set bridge br-int protocols=OpenFlow13,OpenFlow15
-# </syntaxhighlight>
+== OVS の場合の対応 ==
+OVS の場合、下記の対応を実施してください。  
+// 以下の対応が、現状必要か？  
+
+; [OVN] Update of OVN to 2.13.0-28 causing ovn-controller br-int connection failures due required OpenFlow 1.5
+: https://bugzilla.redhat.com/show_bug.cgi?id=1843811
+
+OpenFlow のバージョンを指定します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 # ovs-vsctl set bridge br-int protocols=OpenFlow13,OpenFlow15
+openstack-controller-node01 # #ovs-vsctl --may-exist add-br br-provider -- add bridge br-provider protocols OpenFlow15
+</syntaxhighlight>
+
+provider セグメントのインタフェースを登録します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 # ovs-vsctl set open . external-ids:ovn-bridge-mappings=provider:br-provider
+openstack-controller-node01 # ovs-vsctl --may-exist add-port br-provider enp1s0
+</syntaxhighlight>
 
 == サブネットマスクの作成 ==
 
@@ -39,6 +50,7 @@ openstack-controller-node01 # openstack subnet create --network private \
                                   --dns-nameserver 192.168.1.1 --dns-nameserver 8.8.8.8 \
                                   --subnet-range 192.168.3.0/24 private_subnet
 
+openstack-controller-node01 # # Create public(provider) network
 openstack-controller-node01 # openstack network create --provider-network-type flat --provider-physical-network provider --external public
 
 openstack-controller-node01 # # Define subnet for the public network.
@@ -112,6 +124,11 @@ openstack-controller-node01 # openstack image list
 <syntaxhighlight lang="console">
 openstack-controller-node01 # openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
 openstack-controller-node01 # openstack flavor list
++----+-----------+------+------+-----------+-------+-----------+
+| ID | Name      |  RAM | Disk | Ephemeral | VCPUs | Is Public |
++----+-----------+------+------+-----------+-------+-----------+
+| 1  | m1.tiny   |  512 |    1 |         0 |     1 | True      |
++----+-----------+------+------+-----------+-------+-----------+
 </syntaxhighlight>
 
 次に、セキュリティグループを作成します。
@@ -183,8 +200,8 @@ openstack-controller-node01 # openstack security group show limited_access
 SSH ログイン用の公開鍵ペアを作成して、登録します。
 
 <syntaxhighlight lang="console">
-openstack-controller-node01 # ssh-keygen
-openstack-controller-node01 # openstack keypair create --public-key ~/.ssh/id_rsa.pub admin
+openstack-controller-node01 # ssh-keygen -t rsa -b 4096 -f ~/.ssh/example_openstack_id_rsa
+openstack-controller-node01 # openstack keypair create --public-key ~/.ssh/example_openstack_id_rsa.pub admin
 +-------------+-------------------------------------------------+
 | Field       | Value                                           |
 +-------------+-------------------------------------------------+

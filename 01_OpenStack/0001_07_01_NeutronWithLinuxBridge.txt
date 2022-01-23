@@ -166,7 +166,6 @@ openstack-controller-node01 ~# apt-get install -y neutron-server neutron-plugin-
 [DEFAULT]
 core_plugin = ml2
 service_plugins = router
-
 allow_overlapping_ips = true
 transport_url = rabbit://openstack:p@ssw0rd@openstack-controller-node01
 auth_strategy = keystone
@@ -191,7 +190,6 @@ password = p@ssw0rd
 [oslo_concurrency]
 lock_path = /var/lib/neutron/tmp
 ......
-
 </syntaxhighlight>
 
 # == Nova への通知設定 ==
@@ -248,7 +246,7 @@ physical_interface_mappings = provider:enp1s0
 
 [vxlan]
 enable_vxlan = true
-local_ip = 192.168.2.71  # <- コントローラノードの、管理セグメントのIP アドレスを指定する
+local_ip = 192.168.2.71  # <- コントローラノードの、tenant network のIP アドレスを指定する
 l2_population = true
 ......
 
