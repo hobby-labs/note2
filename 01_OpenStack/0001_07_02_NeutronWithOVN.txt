@@ -304,6 +304,12 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # 
 # </syntaxhighlight>
 
+= neutron のDB テーブル作成 =
+
+<syntaxhighlight lang="text">
+openstack-controller-node01 ~# su -s /bin/sh -c "neutron-db-manage --config-file /etc/neutron/neutron.conf \
+                                   --config-file /etc/neutron/plugins/ml2/ml2_conf.ini upgrade head" neutron
+</syntaxhighlight>
 
 == Layer 3 エージェントを設定する ==
 OVN を使う場合は、特に設定は不要です。
@@ -322,16 +328,9 @@ region_name = RegionOne
 project_name = service
 username = neutron
 password = p@ssw0rd
-service_metadata_proxy = true
-metadata_proxy_shared_secret = p@ssw0rd
+service_metadata_proxy = true               # <- いる？
+metadata_proxy_shared_secret = p@ssw0rd     # <- いる？
 ......
-</syntaxhighlight>
-
-= neutron のDB テーブル作成 =
-
-<syntaxhighlight lang="text">
-openstack-controller-node01 ~# su -s /bin/sh -c "neutron-db-manage --config-file /etc/neutron/neutron.conf \
-                                   --config-file /etc/neutron/plugins/ml2/ml2_conf.ini upgrade head" neutron
 </syntaxhighlight>
 
 = 各サービスの再起動 =

@@ -78,7 +78,7 @@ openstack-controller-node01 # openstack router list
 Linux の物理ノードのブリッジ(br0)に、ルータのTerminal Access Point (TAP) を追加します。<br />
 ルータはLinux のネームスペースを使って作成されているため、ワーカーノード上で<code>ip netns</code> コマンドを実行することでも、ルータが作成されていることを確認できます。
 
-* openstack-controller-node01
+* openstack-controller-node01 (Linux Bridge の場合)
 <syntaxhighlight lang="console">
 openstack-controller-node01 # ip netns show
 qrouter-72a3c497-605e-4b9d-98c0-94a887956cfc (id: 1)
@@ -144,6 +144,7 @@ openstack-controller-node01 # openstack security group rule create --protocol IC
 openstack-controller-node01 # openstack security group rule create --protocol TCP --dst-port 22 --remote-ip 0.0.0.0/0 limited_access
 openstack-controller-node01 # openstack security group rule create --protocol TCP --dst-port 80 --remote-ip 0.0.0.0/0 limited_access
 openstack-controller-node01 # openstack security group rule create --protocol TCP --dst-port 443 --remote-ip 0.0.0.0/0 limited_access
+
 
 openstack-controller-node01 # openstack security group list
 +--------------------------------------+----------------+------------------------+----------------------------------+------+
