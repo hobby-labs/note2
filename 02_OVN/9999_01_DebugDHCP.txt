@@ -1,0 +1,88 @@
+## テスト
+状況を確認するためのコマンド。
+```
+# # 現在あるすべてのスイッチを表示する
+# ovn-nbctl show
+switch 96819bc1-5cc7-4664-8786-448e3a03b00b (neutron-f59427d0-c9be-4045-b50e-50cb27f7731d) (aka private)
+    port 45477fe2-4076-49ad-b41e-0dc2cd9254f8
+        type: localport
+        addresses: ["fa:16:3e:c4:d4:d2 192.168.255.2"]
+    port 0424ae79-ae11-486f-b3b1-d098da8fa151
+        addresses: ["fa:16:3e:7d:2b:c6 192.168.255.147"]
+switch 1c3246b2-103b-4a90-80a8-94211233f2b1 (neutron-0e1db539-dea4-4010-8bfe-9ea1efa62482) (aka public)
+    port 4b01e18a-9d89-483d-a719-fdc2ddd7eb57
+        type: localport
+        addresses: ["fa:16:3e:af:45:08"]
+    port provnet-ba772e7d-c00c-4823-8627-40aeec68e693
+        type: localnet
+        addresses: ["unknown"]
+router bdb3b200-1b5a-4581-97b0-73ee804975a1 (neutron-b04792cc-69e5-4c0d-9a55-1394a4927cca) (aka private_router)
+
+# # 指定したスイッチのポートを表示する
+# ovn-nbctl lsp-list 96819bc1-5cc7-4664-8786-448e3a03b00b
+eecf59e4-8005-4461-87af-f51ee1f9e7e5 (0424ae79-ae11-486f-b3b1-d098da8fa151)
+b81b395f-bf06-4d0e-b809-918fcf8b4b76 (45477fe2-4076-49ad-b41e-0dc2cd9254f8)
+
+# # DHCP で払われたIP アドレスを確認する(マシンに設定されているとは限らない)
+root@controller01:/var/log/neutron# ovn-nbctl list logical_switch_port
+_uuid               : eecf59e4-8005-4461-87af-f51ee1f9e7e5
+addresses           : ["fa:16:3e:7d:2b:c6 192.168.255.147"]
+dhcpv4_options      : 5bd97c69-a56a-4abe-b540-390f68b69ca0
+dhcpv6_options      : []
+dynamic_addresses   : []
+enabled             : true
+external_ids        : {"neutron:cidrs"="192.168.255.147/24", "neutron:device_id"="6915aa79-c3be-496f-a05e-c634e223567c", "neutron:device_owner"="compute:nova", "neutron:network_name"=neutron-f59427d0-c9be-4045-b50e-50cb27f7731d, "neutron:port_name"="", "neutron:project_id"="94cda5d4666d40768f02835ff509dfa1", "neutron:revision_number"="4", "neutron:security_group_ids"="f743fd2f-40b6-4e6d-8928-bac7af7f1845"}
+ha_chassis_group    : []
+name                : "0424ae79-ae11-486f-b3b1-d098da8fa151"
+options             : {mcast_flood_reports="true", requested-chassis=compute01}
+parent_name         : []
+port_security       : ["fa:16:3e:7d:2b:c6 192.168.255.147"]
+tag                 : []
+tag_request         : []
+type                : ""
+up                  : true
+....
+
+
+# # UDP の送信テスト ############################################################################################################
+# # 送信コマンドの書式
+# ovn-trace --summary <switch> 'inport=="<port>" && eth.src==c0:ff:ee:00:00:11 && ip4.src==0.0.0.0 && ip.ttl==1 && ip4.dst==255.255.255.255 && udp.src==68 && udp.dst==67'
+
+# ## 補足: <switch> は`ovn-nbctl show` コマンドで確認できる。今回は"private" なスイッチを選択する
+# ovn-nbctl show
+switch 96819bc1-5cc7-4664-8786-448e3a03b00b (neutron-f59427d0-c9be-4045-b50e-50cb27f7731d) (aka private)
+    port 45477fe2-4076-49ad-b41e-0dc2cd9254f8
+        type: localport
+        addresses: ["fa:16:3e:c4:d4:d2 192.168.255.2"]
+    port 0424ae79-ae11-486f-b3b1-d098da8fa151
+        addresses: ["fa:16:3e:7d:2b:c6 192.168.255.147"]
+......
+
+# ## 補足: <port> は`ovn-nbctl lsp-list <switch>` で確認できる。下記はprivate なrouter の例
+# ovn-nbctl lsp-list 96819bc1-5cc7-4664-8786-448e3a03b00b
+eecf59e4-8005-4461-87af-f51ee1f9e7e5 (0424ae79-ae11-486f-b3b1-d098da8fa151)
+b81b395f-bf06-4d0e-b809-918fcf8b4b76 (45477fe2-4076-49ad-b41e-0dc2cd9254f8)
+
+# ## 補足: OVN 視点でDHCP アドレスをポートに払い出しているかは、`ovn-nbctl lsp-get-addresses <port>` で確認できる
+# ovn-nbctl lsp-get-addresses eecf59e4-8005-4461-87af-f51ee1f9e7e5
+fa:16:3e:7d:2b:c6 192.168.255.147
+
+# ## 補足: 論理スイッチとポートのMAC アドレスを調べる
+# ovn-nbctl show
+switch 96819bc1-5cc7-4664-8786-448e3a03b00b (neutron-f59427d0-c9be-4045-b50e-50cb27f7731d) (aka private)
+    port 45477fe2-4076-49ad-b41e-0dc2cd9254f8
+        type: localport
+        addresses: ["fa:16:3e:c4:d4:d2 192.168.255.2"]
+    port 0424ae79-ae11-486f-b3b1-d098da8fa151
+        addresses: ["fa:16:3e:7d:2b:c6 192.168.255.147"]
+......
+// 上記の例では、DHCP でIP アドレスを割り振られているポートは..
+//   name: "0424ae79-ae11-486f-b3b1-d098da8fa151"
+//   IP: "192.168.255.147"
+//   MAC: "fa:16:3e:7d:2b:c6"
+// となる。
+
+# ## 補足: DHCP のテストリクエストをOVN に送信する
+# ovn-trace --summary neutron-f59427d0-c9be-4045-b50e-50cb27f7731d 'inport=="0424ae79-ae11-486f-b3b1-d098da8fa151" && eth.src==fa:16:3e:7d:2b:c6 && ip4.src==0.0.0.0 && ip.ttl==1 && ip4.dst==255.255.255.255 && udp.src==68 && udp.dst==67'
+```
+
