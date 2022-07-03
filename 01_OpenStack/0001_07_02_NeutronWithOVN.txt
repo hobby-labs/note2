@@ -314,6 +314,9 @@ interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
 
 上記の<code>interface_driver</code> の記載を追加し、OVN インタフェースドライバーを追加します。
 
+; 参考: HavanaのL3エージェントが起動しない
+: https://groups.google.com/g/openstack-ja/c/_eypQ08epJI?pli=1
+
 = neutron のDB テーブル作成 =
 
 <syntaxhighlight lang="text">
