@@ -304,7 +304,15 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # 
 # </syntaxhighlight>
 
+* /etc/neutron/neutron.conf
+<syntaxhighlight lang="text">
+[DEFAULT]
+# ...
+interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
+# ...
+</syntaxhighlight>
 
+上記の<code>interface_driver</code> の記載を追加し、OVN インタフェースドライバーを追加します。
 
 = neutron のDB テーブル作成 =
 
