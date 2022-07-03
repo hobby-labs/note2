@@ -269,10 +269,10 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # # ......
 # </syntaxhighlight>
 
-<code>ovn_nb_connection</code>, <code>ovn_sb_connection</code> のIP アドレスには、<code>ovsdb-server</code> サービスが起動しているコントローラノードをしていしてください。<br />
-<code>OVN_L3_SCHEDULER</code> には、<code>leastloaded</code> もしくは<code>chance</code> を指定してください。
-<code>leastloaded</code> を選択すると、最小のゲートウェイポートを持つコンピュートノードが選択されます。
-<code>change</code> を選択すると、ランダムで、コンピュートノードが選択されます。<br /><br />
+# <code>ovn_nb_connection</code>, <code>ovn_sb_connection</code> のIP アドレスには、<code>ovsdb-server</code> サービスが起動しているコントローラノードをしていしてください。<br />
+# <code>OVN_L3_SCHEDULER</code> には、<code>leastloaded</code> もしくは<code>chance</code> を指定してください。
+# <code>leastloaded</code> を選択すると、最小のゲートウェイポートを持つコンピュートノードが選択されます。
+# <code>change</code> を選択すると、ランダムで、コンピュートノードが選択されます。<br /><br />
 
 # * /etc/neutron/neutron_ovn_metadata_agent.ini
 # <syntaxhighlight lang="text">
@@ -303,6 +303,8 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # <syntaxhighlight lang="text">
 # 
 # </syntaxhighlight>
+
+
 
 = neutron のDB テーブル作成 =
 
