@@ -341,9 +341,19 @@ region_name = RegionOne
 project_name = service
 username = neutron
 password = p@ssw0rd
-service_metadata_proxy = true               # <- いる？
-metadata_proxy_shared_secret = p@ssw0rd     # <- いる？
 ......
+</syntaxhighlight>
+
+同じく<code>nova.conf</code>に、controller ノードに対してのみ、metadata proxy の設定を行います。
+
+* /etc/nova/nova.conf @ openstack-controller-node01
+<syntaxhighlight lang="text">
+[neutron]
+
+......
+
+service_metadata_proxy = true
+metadata_proxy_shared_secret = p@ssw0rd
 </syntaxhighlight>
 
 = 各サービスの再起動 =
