@@ -1,5 +1,15 @@
 = OVN インストールドキュメント =
 
+= 参考 =
+; OpenStack and OVN Tutorial (Yoga)
+: https://docs.openstack.org/neutron/yoga/admin/ovn/tutorial.html
+
+; OVN Install Documentation (Yoga)
+: https://docs.openstack.org/neutron/yoga/install/ovn/index.html
+
+; OVN OpenStack Tutorial
+: https://github.com/ovn-org/ovn/blob/main/Documentation/tutorials/ovn-openstack.rst
+
 = Neutron インストール =
 
 <syntaxhighlight lang="console">
@@ -131,6 +141,7 @@ openstack-controller-node01 ~# # /usr/share/openvswitch/scripts/ovs-ctl start --
 全部のインタフェースでListen したい場合は<code>0.0.0.0</code> を指定します。
 
 <syntaxhighlight lang="console">
+openstack-controller-node01 ~# # # 下記コマンドで各種サービスを起動できますが、systemctl で起動もできるので、ここはスキップ
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_ovsdb
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_northd
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_nb_ovsdb
