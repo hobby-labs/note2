@@ -175,12 +175,14 @@ openstack-controller-node01 ~# ovn-sbctl set-connection ptcp:6642:192.168.2.71 -
 openstack-controller-node01 ~# ovs-appctl -t ovsdb-server ovsdb-server/add-remote ptcp:6640:192.168.2.71
 </syntaxhighlight>
 
-<code>start_northd</code> を起動します。
+<code>start_northd</code> を再起動します。
 
 <syntaxhighlight lang="console">
-openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_northd
-
+openstack-controller-node01 ~# systemctl restart ovsdb-server
 openstack-controller-node01 ~# systemctl restart ovn-northd
+
+openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl restart_northd
+openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl restart_ovsdb
 </syntaxhighlight>
 
 Networking サーバコンポーネントを設定します。このNetworking サービスは、ML2 ドライバとして、OVN を実現します。
