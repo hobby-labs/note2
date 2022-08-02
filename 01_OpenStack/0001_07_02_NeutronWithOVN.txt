@@ -10,6 +10,9 @@
 ; OVN OpenStack Tutorial
 : https://github.com/ovn-org/ovn/blob/main/Documentation/tutorials/ovn-openstack.rst
 
+; 参考: HavanaのL3エージェントが起動しない
+: https://groups.google.com/g/openstack-ja/c/_eypQ08epJI?pli=1
+
 = Neutron インストール =
 
 <syntaxhighlight lang="console">
@@ -195,6 +198,7 @@ core_plugin = ml2
 service_plugins = ovn-router
 transport_url = rabbit://openstack:p@ssw0rd@openstack-controller-node01
 auth_strategy = keystone
+interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
 # ......
 
 [database]
@@ -236,7 +240,7 @@ lock_path = /var/lib/neutron/tmp
 [ml2]
 # ......
 type_drivers = local,flat,vlan,geneve
-tenant_network_types = geneve
+tenant_network_types = geneve,vlan
 mechanism_drivers = ovn
 extension_drivers = port_security
 overlay_ip_version = 4
@@ -335,18 +339,9 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # 
 # </syntaxhighlight>
 
-* /etc/neutron/neutron.conf
-<syntaxhighlight lang="text">
-[DEFAULT]
-# ...
-interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
-# ...
+<syntaxhighlight lang="console">
+# ovs-vsctl set open . external-ids:ovn-cms-options=enable-chassis-as-gw
 </syntaxhighlight>
-
-上記の<code>interface_driver</code> の記載を追加し、OVN インタフェースドライバーを追加します。
-
-; 参考: HavanaのL3エージェントが起動しない
-: https://groups.google.com/g/openstack-ja/c/_eypQ08epJI?pli=1
 
 = neutron のDB テーブル作成 =
 
