@@ -172,6 +172,7 @@ openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_controller
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# ovn-nbctl set-connection ptcp:6641:192.168.2.71 -- set connection . inactivity_probe=60000
 openstack-controller-node01 ~# ovn-sbctl set-connection ptcp:6642:192.168.2.71 -- set connection . inactivity_probe=60000
+openstack-controller-node01 ~# # # VTEP を使っている場合
 openstack-controller-node01 ~# ovs-appctl -t ovsdb-server ovsdb-server/add-remote ptcp:6640:192.168.2.71
 </syntaxhighlight>
 
@@ -192,7 +193,6 @@ Networking サーバコンポーネントを設定します。このNetworking �
 [DEFAULT]
 core_plugin = ml2
 service_plugins = ovn-router
-allow_overlapping_ips = true
 transport_url = rabbit://openstack:p@ssw0rd@openstack-controller-node01
 auth_strategy = keystone
 # ......
