@@ -162,17 +162,12 @@ openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_sb_ovsdb
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_northd
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_controller
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_controller_vtep
-
-openstack-controller-node01 ~# systemctl restart ovs-vswitchd
-</syntaxhighlight>
-
 </syntaxhighlight>
 
 <code>ovsdb-server</code> を設定していきます。
 デフォルトで、<code>ovsdb-server</code> は、Unix ドメインソケットを使って、ローカルからのアクセスを許可するようになっていますが、Compute ノードからもアクセスできるように設定していきます。
 コマンドでIP アドレスを指定していますが、コントローラノードの管理セグメントのIP アドレスを指定するようにしてください。
 全部のインタフェースでListen したい場合は<code>0.0.0.0</code> を指定します。
-
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# ovn-nbctl set-connection ptcp:6641:192.168.2.71 -- set connection . inactivity_probe=60000
