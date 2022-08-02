@@ -135,7 +135,17 @@ openstack-controller-node01 ~# systemctl stop radvd
 openstack-controller-node01 ~# systemctl disable radvd
 </syntaxhighlight>
 
+
 <syntaxhighlight lang="console">
+openstack-controller-node01 ~# # systemd を使う場合
+openstack-controller-node01 ~# systemctl restart ovsdb-server
+openstack-controller-node01 ~# systemctl restart ovs-vswitchd
+openstack-controller-node01 ~# systemctl restart ovsdb-server
+openstack-controller-node01 ~# systemctl enable ovsdb-server
+openstack-controller-node01 ~# systemctl enable ovs-vswitchd
+openstack-controller-node01 ~# systemctl enable ovsdb-server
+
+openstack-controller-node01 ~# # ovs-ctl コマンドを使う場合
 openstack-controller-node01 ~# # /usr/share/openvswitch/scripts/ovs-ctl start --system-id="random"
 </syntaxhighlight>
 
