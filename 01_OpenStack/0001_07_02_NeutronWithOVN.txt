@@ -20,6 +20,9 @@ openstack-controller-node01 ~# mysql
 MariaDB [(none)]> CREATE DATABASE neutron;
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'localhost' IDENTIFIED BY 'p@ssw0rd';
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON neutron.* TO 'neutron'@'%' IDENTIFIED BY 'p@ssw0rd';
+
+MariaDB [(none)]> SHOW GRANTS FOR 'neutron'@'localhost';
+MariaDB [(none)]> SHOW GRANTS FOR 'neutron'@'%';
 MariaDB [(none)]> quit
 </syntaxhighlight>
 
