@@ -40,6 +40,8 @@ Identity サービスは次のコンポーネントから構成されます。
 == インストールと設定 ==
 
 まず、DB の作成とアカウントの設定を行います。
+<code>GRANT</code> クエリは<code>0 rows affected</code> が出力されますが、問題なく反映されています。
+反映されているかを確認するには、<code>SHOW GRANTS FOR 'keystone'@'localhost';</code> クエリを実行します。
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# mysql
@@ -52,6 +54,14 @@ Query OK, 0 rows affected (0.003 sec)
 ......
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'p@ssw0rd';
 Query OK, 0 rows affected (0.001 sec)
+......
+MariaDB [(none)]> SHOW GRANTS FOR 'keystone'@'localhost';
++-----------------------------------------------------------------------------------------------------------------+
+| Grants for keystone@localhost                                                                                   |
++-----------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `keystone`@`localhost` IDENTIFIED BY PASSWORD '*****************************************' |
+| GRANT ALL PRIVILEGES ON `keystone`.* TO `keystone`@`localhost`                                                  |
++-----------------------------------------------------------------------------------------------------------------+
 ......
 MariaDB [(none)]> quit
 </syntaxhighlight>
