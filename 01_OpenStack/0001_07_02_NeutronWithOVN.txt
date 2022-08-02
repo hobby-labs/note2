@@ -449,7 +449,12 @@ openstack-compute-node01 ~# ovs-vsctl set open . external-ids:ovn-remote=tcp:192
 最小で、OVN の要件として<code>geneve</code>、VTEP ゲートウェイを使うデプロイメントとして、<code>vxlan</code> プロトコルを有効化します。
 
 <syntaxhighlight lang="console">
-openstack-compute-node01 ~# ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxlan
+openstack-compute-node01 ~# ovs-vsctl set open . external-ids:ovn-encap-type=geneve,vxla
+</syntaxhighlight>
+
+また、vtep を使っている場合は、ovn-encap-ip も指定します。
+<syntaxhighlight lang="console">
+openstack-compute-node01 ~# ovs-vsctl set open . external-ids:ovn-encap-ip=192.168.2.71
 </syntaxhighlight>
 
 overlay network のローカルエンドポイントネットワークのIP アドレスを設定します。
