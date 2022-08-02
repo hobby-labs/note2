@@ -104,9 +104,6 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne netw
 
 = OVN インストール =
 
-; OVN Install Documentation
-: https://docs.openstack.org/neutron/wallaby/install/ovn/index.html
-
 以下のタイプのノードを含む、従来のアーキテクチャの本番用OpenStack デプロイメントツールに手動でインストール、または統合する際に必要なものについて説明します。
 
 * Controller: REST, API 等のコントロールプレーンを実行します
@@ -129,6 +126,13 @@ OVN を使う場合は、OVN がDHCP をネイティブにサポートしてい�
 openstack-controller-node01 ~# apt-get install -y neutron-server neutron-plugin-ml2 neutron-l3-agent \
                                     neutron-metadata-agent neutron-openvswitch-agent \
                                     ovn-common ovn-host ovn-central ovn-controller-vtep ovn-ic ovn-ic-db ovn-docker
+</syntaxhighlight>
+
+今回はIPv6 を使用しないので、IPv6 Advertisement デーモンである<code>radvd</code> は無効化しておきます。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# systemctl stop radvd
+openstack-controller-node01 ~# systemctl disable radvd
 </syntaxhighlight>
 
 <syntaxhighlight lang="console">
