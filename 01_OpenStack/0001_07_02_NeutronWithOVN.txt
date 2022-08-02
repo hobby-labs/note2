@@ -393,12 +393,14 @@ openstack-controller-node01 ~# #/usr/share/ovn/scripts/ovn-ctl restart_nb_ovsdb
 openstack-controller-node01 ~# #/usr/share/ovn/scripts/ovn-ctl restart_sb_ovsdb
 openstack-controller-node01 ~# #/usr/share/ovn/scripts/ovn-ctl restart_controller
 
+openstack-controller-node01 ~# # systemd を使う場合(ovsdb-server, ovs-vswitchd, ovsdb-server を起動する)
+openstack-controller-node01 ~# systemctl restart ovs-vswitchd
 openstack-controller-node01 ~# systemctl restart ovsdb-server
-openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-ic-nb.service
-openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-ic-sb.service
-openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-nb.service
-openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-sb.service
-openstack-controller-node01 ~# systemctl restart neutron-server
+openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-nb
+openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-sb
+openstack-controller-node01 ~# systemctl restart ovn-northd
+openstack-controller-node01 ~# systemctl restart ovn-controller
+openstack-controller-node01 ~# systemctl restart ovn-controller-vtep
 </syntaxhighlight>
 
 = Network node =
@@ -416,10 +418,18 @@ openstack-compute-node01 ~# apt-get install -y neutron-openvswitch-agent ovn-com
 
 <code>openvswitch-ovn</code>, <code>networking-ovn</code> を起動します。
 
+* computenodes
 <syntaxhighlight lang="console">
 openstack-compute-node01 ~# # /usr/share/openvswitch/scripts/ovs-ctl start --system-id="random"
 
+openstack-compute-node01 ~# # systemd を使う場合(ovsdb-server, ovs-vswitchd, ovsdb-server を起動する)
 openstack-compute-node01 ~# systemctl restart ovs-vswitchd
+openstack-compute-node01 ~# systemctl restart ovsdb-server
+openstack-compute-node01 ~# systemctl restart ovn-ovsdb-server-nb
+openstack-compute-node01 ~# systemctl restart ovn-ovsdb-server-sb
+openstack-compute-node01 ~# systemctl restart ovn-northd
+openstack-compute-node01 ~# systemctl restart ovn-controller
+openstack-compute-node01 ~# systemctl restart ovn-controller-vtep
 </syntaxhighlight>
 
 OVS サービスの設定を行います。
