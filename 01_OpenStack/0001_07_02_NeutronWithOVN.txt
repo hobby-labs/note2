@@ -159,8 +159,11 @@ openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-sb
 openstack-controller-node01 ~# systemctl enable ovn-northd
 openstack-controller-node01 ~# systemctl enable ovn-controller
 openstack-controller-node01 ~# systemctl enable ovn-controller-vtep
+// 下記のような警告が出た場合は、他の処理によって、既に自動起動設定がされているので、
+// そのまま次に進んで問題ありません。
+// The unit files have no installation config (WantedBy=,...... This means they are not meant to be enabled using systemctl.
 
-openstack-controller-node01 ~# # ovs-ctl コマンドを使う場合(未検証)
+openstack-controller-node01 ~# # # ovs-ctl コマンドを使う場合(未検証)
 openstack-controller-node01 ~# # /usr/share/openvswitch/scripts/ovs-ctl start --system-id="random"
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_ovsdb
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl start_nb_ovsdb
