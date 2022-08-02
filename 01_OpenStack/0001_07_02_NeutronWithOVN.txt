@@ -149,6 +149,8 @@ openstack-controller-node01 ~# systemctl enable ovsdb-server
 openstack-controller-node01 ~# systemctl enable ovn-northd
 openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-nb
 openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-sb
+openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-ic-nb
+openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-ic-sb
 openstack-controller-node01 ~# systemctl enable ovn-controller
 openstack-controller-node01 ~# systemctl enable ovn-controller-vtep
 // 下記のような警告が出た場合は、他の処理によって、既に自動起動設定がされているので、
@@ -180,11 +182,13 @@ openstack-controller-node01 ~# # # VTEP を使っている場合
 openstack-controller-node01 ~# ovs-appctl -t ovsdb-server ovsdb-server/add-remote ptcp:6640:192.168.2.71
 </syntaxhighlight>
 
-<code>start_northd</code> を再起動します。
+デーモンを再起動します。
 
 <syntaxhighlight lang="console">
-openstack-controller-node01 ~# systemctl restart ovsdb-server
-openstack-controller-node01 ~# systemctl restart ovn-northd
+openstack-controller-node01 ~# shutdown -r now
+
+openstack-controller-node01 ~# # systemctl restart ovsdb-server
+openstack-controller-node01 ~# # systemctl restart ovn-northd
 
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl restart_northd
 openstack-controller-node01 ~# # /usr/share/ovn/scripts/ovn-ctl restart_ovsdb
@@ -423,14 +427,15 @@ openstack-compute-node01 ~# apt-get install -y neutron-openvswitch-agent ovn-com
 <syntaxhighlight lang="console">
 openstack-compute-node01 ~# # /usr/share/openvswitch/scripts/ovs-ctl start --system-id="random"
 
-openstack-compute-node01 ~# # systemd を使う場合(ovsdb-server, ovs-vswitchd, ovsdb-server を起動する)
-openstack-compute-node01 ~# systemctl restart ovs-vswitchd
-openstack-compute-node01 ~# systemctl restart ovsdb-server
-openstack-compute-node01 ~# systemctl restart ovn-ovsdb-server-nb
-openstack-compute-node01 ~# systemctl restart ovn-ovsdb-server-sb
-openstack-compute-node01 ~# systemctl restart ovn-northd
-openstack-compute-node01 ~# systemctl restart ovn-controller
-openstack-compute-node01 ~# systemctl restart ovn-controller-vtep
+openstack-compute-node01 # systemctl enable ovs-vswitchd
+openstack-compute-node01 # systemctl enable ovsdb-server
+openstack-compute-node01 # systemctl enable ovn-northd
+openstack-compute-node01 # systemctl enable ovn-ovsdb-server-nb
+openstack-compute-node01 # systemctl enable ovn-ovsdb-server-sb
+openstack-compute-node01 # systemctl enable ovn-controller
+openstack-compute-node01 # systemctl enable ovn-controller-vtep
+
+openstack-compute-node01 #shutdown -r now
 </syntaxhighlight>
 
 OVS サービスの設定を行います。
