@@ -146,17 +146,17 @@ openstack-controller-node01 ~# systemctl disable radvd
 openstack-controller-node01 ~# # systemd を使う場合(ovsdb-server, ovs-vswitchd, ovsdb-server を起動する)
 openstack-controller-node01 ~# systemctl restart ovs-vswitchd
 openstack-controller-node01 ~# systemctl restart ovsdb-server
+openstack-controller-node01 ~# systemctl restart ovn-northd
 openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-nb
 openstack-controller-node01 ~# systemctl restart ovn-ovsdb-server-sb
-openstack-controller-node01 ~# systemctl restart ovn-northd
 openstack-controller-node01 ~# systemctl restart ovn-controller
 openstack-controller-node01 ~# systemctl restart ovn-controller-vtep
 openstack-controller-node01 ~# # systemd を使う場合(ovsdb-server, ovs-vswitchd, ovsdb-server etc を自動起動設定する)
 openstack-controller-node01 ~# systemctl enable ovs-vswitchd
 openstack-controller-node01 ~# systemctl enable ovsdb-server
+openstack-controller-node01 ~# systemctl enable ovn-northd
 openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-nb
 openstack-controller-node01 ~# systemctl enable ovn-ovsdb-server-sb
-openstack-controller-node01 ~# systemctl enable ovn-northd
 openstack-controller-node01 ~# systemctl enable ovn-controller
 openstack-controller-node01 ~# systemctl enable ovn-controller-vtep
 // 下記のような警告が出た場合は、他の処理によって、既に自動起動設定がされているので、
