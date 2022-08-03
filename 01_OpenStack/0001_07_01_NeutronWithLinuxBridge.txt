@@ -1,7 +1,7 @@
 = Networking サービスのインストール =
 
-; Networking service overview
-: https://docs.openstack.org/neutron/wallaby/install/common/get-started-networking.html
+; Install and configure for Ubuntu (Neutron)
+: https://docs.openstack.org/neutron/yoga/install/install-ubuntu.html
 
 OpenStack のNetworking サービスは、インタフェースをOpenStack サービスにアタッチするためのものです。
 このプラグインシステムは、異なるネットワークの装置とソフトを包括することを可能とします。<br /><br />
