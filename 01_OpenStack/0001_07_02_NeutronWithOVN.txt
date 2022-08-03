@@ -203,7 +203,8 @@ core_plugin = ml2
 service_plugins = ovn-router
 transport_url = rabbit://openstack:p@ssw0rd@openstack-controller-node01
 auth_strategy = keystone
-interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
+
+
 # ......
 
 [database]
@@ -229,15 +230,15 @@ password = p@ssw0rd
 lock_path = /var/lib/neutron/tmp
 # ......
 
-# [nova]
-# auth_url = http://openstack-controller-node01:5000
-# auth_type = p@ssw0rd
-# project_domain_name = Default
-# user_domain_name = Default
-# region_name = RegionOne
-# project_name = service
-# username = nova
-# password = p@ssw0rd
+[nova]
+auth_url = http://openstack-controller-node01:5000
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+region_name = RegionOne
+project_name = service
+username = nova
+password = p@ssw0rd
 </syntaxhighlight>
 
 * /etc/neutron/plugins/ml2/ml2_conf.ini @ openstack-controller-node01
@@ -380,9 +381,7 @@ password = p@ssw0rd
 * /etc/nova/nova.conf @ openstack-controller-node01
 <syntaxhighlight lang="text">
 [neutron]
-
 ......
-
 service_metadata_proxy = true
 metadata_proxy_shared_secret = p@ssw0rd
 </syntaxhighlight>
@@ -492,6 +491,12 @@ lock_path = /var/lib/neutron/tmp
 
 [database]
 #connection = sqlite:////var/lib/neutron/neutron.sqlite  # <- コメントアウトします
+</syntaxhighlight>
+
+* /etc/neutron/l3_agent.ini
+<syntaxhighlight lang="console">
+[DEFAULT]
+interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
 </syntaxhighlight>
 
 * /etc/nova/nova.conf @ openstack-compute-node01
