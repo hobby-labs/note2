@@ -13,6 +13,9 @@
 ; 参考: HavanaのL3エージェントが起動しない
 : https://groups.google.com/g/openstack-ja/c/_eypQ08epJI?pli=1
 
+; CentOS7 ovs(Open vSwitch)+ovnのネットワーク設定方法
+: https://metonymical.hatenablog.com/entry/2019/07/21/190302
+
 = Neutron インストール =
 
 <syntaxhighlight lang="console">
