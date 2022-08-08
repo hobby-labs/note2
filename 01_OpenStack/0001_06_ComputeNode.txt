@@ -1,7 +1,7 @@
 = Compute ノードのインストールと設定 =
 
 ; Install and configure a compute node
-: https://docs.openstack.org/nova/wallaby/install/compute-install.html
+: https://docs.openstack.org/nova/yoga/install/compute-install.html
 
 Compute ノードのインストールと設定について説明していきます。
 Compute ノードは、インスタンスやVM をデプロイするために、いくつかのハイパーバイザをサポートしています。
