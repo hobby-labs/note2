@@ -75,6 +75,10 @@ openstack-controller-node01 # openstack router add subnet private_router private
 openstack-controller-node01 # openstack router list
 </syntaxhighlight>
 
+下記のコマンドを実行して、外部のネットワークと疎通をする<code>br-provider</code> インタフェースを有効化します。
+
+
+
 Linux の物理ノードのブリッジ(br0)に、ルータのTerminal Access Point (TAP) を追加します。<br />
 ルータはLinux のネームスペースを使って作成されているため、ワーカーノード上で<code>ip netns</code> コマンドを実行することでも、ルータが作成されていることを確認できます。
 
@@ -221,10 +225,9 @@ openstack-controller-node01 # openstack keypair list
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 # openstack server create \
-                                  --flavor m1.tiny \
-                                  --image "Cirros-0.5.1" \
-                                  --network private \
-                                  mycirros
+                                  --flavor m1.tiny --image "Cirros-0.5.1" \
+                                  --key-name admin --security-group permit_all \
+                                  --network private mycirros
 
 openstack-controller-node01 # openstack server list
 +--------------------------------------+----------+--------+-----------------------+--------------+---------+
@@ -234,7 +237,7 @@ openstack-controller-node01 # openstack server list
 +--------------------------------------+----------+--------+-----------------------+--------------+---------+
 </syntaxhighlight>
 
-= ネットワーク構成の確認 =
+= ネットワーク構成の確認(Linux Bridge の場合) =
 仮想ネットワークがどのようになっているか詳細に確認してみましょう。<br />
 ルータネームスペース上でip コマンドを実行して、ルーターが持っているネットワークインタフェースを確認します。
 
