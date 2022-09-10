@@ -1,0 +1,8 @@
+# 概要
+ここでは、OpenStack Ansible を使用して、OpenStack のインスタンスやネットワークを準備する方法を示していきます。
+このAnsible は、既にOpenStack のインストール自体は完了していることが前提です。
+
+* [OpenStack-Ansible Documentation(Yoga)](https://docs.openstack.org/openstack-ansible/yoga/)
+* [Openstack.Cloud](https://docs.ansible.com/ansible/latest/collections/openstack/cloud/index.html)
+
+
