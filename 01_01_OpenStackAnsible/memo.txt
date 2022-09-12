@@ -9,5 +9,38 @@
 * デプロイホストの設定
 * [Prepare the deployment host](https://docs.openstack.org/project-deploy-guide/openstack-ansible/latest/)
 
+# Ansible を走らせるホスト
+* [Prepare the deployment host](https://docs.openstack.org/project-deploy-guide/openstack-ansible/latest/deploymenthost.html)
+
 Ansible を走らせるホストを準備します。
+
+```
+# apt-get update
+# apt-get dist-upgrade
+# apt-hry install build-essential git chrony openssh-server python3-dev sudo
+```
+
+最新の`OpenStack-Ansible` をclone します。
+
+```
+# git clone -b master https://github.com/openstack/openstack-ansible.git /opt/openstack-ansible
+# cd /opt/openstack-ansible
+```
+
+`Ansible bootstrap` スクリプトを実行します。
+
+```
+# scripts/bootstra-ansible.sh
+```
+
+## Docker (Alpine Linux) でやる方法
+
+割愛。
+
+* [Configure Docker with Alpine](https://docs.openstack.org/project-deploy-guide/openstack-ansible/latest/deploymenthost.html#configure-docker-with-alpine)
+
+
+
+# ターゲットホストの設定
+
 
