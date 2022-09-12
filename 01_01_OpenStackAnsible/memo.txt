@@ -74,3 +74,13 @@ Cinder でLVM を使用するには、`cinder-volumes` という名前のボリ�
 # vgcreate cinder-volumes /dev/...
 ```
 
+## ネットワーク設定
+* [Configuring the network](https://docs.openstack.org/project-deploy-guide/openstack-ansible/latest/targethosts.html#configuring-the-network)
+
+TODO:
+
+### ホストネットワークブリッジ情報
+* [Host network bridges information](https://docs.openstack.org/project-deploy-guide/openstack-ansible/latest/targethosts.html#host-network-bridges-information)
+
+TODO:
+
