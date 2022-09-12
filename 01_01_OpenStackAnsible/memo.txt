@@ -43,4 +43,34 @@ Ansible を走らせるホストを準備します。
 
 # ターゲットホストの設定
 
+```
+# apt-get update
+# apt-get dist-upgrade
+# apt install bridge-utils debootstrap openssh-server tcpdump vlan python3
+```
+
+カーネルエクストラパッケージがある場合は、それもインストールします。
+
+```
+# apt-get install linux-modules-extra-$(uname -r)
+```
+
+変更を反映するために、OS を再起動します。
+
+```
+# shutdown -r now
+```
+
+## SSH 鍵の設定
+
+割愛。
+
+## ストレージの設定
+Cinder を使用するために、LVN ボリュームを設定します。
+Cinder でLVM を使用するには、`cinder-volumes` という名前のボリュームグループのLVM ボリュームグループを作成します。
+
+```
+# pvcreate --metadatasize 2048 /dev/...
+# vgcreate cinder-volumes /dev/...
+```
 
