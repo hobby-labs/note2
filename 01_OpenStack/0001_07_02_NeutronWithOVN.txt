@@ -16,6 +16,9 @@
 ; CentOS7 ovs(Open vSwitch)+ovnのネットワーク設定方法
 : https://metonymical.hatenablog.com/entry/2019/07/21/190302
 
+; OpenStack Wallaby : Neutron OVN 設定 (Network ノード)
+: https://www.server-world.info/query?os=Ubuntu_20.04&p=openstack_wallaby2&f=13
+
 = Neutron インストール =
 
 <syntaxhighlight lang="console">
@@ -381,7 +384,8 @@ password = p@ssw0rd
 ......
 </syntaxhighlight>
 
-同じく<code>nova.conf</code>に、controller ノードに対してのみ、metadata proxy の設定を行います。
+同じく<code>nova.conf</code>に、controller ノードに対してのみ、metadata proxy の設定を行います。<br />
+// TODO: 要確認
 
 * /etc/nova/nova.conf @ openstack-controller-node01
 <syntaxhighlight lang="text">
