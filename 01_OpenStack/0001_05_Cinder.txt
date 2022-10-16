@@ -1,0 +1,7 @@
+= 概要 =
+ブロックストレージサービスであるCinder を構築していきます。
+利用可能なドライバとして、NAS/SAN, NFS, iSCSi, Ceph などがあります。
+
+; Cinder Installation Guide
+: https://docs.openstack.org/cinder/zed/install/
+
