@@ -33,6 +33,11 @@ Block Storage プロセスとの間で、情報を転送します。
 Train リリースから、書くボリュームは<code>volume_type</code> が必要になりました。
 それによって、<code>default_volume_type</code> が設定されている必要があります。<br /><br />
 
-システム定義の<code>__DEFAULT__</code> が、作成されますが、これはインストール時にDB 上に作成されるもので、<code>default_volume_type</code> 設定の値が設定されます。
+システム定義の<code>__DEFAULT__</code> が、作成されますが、これはインストール時にDB 上に作成されるもので、<code>default_volume_type</code> 設定の値が設定されます。<br /><br />
 
+<code>__DEFAULT__</code> はボリューム作成/削除の時に、デフォルトの設定値として利用されますが、場合によっては、それを望まないことがあるかもしれません。
+すなわち、<code>__DEFAULT__</code> を削除したいと感じることがあるかもしれませんが、削除しようとするとき、下記のような成約があります。
+
+* もし<code>__DEFAULT__</code> が,code>default_volume-type</code> の設定値であった場合、削除することはできません。これを防止するためには、異なる設定値を作成する必要があります
+* もし<code>__DEFAULT__</code> な配備済みなボリュームがある場合、削除することはできません。これを防止するためには、それらのボリュームを他のボリュームタイプで再作成する必要があります。
 
