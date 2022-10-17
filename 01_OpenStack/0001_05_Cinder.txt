@@ -72,3 +72,9 @@ openstack-controller-node01 ~# # cinderv3 サービスエンティティを作�
 openstack-controller-node01 ~# openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
 </syntaxhighlight>
 
+補足: Xena リリースから、Block Storage サービスは、1 つだけのエンティティを必要とします。
+
+== Block Storage サービスAPI エンドポイント ==
+Block Storage サービスAPI エンドポイントを作成します。
+
+TODO: 
