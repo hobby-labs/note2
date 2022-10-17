@@ -1,7 +1,38 @@
-= 概要 =
+= はじめに =
 ブロックストレージサービスであるCinder を構築していきます。
 利用可能なドライバとして、NAS/SAN, NFS, iSCSi, Ceph などがあります。
 
 ; Cinder Installation Guide
 : https://docs.openstack.org/cinder/zed/install/
+
+== Cinder ブロックストレージの概要 ==
+; Cinder Block Storage service overview
+: https://docs.openstack.org/cinder/zed/install/get-started-block-storage.html
+
+* cinder-api
+API リクエストを受け付け、`cinder-volume` へ奏者処理のため転送します。
+
+* cinder-volume
+<code>cinder-scheduler</code> プロセスや、Block Storage サービスと直接対話します。
+また、これらのプロセスとメッセージキューを介しても、対話します。
+<code>cinder-volume</code> サービスは、Block Storage サービスの読み書き状態を管理する責任を持ちます。
+これは、ドライバアーキテクチャを介して、様々なストレージプロバイダーと通信することができます。
+
+* cinder-scheduler daemon
+ボリュームを作成するオプショナルストレージプロバイダーノードを選択します。
+<code>nova-scheduler</code> と似たコンポーネントです。
+
+* cinder-backup daemon
+ボリュームを様々なタイプのバックアップストレージプロバイダーへバックアップを行います。
+<code>cinder-volume</code サービスのように、ドライバアーキテクチャを通して様々なストレージと通信することができます。
+
+* Messaging queue
+Block Storage プロセスとの間で、情報を転送します。
+
+== デフォルトボリュームタイプ ==
+Train リリースから、書くボリュームは<code>volume_type</code> が必要になりました。
+それによって、<code>default_volume_type</code> が設定されている必要があります。<br /><br />
+
+システム定義の<code>__DEFAULT__</code> が、作成されますが、これはインストール時にDB 上に作成されるもので、<code>default_volume_type</code> 設定の値が設定されます。
+
 
