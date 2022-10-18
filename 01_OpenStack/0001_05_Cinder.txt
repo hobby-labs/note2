@@ -2,8 +2,6 @@
 ブロックストレージサービスであるCinder を構築していきます。
 利用可能なドライバとして、NAS/SAN, NFS, iSCSi, Ceph などがあります。
 
-https://docs.openstack.org/cinder/zed/install/index-ubuntu.html
-https://docs.openstack.org/cinder/zed/install/index-ubuntu.html
 ; Cinder Installation Guide
 : https://docs.openstack.org/cinder/zed/install/
 
@@ -77,4 +75,15 @@ openstack-controller-node01 ~# openstack service create --name cinderv3 --descri
 == Block Storage サービスAPI エンドポイント ==
 Block Storage サービスAPI エンドポイントを作成します。
 
-TODO: 
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 public http://dev-controller01:8776/v3/%\(project_id\)s
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 internal http://dev-controller01:8776/v3/%\(project_id\)s
+openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 admin http://dev-controller01:8776/v3/%\(project_id\)s
+</syntaxhighlight>
+
+== コンポーネントのインストール ==
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# apt-get install cinder-api cinder-scheduler
+</syntaxhighlight>
+
