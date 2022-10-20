@@ -54,8 +54,8 @@ Ubuntu にCinder をインストールする手順を説明していきます。
 <syntaxhighlight lang="text">
 openstack-controller-node01 ~# mysql
 MariaDB [(none)]> CREATE DATABASE cinder;
-MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'localhost' IDENTIFIED BY 'p@ssw0rd';
-MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'p@ssw0rd';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'localhost' IDENTIFIED BY 'secret';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'secret';
 MariaDB [(none)]> quit
 </syntaxhighlight>
 
@@ -63,7 +63,7 @@ MariaDB [(none)]> quit
 openstack-controller-node01 ~# . ./admin-openrc
 
 openstack-controller-node01 ~# # cinder ユーザを作成する
-openstack-controller-node01 ~# openstack user create --domain default --password p@ssw0rd cinder
+openstack-controller-node01 ~# openstack user create --domain default --password secret cinder
 openstack-controller-node01 ~# # cinder ユーザにadmin ロールを追加する
 openstack-controller-node01 ~# openstack role add --project service --user cinder admin
 openstack-controller-node01 ~# # cinderv3 サービスエンティティを作成する
@@ -86,4 +86,34 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne volu
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# apt-get install cinder-api cinder-scheduler
 </syntaxhighlight>
+
+<code>/etc/cinder/cinder.conf</code> ファイルを編集します。
+
+* /etc/cinder/cinder.conf
+<syntaxhighlight lang="text">
+[database]
+# ...
+connection = mysql+pymysql://cinder:secret@dev-controller01/cinder
+</syntaxhighlight>
+
+<syntaxhighlight lang="text">
+[DEFAULT]
+# ...
+transport_url = rabbit://openstack:secret@dev-controller01
+auth_strategy = keystone
+my_ip = 192.168.2.71
+
+[keystone_authtoken]
+www_authenticate_uri = http://dev-controller01:5000
+auth_url = http://dev-controller01:5000
+memcached_servers = dev-controller01:11211
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = cinder
+password = secret
+</syntaxhighlight>
+
+補足: my_ip には、controller ノードのmanagement インタフェースのIP を指定してください。
 
