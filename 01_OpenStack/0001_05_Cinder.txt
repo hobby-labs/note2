@@ -3,11 +3,11 @@
 利用可能なドライバとして、NAS/SAN, NFS, iSCSi, Ceph などがあります。
 
 ; Cinder Installation Guide
-: https://docs.openstack.org/cinder/zed/install/
+: https://docs.openstack.org/cinder/yoga/install/
 
 == Cinder ブロックストレージの概要 ==
 ; Cinder Block Storage service overview
-: https://docs.openstack.org/cinder/zed/install/get-started-block-storage.html
+: https://docs.openstack.org/cinder/yoga/install/get-started-block-storage.html
 
 * cinder-api
 API リクエストを受け付け、`cinder-volume` へ奏者処理のため転送します。
@@ -47,7 +47,7 @@ Ubuntu にCinder をインストールする手順を説明していきます。
 また、キャラクタデバイスとして<code>/dev/sdb</code> を使っていきますが、適宜環境に応じて読み替えて下さい。
 
 ; Cinder Installation Guide for Ubuntu
-: https://docs.openstack.org/cinder/zed/install/index-ubuntu.html
+: https://docs.openstack.org/cinder/yoga/install/index-ubuntu.html
 
 == controller ノードのインストールと設定 ==
 
@@ -63,7 +63,7 @@ MariaDB [(none)]> quit
 openstack-controller-node01 ~# . ./admin-openrc
 
 openstack-controller-node01 ~# # cinder ユーザを作成する
-openstack-controller-node01 ~# openstack user create --domain default --password-prompt cinder
+openstack-controller-node01 ~# openstack user create --domain default --password p@ssw0rd cinder
 openstack-controller-node01 ~# # cinder ユーザにadmin ロールを追加する
 openstack-controller-node01 ~# openstack role add --project service --user cinder admin
 openstack-controller-node01 ~# # cinderv3 サービスエンティティを作成する
