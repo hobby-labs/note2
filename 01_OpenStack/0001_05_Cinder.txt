@@ -91,17 +91,15 @@ openstack-controller-node01 ~# apt-get install cinder-api cinder-scheduler
 
 * /etc/cinder/cinder.conf
 <syntaxhighlight lang="text">
-[database]
-# ...
-connection = mysql+pymysql://cinder:secret@dev-controller01/cinder
-</syntaxhighlight>
-
-<syntaxhighlight lang="text">
 [DEFAULT]
 # ...
 transport_url = rabbit://openstack:secret@dev-controller01
 auth_strategy = keystone
 my_ip = 192.168.2.71
+
+[database]
+# ...
+connection = mysql+pymysql://cinder:secret@dev-controller01/cinder
 
 [keystone_authtoken]
 www_authenticate_uri = http://dev-controller01:5000
@@ -113,7 +111,28 @@ user_domain_name = Default
 project_name = service
 username = cinder
 password = secret
+
+[oslo_concurrency]
+lock_path = /var/lib/cinder/tmp
 </syntaxhighlight>
 
 補足: my_ip には、controller ノードのmanagement インタフェースのIP を指定してください。
+
+* /etc/nova/nova.conf
+<syntaxhighlight lang="text">
+[cinder]
+os_region_name = RegionOne
+</syntaxhighlight>
+
+== インストール後処理 ==
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# systemctl restart openstack-nova-api.service
+</syntaxhighlight>
+
+cinder サービスの設定反映をするため、再起動します。
+
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# systemctl enable openstack-cinder-api.service openstack-cinder-scheduler.service
+openstack-controller-node01 ~# systemctl start openstack-cinder-api.service openstack-cinder-scheduler.service
+</syntaxhighlight>
 
