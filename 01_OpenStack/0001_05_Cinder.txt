@@ -129,10 +129,8 @@ os_region_name = RegionOne
 openstack-controller-node01 ~# systemctl restart openstack-nova-api.service
 </syntaxhighlight>
 
-cinder サービスの設定反映をするため、再起動します。
+= ストレージノードのインストールと設定 =
 
-<syntaxhighlight lang="console">
-openstack-controller-node01 ~# systemctl enable openstack-cinder-api.service openstack-cinder-scheduler.service
-openstack-controller-node01 ~# systemctl start openstack-cinder-api.service openstack-cinder-scheduler.service
-</syntaxhighlight>
+; Install and configure a storage node
+: https://docs.openstack.org/cinder/yoga/install/cinder-storage-install-obs.html
 
