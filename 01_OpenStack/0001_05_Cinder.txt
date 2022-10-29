@@ -126,11 +126,19 @@ os_region_name = RegionOne
 
 == インストール後処理 ==
 <syntaxhighlight lang="console">
-openstack-controller-node01 ~# systemctl restart openstack-nova-api.service
+openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
 </syntaxhighlight>
 
 = ストレージノードのインストールと設定 =
 
 ; Install and configure a storage node
 : https://docs.openstack.org/cinder/yoga/install/cinder-storage-install-obs.html
+
+LVM のfilter を設定します。
+今回は、Cinder ノードのみがLVM を持っている想定で設定します。
+Compute ノードもLVM がOS システム領域として使われている場合、設定する必要がありますが、今回は使っていない想定で割愛します。
+
+* /etc/lvm/lvm.conf
+<syntaxhighlight lang="console">
+</syntaxhighlight>
 
