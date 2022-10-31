@@ -136,9 +136,16 @@ openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
 
 LVM のfilter を設定します。
 今回は、Cinder ノードのみがLVM を持っている想定で設定します。
-Compute ノードもLVM がOS システム領域として使われている場合、設定する必要がありますが、今回は使っていない想定で割愛します。
+Compute ノードもLVM がOS システム領域として使われている場合、設定する必要がありますが、今回はCompute ノードでは使っていない想定で割愛します。
 
 * /etc/lvm/lvm.conf
 <syntaxhighlight lang="console">
+...
+devices {
+    ...
+    filter = [ "a|/dev/sdb|", "r|.*|" ]
+    ...
+}
+...
 </syntaxhighlight>
 
