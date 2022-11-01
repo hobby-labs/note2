@@ -124,6 +124,12 @@ lock_path = /var/lib/cinder/tmp
 os_region_name = RegionOne
 </syntaxhighlight>
 
+Block Storage データベースを作成します。
+
+<syntaxhighlight lang="text">
+# su -s /bin/sh -c "cinder-manage db sync" cinder
+</syntaxhighlight>
+
 == インストール後処理 ==
 <syntaxhighlight lang="console">
 openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
@@ -132,7 +138,7 @@ openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
 = ストレージノードのインストールと設定 =
 
 ; Install and configure a storage node
-: https://docs.openstack.org/cinder/yoga/install/cinder-storage-install-obs.html
+: https://docs.openstack.org/cinder/yoga/install/cinder-storage-install-ubuntu.html
 
 LVM のfilter を設定します。
 今回は、Cinder ノードのみがLVM を持っている想定で設定します。
@@ -148,4 +154,11 @@ devices {
 }
 ...
 </syntaxhighlight>
+
+== パッケージのインストールと設定 ==
+
+<syntaxhighlight lang="console">
+openstack-controller-nodeXX ~# apt-get install cinder-volume tgt
+</syntaxhighlight>
+
 
