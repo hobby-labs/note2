@@ -81,6 +81,8 @@ openstack-controller-node01 ~# openstack endpoint create --region RegionOne volu
 openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 admin http://dev-controller01:8776/v3/%\(project_id\)s
 </syntaxhighlight>
 
+// Snapshot created_endpoint_for_cinder
+
 == コンポーネントのインストール ==
 
 <syntaxhighlight lang="console">
@@ -118,7 +120,7 @@ lock_path = /var/lib/cinder/tmp
 
 補足: my_ip には、controller ノードのmanagement インタフェースのIP を指定してください。
 
-* /etc/nova/nova.conf
+* /etc/nova/nova.conf @ dev-controllerXX
 <syntaxhighlight lang="text">
 [cinder]
 os_region_name = RegionOne
@@ -129,6 +131,8 @@ Block Storage データベースを作成します。
 <syntaxhighlight lang="text">
 # su -s /bin/sh -c "cinder-manage db sync" cinder
 </syntaxhighlight>
+
+// Snapshot configured_cinder_for_controllers
 
 == インストール後処理 ==
 <syntaxhighlight lang="console">
