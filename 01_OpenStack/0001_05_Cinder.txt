@@ -136,7 +136,9 @@ Block Storage データベースを作成します。
 
 == インストール後処理 ==
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
+openstack-controller-nodeXX ~# systemctl restart nova-api
+openstack-controller-nodeXX ~# systemctl restart cinder-scheduler
+openstack-controller-nodeXX ~# systemctl restart apache2
 </syntaxhighlight>
 
 = ストレージノードのインストールと設定 =
