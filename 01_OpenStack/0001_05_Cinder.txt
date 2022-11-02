@@ -161,10 +161,11 @@ devices {
 ...
 </syntaxhighlight>
 
+// Snapshot ciner01
+
 == パッケージのインストールと設定 ==
 
 <syntaxhighlight lang="console">
 openstack-controller-nodeXX ~# apt-get install cinder-volume tgt
 </syntaxhighlight>
-
 
