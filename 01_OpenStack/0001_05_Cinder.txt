@@ -144,11 +144,11 @@ openstack-controller-nodeXX ~# systemctl restart openstack-nova-api.service
 ; Install and configure a storage node
 : https://docs.openstack.org/cinder/yoga/install/cinder-storage-install-ubuntu.html
 
-LVM のfilter を設定します。
+Cinder ノードのLVM のfilter を設定します。
 今回は、Cinder ノードのみがLVM を持っている想定で設定します。
-Compute ノードもLVM がOS システム領域として使われている場合、設定する必要がありますが、今回はCompute ノードでは使っていない想定で割愛します。
+Compute ノードもLVM がOS システム領域として使われている場合、設定が推奨されますが、今回は説明を簡略化するため、Compute ノードでは使っていない想定で進めていきます。
 
-* /etc/lvm/lvm.conf
+* /etc/lvm/lvm.conf @ dev-cinderXX
 <syntaxhighlight lang="console">
 ...
 devices {
