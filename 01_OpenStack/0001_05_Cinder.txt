@@ -166,6 +166,52 @@ devices {
 == パッケージのインストールと設定 ==
 
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# apt-get install cinder-volume tgt
+openstack-cinderXX ~# apt-get install cinder-volume tgt
 </syntaxhighlight>
+
+* /etc/cinder/cinder.conf @ dev-cinderXX
+<syntaxhighlight lang="text">
+[DEFAULT]
+# ...
+transport_url = rabbit://openstack:secret@dev-controller01
+auth_strategy = keystone
+my_ip = 192.168.2.71
+enabled_backends = lvm
+glance_api_servers = http://dev-controller01:9292
+# ...
+
+[database]
+# ...
+connection = mysql+pymysql://cinder:secret@dev-controller01/cinder
+# ...
+
+[keystone_authtoken]
+# ...
+www_authenticate_uri = http://dev-controller01:5000
+auth_url = http://dev-controller01:5000
+memcached_servers = dev-controller01:11211
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+project_name = service
+username = cinder
+password = secret
+
+[lvm]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_group = cinder-volumes
+target_protocol = iscsi
+target_helper = tgtadm
+
+[oslo_concurrency]
+lock_path = /var/lib/cinder/tmp
+</syntaxhighlight>
+
+設定完了後、サービスを再起動します。
+
+<syntaxhighlight lang="console">
+openstack-cinderXX ~# systemctl restart tgt
+openstack-cinderXX ~# systemctl restart cinder-volume
+</syntaxhighlight>
+
 
