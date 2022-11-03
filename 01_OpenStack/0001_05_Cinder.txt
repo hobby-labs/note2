@@ -214,4 +214,26 @@ openstack-cinderXX ~# systemctl restart tgt
 openstack-cinderXX ~# systemctl restart cinder-volume
 </syntaxhighlight>
 
+// Snapshot cinder02
+
+= バックアップサービス =
+; Install and configure the backup service
+: https://docs.openstack.org/cinder/yoga/install/cinder-backup-install-ubuntu.html
+
+任意で、バックアップサービスをインストールします。
+説明をシンプルにするために、設定はBlock Storage(Cinder) ノードとObject Storage(swift) ドライバを使った設定にします。
+
+== コンポーネントのインストールと設定 ==
+
+<syntaxhighlight lang="console">
+openstack-cinderXX ~# apt-get install cinder-backup
+</syntaxhighlight>
+
+* /etc/cinder/cinder.conf
+<syntaxhighlight lang="text">
+[DEFAULT]
+# ...
+backup_driver = cinder.backup.drivers.swift.SwiftBackupDriver
+backup_swift_url = SWIFT_URL
+</syntaxhighlight>
 
