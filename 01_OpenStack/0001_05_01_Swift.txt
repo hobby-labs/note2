@@ -1,0 +1,32 @@
+= Swift のインストール =
+; Object Storage Install Guide
+: https://docs.openstack.org/swift/zed/install/
+
+Object Storage のSwift をインストールしていきます。
+
+== Object Storage 概要 ==
+OpenStack Object Storage はmulti-tenant オブジェクトストレージシステムです。
+スケーラブルで、REST API で、構成されていない大容量データを管理することができます。  
+  
+== 含まれているコンポーネント ==
+
+=== Proxy servers (swift-proxy-server) ===
+
+=== Account servers (swift-account-server) ===
+
+=== Container servers (swift-container-server) ===
+
+=== Object servers (swift-object-server) ===
+
+=== Various periodic processes ===
+
+=== WSGI middleware ===
+
+=== swift client ===
+
+=== swift-init ===
+
+=== swift-recon ===
+
+=== swift-ring-builder ===
+
