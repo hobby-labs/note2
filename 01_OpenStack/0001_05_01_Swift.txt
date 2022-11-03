@@ -5,28 +5,46 @@
 Object Storage のSwift をインストールしていきます。
 
 == Object Storage 概要 ==
+: Object Storage service overview
+; https://docs.openstack.org/swift/zed/install/get_started.html
+
 OpenStack Object Storage はmulti-tenant オブジェクトストレージシステムです。
 スケーラブルで、REST API で、構成されていない大容量データを管理することができます。  
   
 == 含まれているコンポーネント ==
 
 === Proxy servers (swift-proxy-server) ===
+OpenStack Object Storage API を受け付け、ファイルアップロード、変更、コンテナ作成のためのHTTP リクエストを取り扱います。
+また、Web ブラウザにファイルとコンテナの一覧を提供します。
+パフォーマンスを上げるために、memcached でキャッシュをすることもできます。
 
 === Account servers (swift-account-server) ===
+Object Storage で定義されたアカウントを管理します。
 
 === Container servers (swift-container-server) ===
+Object Storage 内のコンテナやフォルダのマッピングを管理します。
 
 === Object servers (swift-object-server) ===
+ストレージノードの、ファイルのような、実際のオブジェクトを管理します。
 
 === Various periodic processes ===
+巨大なデータストアの維持管理タスクを行います。
+例えば、replication services は、クラスタを通して一貫性と可用性の確認をします。
+その他のeriodic processes としては、auditors, updaters, reapers 等があります。
 
 === WSGI middleware ===
+認証を取り扱います。
 
 === swift client ===
+コマンドラインを通じて、REST API を実行します。
 
 === swift-init ===
+リングファイル、パラメータによるデーモン名を初期化します。
+https://docs.openstack.org/swift/latest/admin_guide.html#managing-services
 
 === swift-recon ===
+swift-recon ミドルウェアによって取得された、クラスタに関する様々なメトリクス、テレメトリ(パフォーマンス)データを取得するCLI ツールです。
 
 === swift-ring-builder ===
+ユーティリティをビルドして、リバランスします。
 
