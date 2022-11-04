@@ -156,3 +156,5 @@ openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
 +--------------+----------------------------------+
 </syntaxhighlight>
 
+// Snapshot swift_created_endpoint
+
