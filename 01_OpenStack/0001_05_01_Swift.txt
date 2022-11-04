@@ -80,5 +80,79 @@ openstack-controller-nodeXX ~# . ./admin-openrc
 
 <syntaxhighlight lang="console">
 openstack-controller-nodeXX ~# openstack user create --domain default --password secret swift
++---------------------+----------------------------------+
+| Field               | Value                            |
++---------------------+----------------------------------+
+| domain_id           | default                          |
+| enabled             | True                             |
+| id                  | ffffffffffffffffffffffffffffffff |
+| name                | swift                            |
+| options             | {}                               |
+| password_expires_at | None                             |
++---------------------+----------------------------------+
+
+openstack-controller-nodeXX ~# openstack role add --project service --user swift admin
+
+openstack-controller-nodeXX ~# openstack service create --name swift \
+                                   --description "OpenStack Object Storage" object-store
++-------------+----------------------------------+
+| Field       | Value                            |
++-------------+----------------------------------+
+| description | OpenStack Object Storage         |
+| enabled     | True                             |
+| id          | ffffffffffffffffffffffffffffffff |
+| name        | swift                            |
+| type        | object-store                     |
++-------------+----------------------------------+
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+                                   object-store public http://dev-controller01:8080/v1/AUTH_%\(project_id\)s
++--------------+-----------------------------------------------------+
+| Field        | Value                                               |
++--------------+-----------------------------------------------------+
+| enabled      | True                                                |
+| id           | ffffffffffffffffffffffffffffffff                    |
+| interface    | public                                              |
+| region       | RegionOne                                           |
+| region_id    | RegionOne                                           |
+| service_id   | ffffffffffffffffffffffffffffffff                    |
+| service_name | swift                                               |
+| service_type | object-store                                        |
+| url          | http://dev-controller01:8080/v1/AUTH_%(project_id)s |
++--------------+-----------------------------------------------------+
+
+openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+                                   object-store internal http://dev-controller01:8080/v1/AUTH_%\(project_id\)s
++--------------+-----------------------------------------------------+
+| Field        | Value                                               |
++--------------+-----------------------------------------------------+
+| enabled      | True                                                |
+| id           | ffffffffffffffffffffffffffffffff                    |
+| interface    | internal                                            |
+| region       | RegionOne                                           |
+| region_id    | RegionOne                                           |
+| service_id   | ffffffffffffffffffffffffffffffff                    |
+| service_name | swift                                               |
+| service_type | object-store                                        |
+| url          | http://dev-controller01:8080/v1/AUTH_%(project_id)s |
++--------------+-----------------------------------------------------+
+
+openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+                                   object-store admin http://dev-controller01:8080/v1
++--------------+----------------------------------+
+| Field        | Value                            |
++--------------+----------------------------------+
+| enabled      | True                             |
+| id           | ffffffffffffffffffffffffffffffff |
+| interface    | admin                            |
+| region       | RegionOne                        |
+| region_id    | RegionOne                        |
+| service_id   | ffffffffffffffffffffffffffffffff |
+| service_name | swift                            |
+| service_type | object-store                     |
+| url          | http://dev-controller01:8080/v1  |
++--------------+----------------------------------+
 </syntaxhighlight>
 
