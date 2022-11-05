@@ -209,3 +209,17 @@ use = egg:swift#memcache
 memcache_servers = dev-controller01:11211
 </syntaxhighlight>
 
+// Snapshot swift_configure_proxy_server
+
+= Storage ノードの設定 =
+; Install and configure the storage nodes
+: https://docs.openstack.org/swift/yoga/install/storage-install.html
+
+== Storage ノードの設定(Ubuntu) ==
+; Install and configure the storage nodes for Ubuntu and Debian
+: https://docs.openstack.org/swift/yoga/install/storage-install-ubuntu-debian.html
+
+アカウント、コンテナ、サービスを操作するためのStorage ノードのインストールと設定を行います。
+
+
+
