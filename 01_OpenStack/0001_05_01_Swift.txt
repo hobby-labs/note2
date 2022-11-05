@@ -158,3 +158,54 @@ openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
 
 // Snapshot swift_created_endpoint
 
+== コンポーネントのインストールと設定 ==
+
+<syntaxhighlight lang="console">
+openstack-controller-nodeXX ~# apt-get install swift swift-proxy python3-swiftclient \
+                                   python3-keystoneclient python3-keystonemiddleware memcached
+
+openstack-controller-nodeXX ~# curl -o /etc/swift/proxy-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/proxy-server.conf-sample
+</syntaxhighlight>
+
+<code>/etc/swift/proxy-server.conf</code> ファイルを編集します。<br /><br />
+<code>pipeline</code> は、<code>tempurl</code>, <code>tempauth</code> を削除し、<code>authtoken</code>, <code>keystoneauth</code> を追加します。
+順序は変えないようにしてください。
+
+* /etc/swift/proxy-server.conf @ dev-controller01
+<syntaxhighlight lang="text">
+[DEFAULT]
+# ...
+bind_port = 8080
+user = swift
+swift_dir = /etc/swift
+# ...
+[pipeline:main]
+pipeline = catch_errors gatekeeper healthcheck proxy-logging cache listing_formats container_sync bulk ratelimit authtoken keystoneauth copy container-quotas account-quotas slo dlo versioned_writes symlink proxy-logging proxy-server
+# ...
+[app:proxy-server]
+use = egg:swift#proxy
+account_autocreate = True
+# ...
+[filter:keystoneauth]
+use = egg:swift#keystoneauth
+operator_roles = admin,user
+# ...
+[filter:authtoken]
+paste.filter_factory = keystonemiddleware.auth_token:filter_factory
+
+www_authenticate_uri = http://dev-controller01:5000
+auth_url = http://dev-controller01:5000
+memcached_servers = dev-controller01:11211
+auth_type = password
+project_domain_id = default
+user_domain_id = default
+project_name = service
+username = swift
+password = secret
+delay_auth_decision = True
+# ...
+[filter:cache]
+use = egg:swift#memcache
+memcache_servers = dev-controller01:11211
+</syntaxhighlight>
+
