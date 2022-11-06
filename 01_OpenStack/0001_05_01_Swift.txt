@@ -75,11 +75,11 @@ Object Storage サービスを設定する前に、サービス認証情報とAP
 == 認証情報の作成とエンドポイント作成 ==
 
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# . ./admin-openrc
+dev-controllerXX ~# . ./admin-openrc
 </syntaxhighlight>
 
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# openstack user create --domain default --password secret swift
+dev-controllerXX ~# openstack user create --domain default --password secret swift
 +---------------------+----------------------------------+
 | Field               | Value                            |
 +---------------------+----------------------------------+
@@ -91,9 +91,9 @@ openstack-controller-nodeXX ~# openstack user create --domain default --password
 | password_expires_at | None                             |
 +---------------------+----------------------------------+
 
-openstack-controller-nodeXX ~# openstack role add --project service --user swift admin
+dev-controllerXX ~# openstack role add --project service --user swift admin
 
-openstack-controller-nodeXX ~# openstack service create --name swift \
+dev-controllerXX ~# openstack service create --name swift \
                                    --description "OpenStack Object Storage" object-store
 +-------------+----------------------------------+
 | Field       | Value                            |
@@ -107,7 +107,7 @@ openstack-controller-nodeXX ~# openstack service create --name swift \
 </syntaxhighlight>
 
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+dev-controllerXX ~# openstack endpoint create --region RegionOne \
                                    object-store public http://dev-controller01:8080/v1/AUTH_%\(project_id\)s
 +--------------+-----------------------------------------------------+
 | Field        | Value                                               |
@@ -123,7 +123,7 @@ openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
 | url          | http://dev-controller01:8080/v1/AUTH_%(project_id)s |
 +--------------+-----------------------------------------------------+
 
-openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+dev-controllerXX ~# openstack endpoint create --region RegionOne \
                                    object-store internal http://dev-controller01:8080/v1/AUTH_%\(project_id\)s
 +--------------+-----------------------------------------------------+
 | Field        | Value                                               |
@@ -139,7 +139,7 @@ openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
 | url          | http://dev-controller01:8080/v1/AUTH_%(project_id)s |
 +--------------+-----------------------------------------------------+
 
-openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
+dev-controllerXX ~# openstack endpoint create --region RegionOne \
                                    object-store admin http://dev-controller01:8080/v1
 +--------------+----------------------------------+
 | Field        | Value                            |
@@ -161,10 +161,10 @@ openstack-controller-nodeXX ~# openstack endpoint create --region RegionOne \
 == コンポーネントのインストールと設定 ==
 
 <syntaxhighlight lang="console">
-openstack-controller-nodeXX ~# apt-get install swift swift-proxy python3-swiftclient \
+dev-controllerXX ~# apt-get install swift swift-proxy python3-swiftclient \
                                    python3-keystoneclient python3-keystonemiddleware memcached
 
-openstack-controller-nodeXX ~# curl -o /etc/swift/proxy-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/proxy-server.conf-sample
+dev-controllerXX ~# curl -o /etc/swift/proxy-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/proxy-server.conf-sample
 </syntaxhighlight>
 
 <code>/etc/swift/proxy-server.conf</code> ファイルを編集します。<br /><br />
@@ -220,6 +220,19 @@ memcache_servers = dev-controller01:11211
 : https://docs.openstack.org/swift/yoga/install/storage-install-ubuntu-debian.html
 
 アカウント、コンテナ、サービスを操作するためのStorage ノードのインストールと設定を行います。
+今回は、説明を簡略化するために、2 台のStorage ノードがあり、2 つの空のローカルブロックストレージデバイス<code>/dev/sdb</code>, <code>/dev/sdc</code>があることを想定しています。<br /><br />
 
+Object Storage は、拡張属性(Extended attribute: xattr)各種ファイルシステムのあるファイルシステムをサポートしています。
+その中でも、よくテストされてパフォーマンスが良いのは<code>xfs</code> です。<br /><br />
+
+水平展開に関する情報はDeployment Guide を参照してください。
+; Deployment Guide
+: https://docs.openstack.org/swift/latest/deployment_guide.html
+
+== 事前準備 ==
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# apt-get install xfsprogs rsync
+</syntaxhighlight>
 
 
