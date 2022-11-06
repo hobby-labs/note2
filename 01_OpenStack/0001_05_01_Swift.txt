@@ -232,7 +232,24 @@ Object Storage は、拡張属性(Extended attribute: xattr)各種ファイル�
 == 事前準備 ==
 
 <syntaxhighlight lang="console">
-dev-controllerXX ~# apt-get install xfsprogs rsync
+dev-storageXX ~# apt-get install xfsprogs rsync
+
+dev-storageXX ~# mkfs.xfs /dev/vdb
+dev-storageXX ~# mkfs.xfs /dev/vdc
+
+dev-storageXX ~# mkdir -p /srv/node/vd{b,c}
+
+dev-storageXX ~# output_blkid="$(blkid)"
+dev-storageXX ~# uuid_vdb=$(grep -P '^/dev/vdb:.*' <<< "${output_blkid}" | sed -e 's/.* UUID="\([a-z0-9\-]\+\).*" .*/\1/g')
+dev-storageXX ~# uuid_vdc=$(grep -P '^/dev/vdc:.*' <<< "${output_blkid}" | sed -e 's/.* UUID="\([a-z0-9\-]\+\).*" .*/\1/g')
+dev-storageXX ~# echo "uuid_vdb=${uuid_vdb}, uuid_vdc=${uuid_vdc}"
+dev-storageXX ~# echo "UUID=\"${uuid_vdb}\" /srv/node/vdb xfs noatime 0 2" >> /etc/fstab
+dev-storageXX ~# echo "UUID=\"${uuid_vdc}\" /srv/node/vdc xfs noatime 0 2" >> /etc/fstab
+dev-storageXX ~# cat /etc/fstab
+
+dev-storageXX ~# mount /srv/node/vdb
+dev-storageXX ~# mount /srv/node/vdc
 </syntaxhighlight>
+
 
 
