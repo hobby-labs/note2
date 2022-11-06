@@ -394,3 +394,5 @@ dev-storageXX ~# chown -R root:swift /var/cache/swift
 dev-storageXX ~# chmod -R 775 /var/cache/swift
 </syntaxhighlight>
 
+// Snapshot swift_configure_component
+
