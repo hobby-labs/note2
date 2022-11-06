@@ -296,3 +296,32 @@ dev-storageXX ~# systemctl enable rsync.service
 
 // Snapshot swift_rsync_configured
 
+== コンポーネントのインストールと設定 ==
+
+<syntaxhighlight lang="console">
+dev-storageXX ~# apt-get install swift swift-account swift-container swift-object
+</syntaxhighlight>
+
+accounting, container, object service の設定ファイルを、公式リポジトリから取得します。
+
+<syntaxhighlight lang="console">
+dev-storageXX ~# curl -o /etc/swift/account-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/account-server.conf-sample
+dev-storageXX ~# curl -o /etc/swift/container-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/container-server.conf-sample
+dev-storageXX ~# curl -o /etc/swift/object-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/object-server.conf-sample
+</syntaxhighlight>
+
+<code>account-server.conf</code> 設定ファイルを編集します。
+<code>MANAGEMENT_INTERFACE_IP_ADDRESS</code> は、各storage ノードのmanagement セグメントのIP を設定してください。
+
+* /etc/swift/account-server.conf @ dev-storageXX
+<syntaxhighlight lang="text">
+[DEFAULT]
+bind_ip = MANAGEMENT_INTERFACE_IP_ADDRESS
+bind_port = 6202
+user = swift
+swift_dir = /etc/swift
+devices = /srv/node
+mount_check = True
+</syntaxhighlight>
+
+
