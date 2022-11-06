@@ -312,6 +312,10 @@ dev-storageXX ~# curl -o /etc/swift/object-server.conf https://opendev.org/opens
 
 <code>account-server.conf</code> 設定ファイルを編集します。
 <code>MANAGEMENT_INTERFACE_IP_ADDRESS</code> は、各storage ノードのmanagement セグメントのIP を設定してください。
+<code>[pipeline:main]</code> で指定する、その他のモジュールについては、Deployment Guide を参照してください。
+
+; Deployment Guide
+: https://docs.openstack.org/swift/latest/deployment_guide.html
 
 * /etc/swift/account-server.conf @ dev-storageXX
 <syntaxhighlight lang="text">
@@ -322,6 +326,71 @@ user = swift
 swift_dir = /etc/swift
 devices = /srv/node
 mount_check = True
+
+# ...
+
+[pipeline:main]
+pipeline = healthcheck recon account-server
+
+# ...
+
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
 </syntaxhighlight>
 
+* /etc/swift/container-server.conf @ dev-storageXX
+<syntaxhighlight lang="text">
+[DEFAULT]
+bind_ip = MANAGEMENT_INTERFACE_IP_ADDRESS
+bind_port = 6201
+user = swift
+swift_dir = /etc/swift
+devices = /srv/node
+mount_check = True
+
+# ...
+
+[pipeline:main]
+pipeline = healthcheck recon container-server
+
+# ...
+
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
+</syntaxhighlight>
+
+* /etc/swift/object-server.conf @ dev-storageXX
+<syntaxhighlight lang="text">
+[DEFAULT]
+bind_ip = MANAGEMENT_INTERFACE_IP_ADDRESS
+bind_port = 6200
+user = swift
+swift_dir = /etc/swift
+devices = /srv/node
+mount_check = True
+
+# ...
+
+[pipeline:main]
+pipeline = healthcheck recon object-server
+
+# ...
+
+[filter:recon]
+use = egg:swift#recon
+recon_cache_path = /var/cache/swift
+recon_lock_path = /var/lock
+</syntaxhighlight>
+
+設定ファイルを変更したら、各ファイルとディレクトリの権限を設定します。
+
+<syntaxhighlight lang="text">
+dev-storageXX ~# chown -R swift:swift /srv/node
+
+dev-storageXX ~# mkdir -p /var/cache/swift
+dev-storageXX ~# chown -R root:swift /var/cache/swift
+dev-storageXX ~# chmod -R 775 /var/cache/swift
+</syntaxhighlight>
 
