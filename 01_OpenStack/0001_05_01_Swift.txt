@@ -461,3 +461,15 @@ dev-controllerXX ~# swift-ring-builder account.builder
 >             3      1    1 172.22.1.102:6202   172.22.1.102:6202   vdc 100.00          0 -100.00
 </syntaxhighlight>
 
+Ring のリバランスを行います。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder account.builder rebalance
+> Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.00
+</syntaxhighlight>
+
+// Snapshot swift_created_account_ring
+
+== Container ring の作成 ==
+
+
