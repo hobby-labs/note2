@@ -386,7 +386,7 @@ recon_lock_path = /var/lock
 
 設定ファイルを変更したら、各ファイルとディレクトリの権限を設定します。
 
-<syntaxhighlight lang="text">
+<syntaxhighlight lang="console">
 dev-storageXX ~# chown -R swift:swift /srv/node
 
 dev-storageXX ~# mkdir -p /var/cache/swift
@@ -395,4 +395,69 @@ dev-storageXX ~# chmod -R 775 /var/cache/swift
 </syntaxhighlight>
 
 // Snapshot swift_configure_component
+
+= Ring の作成と初期化 =
+; Create and distribute initial rings
+: https://docs.openstack.org/swift/yoga/install/initial-rings.html
+
+Object storage サービスを開始する前に、初期アカウント、コンテナ、Object Ring を作成する必要があります。
+Ring builder はストレージアーキテクチャを利用するための設定ファイルを作成します。
+
+== Account ring の作成 ==
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# cd /etc/swift
+dev-controllerXX ~# swift-ring-builder account.builder create 10 3 1
+</syntaxhighlight>
+
+各ノードをリングに追加します。
+コマンドの書式としては、下記のようになります。
+
+* (例)
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder account.builder \
+                        add --region 1 --zone 1 --ip STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS --port 6202 \
+                        --device DEVICE_NAME --weight DEVICE_WEIGHT
+</syntaxhighlight>
+
+上記コマンドの<code>STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS</code> には、Storage ノードのIP アドレスを指定します。
+<code>DEVICE_NAME</code> にはデバイス名を指定します(vdb, vdc etc...)。
+<code>DEVICE_WEIGHT</code> には、そのデバイスが、リング内の他のデバイスに対して、占める使用量を指定します。<br /><br />
+
+今回は、既に作成したStorage ノードの都合上、下記のコマンドになります。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder account.builder \
+                        add --region 1 --zone 1 --ip 172.22.1.101 --port 6202 \
+                        --device vdb --weight 100
+> Device d0r1z1-172.22.1.101:6202R172.22.1.101:6202/vdb_"" with 100.0 weight got id 0
+dev-controllerXX ~# swift-ring-builder account.builder \
+                        add --region 1 --zone 1 --ip 172.22.1.101 --port 6202 \
+                        --device vdc --weight 100
+> Device d1r1z1-172.22.1.101:6202R172.22.1.101:6202/vdc_"" with 100.0 weight got id 1
+dev-controllerXX ~# swift-ring-builder account.builder \
+                        add --region 1 --zone 1 --ip 172.22.1.102 --port 6202 \
+                        --device vdb --weight 100
+> Device d2r1z1-172.22.1.102:6202R172.22.1.102:6202/vdb_"" with 100.0 weight got id 2
+dev-controllerXX ~# swift-ring-builder account.builder \
+                        add --region 1 --zone 1 --ip 172.22.1.102 --port 6202 \
+                        --device vdc --weight 100
+> Device d3r1z1-172.22.1.102:6202R172.22.1.102:6202/vdc_"" with 100.0 weight got id 3
+</syntaxhighlight>
+
+ring 状態を確認します。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder account.builder
+> account.builder, build version 4, id 02470c1e024942a588802d0a919fd6b0
+> 1024 partitions, 3.000000 replicas, 1 regions, 1 zones, 4 devices, 100.00 balance, 0.00 dispersion
+> The minimum number of hours before a partition can be reassigned is 1 (0:00:00 remaining)
+> The overload factor is 0.00% (0.000000)
+> Ring file account.ring.gz not found, probably it hasn't been written yet
+> Devices:   id region zone   ip address:port replication ip:port  name weight partitions balance flags meta
+>             0      1    1 172.22.1.101:6202   172.22.1.101:6202   vdb 100.00          0 -100.00
+>             1      1    1 172.22.1.101:6202   172.22.1.101:6202   vdc 100.00          0 -100.00
+>             2      1    1 172.22.1.102:6202   172.22.1.102:6202   vdb 100.00          0 -100.00
+>             3      1    1 172.22.1.102:6202   172.22.1.102:6202   vdc 100.00          0 -100.00
+</syntaxhighlight>
 
