@@ -472,4 +472,40 @@ dev-controllerXX ~# swift-ring-builder account.builder rebalance
 
 == Container ring の作成 ==
 
+<syntaxhighlight lang="console">
+dev-controllerXX ~# cd /etc/swift
+dev-controllerXX ~# swift-ring-builder container.builder create 10 3 1
+dev-controllerXX ~# ls -l container.builder
+-rw-r--r-- 1 root root 2504 Nov  8 14:36 container.builder
+</syntaxhighlight>
+
+Ring にStorage ノードを追加します。
+コマンドの例としては、下記の通りです。
+
+* (例)
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder container.builder \
+                        add --region 1 --zone 1 --ip STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS --port 6201 \
+                        --device DEVICE_NAME --weight DEVICE_WEIGHT
+</syntaxhighlight>
+
+<code>STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS</code> は、各Storage ノードのManagement IP アドレスです。
+<code>DEVICE_NAME</code> は、Storage ノードのデバイス名です。<br /><br />
+
+今回の構成では、実際に打つコマンドは、下記のようなコマンドになります。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder container.builder add \
+                        --region 1 --zone 1 --ip 172.22.1.101 --port 6201 --device vdb --weight 100
+
+dev-controllerXX ~# swift-ring-builder container.builder add \
+                        --region 1 --zone 1 --ip 172.22.1.101 --port 6201 --device vdc --weight 100
+
+dev-controllerXX ~# swift-ring-builder container.builder add \
+                        --region 1 --zone 2 --ip 172.22.1.102 --port 6201 --device vdb --weight 100
+
+dev-controllerXX ~# swift-ring-builder container.builder add \
+                        --region 1 --zone 2 --ip 172.22.1.102 --port 6201 --device vdc --weight 100
+</syntaxhighlight>
+
 
