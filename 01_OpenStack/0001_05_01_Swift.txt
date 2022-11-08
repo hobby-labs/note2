@@ -497,25 +497,40 @@ dev-controllerXX ~# swift-ring-builder container.builder \
 <syntaxhighlight lang="console">
 dev-controllerXX ~# swift-ring-builder container.builder add \
                         --region 1 --zone 1 --ip 172.22.1.101 --port 6201 --device vdb --weight 100
+Device d0r1z1-172.22.1.101:6201R172.22.1.101:6201/vdb_"" with 100.0 weight got id 0
 
 dev-controllerXX ~# swift-ring-builder container.builder add \
                         --region 1 --zone 1 --ip 172.22.1.101 --port 6201 --device vdc --weight 100
+Device d1r1z1-172.22.1.101:6201R172.22.1.101:6201/vdc_"" with 100.0 weight got id 1
 
 dev-controllerXX ~# swift-ring-builder container.builder add \
                         --region 1 --zone 2 --ip 172.22.1.102 --port 6201 --device vdb --weight 100
+Device d2r1z2-172.22.1.102:6201R172.22.1.102:6201/vdb_"" with 100.0 weight got id 2
 
 dev-controllerXX ~# swift-ring-builder container.builder add \
                         --region 1 --zone 2 --ip 172.22.1.102 --port 6201 --device vdc --weight 100
+Device d3r1z2-172.22.1.102:6201R172.22.1.102:6201/vdc_"" with 100.0 weight got id 3
 </syntaxhighlight>
 
 Container ring の検証を行います。
 
 <syntaxhighlight lang="console">
 dev-controllerXX ~# swift-ring-builder container.builder
+container.builder, build version 4, id 0e7694a3dbfd46c3ab24c210802b938b
+1024 partitions, 3.000000 replicas, 1 regions, 2 zones, 4 devices, 100.00 balance, 0.00 dispersion
+The minimum number of hours before a partition can be reassigned is 1 (0:00:00 remaining)
+The overload factor is 0.00% (0.000000)
+Ring file container.ring.gz not found, probably it hasn't been written yet
+Devices:   id region zone   ip address:port replication ip:port  name weight partitions balance flags meta
+            0      1    1 172.22.1.101:6201   172.22.1.101:6201   vdb 100.00          0 -100.00
+            1      1    1 172.22.1.101:6201   172.22.1.101:6201   vdc 100.00          0 -100.00
+            2      1    2 172.22.1.102:6201   172.22.1.102:6201   vdb 100.00          0 -100.00
+            3      1    2 172.22.1.102:6201   172.22.1.102:6201   vdc 100.00          0 -100.00
 </syntaxhighlight>
 
 <syntaxhighlight lang="console">
 dev-controllerXX ~# swift-ring-builder container.builder rebalance
+Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.00
 </syntaxhighlight>
 
 // Snapshot swift_created_container_ring
