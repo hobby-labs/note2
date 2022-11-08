@@ -508,4 +508,15 @@ dev-controllerXX ~# swift-ring-builder container.builder add \
                         --region 1 --zone 2 --ip 172.22.1.102 --port 6201 --device vdc --weight 100
 </syntaxhighlight>
 
+Container ring の検証を行います。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder container.builder
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder container.builder rebalance
+</syntaxhighlight>
+
+// Snapshot swift_created_container_ring
 
