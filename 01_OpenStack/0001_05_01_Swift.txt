@@ -535,3 +535,42 @@ Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.
 
 // Snapshot swift_created_container_ring
 
+== Object ring 作成 ==
+Object serve は、ローカルデバイス上のオブジェクトロケーションリストを管理するために、Object ring を使います。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# cd /etc/swift
+dev-controllerXX ~# swift-ring-builder object.builder create 10.3.1
+</syntaxhighlight>
+
+Ring にStorage ノードを追加します。
+コマンドの例としては、下記の通りです。
+
+* (例)
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder object.builder \
+                        add --region 1 --zone 1 --ip STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS --port 6200 \
+                        --device DEVICE_NAME --weight DEVICE_WEIGHT
+</syntaxhighlight>
+
+<code>STORAGE_NODE_MANAGEMENT_INTERFACE_IP_ADDRESS</code> は、各Storage ノードのManagement IP アドレスです。
+<code>DEVICE_NAME</code> は、Storage ノードのデバイス名です。<br /><br />
+
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder object.builder add \
+                        --region 1 --zone 1 --ip 172.22.1.101 --port 6200 --device vdb --weight 100
+
+dev-controllerXX ~# swift-ring-builder object.builder add \
+                        --region 1 --zone 1 --ip 172.22.1.101 --port 6200 --device vdc --weight 100
+
+dev-controllerXX ~# swift-ring-builder object.builder add \
+                        --region 1 --zone 2 --ip 172.22.1.102 --port 6200 --device vdb --weight 100
+
+dev-controllerXX ~# swift-ring-builder object.builder add \
+                        --region 1 --zone 2 --ip 172.22.1.102 --port 6200 --device vdc --weight 100
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+swift-ring-builder object.builder
+
