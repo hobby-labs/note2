@@ -540,7 +540,7 @@ Object serve は、ローカルデバイス上のオブジェクトロケーシ�
 
 <syntaxhighlight lang="console">
 dev-controllerXX ~# cd /etc/swift
-dev-controllerXX ~# swift-ring-builder object.builder create 10.3.1
+dev-controllerXX ~# swift-ring-builder object.builder create 10 3 1
 </syntaxhighlight>
 
 Ring にStorage ノードを追加します。
@@ -572,5 +572,48 @@ dev-controllerXX ~# swift-ring-builder object.builder add \
 </syntaxhighlight>
 
 <syntaxhighlight lang="console">
-swift-ring-builder object.builder
+dev-controllerXX ~# swift-ring-builder object.builder
+</syntaxhighlight>
+
+Ring をリバランスします。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# swift-ring-builder object.builder rebalance
+</syntaxhighlight>
+
+// Snapshot swift_created_object_ring
+
+= インストールの後処理 =
+; Finalize installation
+: https://docs.openstack.org/swift/yoga/install/finalize-installation.html
+
+; Finalize installation for Ubuntu and Debian
+: https://docs.openstack.org/swift/yoga/install/finalize-installation-ubuntu-debian.html
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# curl -o /etc/swift/swift.conf \
+                        https://opendev.org/openstack/swift/raw/branch/master/etc/swift.conf-sample
+</syntaxhighlight>
+
+* /etc/swift/swift.conf @ dev-controllerXX, dev-storageXX
+<syntaxhighlight lang="console">
+[swift-hash]
+swift_hash_path_suffix = HASH_PATH_SUFFIX
+swift_hash_path_prefix = HASH_PATH_PREFIX
+
+# ...
+
+[storage-policy:0]
+name = Policy-0
+default = yes
+</syntaxhighlight>
+
+<code>HASH_PATH_SUFFIX</code>, <code>HASH_PATH_PREFIX</code> はユニークな値を設定してください。
+これらの値は、漏洩しないように且つ、なくさないようにしてください。<br /><br />
+
+<code>storage-policy:0</code> には、デフォルトのStorage ポリシーを設定してください。<br /><br />
+
+設定が完了したら、この設定ファイルを各swift-proxy-server を起動しているノードと、storage ノードにコピーしてください。
+今回は、<code>dev-controller01</code>, <code>dev-storage01</code>, <code>dev-storage02</code> になります。
+
 
