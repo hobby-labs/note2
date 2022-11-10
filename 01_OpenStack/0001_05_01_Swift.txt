@@ -626,7 +626,7 @@ dev-(controller|storage)XX ~# chown -R root:swift /etc/swift
 
 <syntaxhighlight lang="console">
 dev-controllerXX ~# systemctl restart memcached
-dev-controllerXX ~# systemctl restart memcached swift-proxy
+dev-controllerXX ~# systemctl restart swift-proxy
 </syntaxhighlight>
 
 <code>storage</code> ノード上でObject Storage サービスを起動します。
