@@ -614,6 +614,24 @@ default = yes
 <code>storage-policy:0</code> には、デフォルトのStorage ポリシーを設定してください。<br /><br />
 
 設定が完了したら、この設定ファイルを各swift-proxy-server を起動しているノードと、storage ノードにコピーしてください。
-今回は、<code>dev-controller01</code>, <code>dev-storage01</code>, <code>dev-storage02</code> になります。
+今回は、<code>dev-controller01</code>, <code>dev-storage01</code>, <code>dev-storage02</code> になります。<br /><br />
 
+ファイルをコピーしたら、権限を設定します。
+
+<syntaxhighlight lang="console">
+dev-(controller|storage)XX ~# chown -R root:swift /etc/swift
+</syntaxhighlight>
+
+<code>controller</code> ノード(<code>swift-proxy</code> ノード)上でサービスを再起動します。
+
+<syntaxhighlight lang="console">
+dev-controllerXX ~# systemctl restart memcached
+dev-controllerXX ~# systemctl restart memcached swift-proxy
+</syntaxhighlight>
+
+<code>storage</code> ノード上でObject Storage サービスを起動します。
+
+<syntaxhighlight lang="console">
+dev-storageXX ~# swift-init all start
+</syntaxhighlight>
 
