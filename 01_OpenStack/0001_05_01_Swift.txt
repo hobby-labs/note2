@@ -254,10 +254,11 @@ dev-storageXX ~# mount /srv/node/vdc
 rsyncd サービスの設定を行います。
 <code>/etc/rsyncd.conf</code> ファイルを編集、無い場合は新規作成し、下記のように設定します。
 
-* /etc/rsyncd.conf @ dev-storageXX
+* dev-storageXX
 <syntaxhighlight lang="console">
 dev-storageXX ~# # 今回は"enp2s0" がmanagement network に属しているインタフェースと仮定します。
 dev-storageXX ~# management_ip=$(ip -f inet addr show enp2s0 | sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
+dev-storageXX ~# echo $management_ip
 
 dev-storageXX ~# cat << EOF > /etc/rsyncd.conf
 uid = swift
