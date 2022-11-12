@@ -770,3 +770,9 @@ swift-object-updater.service
 swift-object.service
 </syntaxhighlight>
 
+// Snapshot swift_finalized_installation
+
+== 検証 ==
+: Verify operation
+; https://docs.openstack.org/swift/yoga/install/verify.html
+
