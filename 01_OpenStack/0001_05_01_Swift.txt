@@ -748,4 +748,25 @@ Traceback (most recent call last):
 FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/account.ring.gz'
 </syntaxhighlight>
 
+systemd コマンドで管理したい場合は、<code>/lib/systemd/system</code> ディレクトリ配下を確認すると良いでしょう。
+
+<syntaxhighlight lang="console">
+root@dev-storage01:/lib/systemd/system# ls /lib/systemd/system | grep -P '^swift(?!.*\@).*'
+swift-account-auditor.service
+swift-account-reaper.service
+swift-account-replicator.service
+swift-account.service
+swift-container-auditor.service
+swift-container-reconciler.service
+swift-container-replicator.service
+swift-container-sharder.service
+swift-container-sync.service
+swift-container-updater.service
+swift-container.service
+swift-object-auditor.service
+swift-object-reconstructor.service
+swift-object-replicator.service
+swift-object-updater.service
+swift-object.service
+</syntaxhighlight>
 
