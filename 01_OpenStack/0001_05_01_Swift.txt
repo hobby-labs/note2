@@ -161,7 +161,7 @@ dev-controllerXX ~# openstack endpoint create --region RegionOne \
 == コンポーネントのインストールと設定 ==
 
 <syntaxhighlight lang="console">
-dev-controllerXX ~# apt-get install swift swift-proxy python3-swiftclient \
+dev-controllerXX ~# apt-get install -y swift swift-proxy python3-swiftclient \
                                    python3-keystoneclient python3-keystonemiddleware memcached
 
 dev-controllerXX ~# curl -o /etc/swift/proxy-server.conf https://opendev.org/openstack/swift/raw/branch/master/etc/proxy-server.conf-sample
@@ -300,7 +300,7 @@ dev-storageXX ~# systemctl enable rsync.service
 == コンポーネントのインストールと設定 ==
 
 <syntaxhighlight lang="console">
-dev-storageXX ~# apt-get install swift swift-account swift-container swift-object
+dev-storageXX ~# apt-get install -y swift swift-account swift-container swift-object
 </syntaxhighlight>
 
 accounting, container, object service の設定ファイルを、公式リポジトリから取得します。
@@ -597,6 +597,9 @@ dev-controllerXX ~# swift-ring-builder object.builder rebalance
 > Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.00
 </syntaxhighlight>
 
+=== Ring ファイルの配布 ===
+<code>/etc/swift</code> ディレクトリ下の<code>account.ring.gz</code>, <code>container.ring.gz</code>, <code>object.ring.gz</code> ファイルを各Storage ノードとStorage Proxy ノードにコピーしてください。
+
 // Snapshot swift_created_object_ring
 
 = インストールの後処理 =
@@ -751,7 +754,7 @@ FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/account.ring
 systemd コマンドで管理したい場合は、<code>/lib/systemd/system</code> ディレクトリ配下を確認すると良いでしょう。
 
 <syntaxhighlight lang="console">
-root@dev-storage01:/lib/systemd/system# ls /lib/systemd/system | grep -P '^swift(?!.*\@).*'
+dev-storage01 # ls /lib/systemd/system | grep -P '^swift(?!.*\@).*'
 swift-account-auditor.service
 swift-account-reaper.service
 swift-account-replicator.service
@@ -775,4 +778,10 @@ swift-object.service
 == 検証 ==
 : Verify operation
 ; https://docs.openstack.org/swift/yoga/install/verify.html
+
+Object storage の検証を実施していきます。
+
+<syntaxhighlight lang="console">
+dev-storage01 # . demo-openrc
+</syntaxhighlight>
 
