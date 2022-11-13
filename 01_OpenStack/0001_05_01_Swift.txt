@@ -663,16 +663,9 @@ dev-controllerXX ~# systemctl restart swift-proxy
 dev-storageXX ~# swift-init all start
 </syntaxhighlight>
 
-=== swift-init all start 実行時のエラー ===
-私の環境で<code>swift-init all start</code> コマンドを実行した場合、下記のようなエラーが発生します。
-エラーが出てもStorage ノードで走っていないサービスのエラーについては無視して構いません。
-
-<syntaxhighlight lang="console">
-dev-storage01 # swift-init all start
-
-</syntaxhighlight>
-
-systemd コマンドで管理したい場合は、<code>/lib/systemd/system</code> ディレクトリ配下を確認すると良いでしょう。
+=== systemd サービス名 ===
+systemd コマンドで管理したい場合は、<code>/lib/systemd/system</code> ディレクトリ配下を確認すると良いでしょう。<br />
+→実際にsystemd で実行していない。未検証
 
 <syntaxhighlight lang="console">
 dev-storage01 # ls /lib/systemd/system | grep -P '^swift(?!.*\@).*'
@@ -703,6 +696,62 @@ swift-object.service
 Object storage の検証を実施していきます。
 
 <syntaxhighlight lang="console">
-dev-storage01 # . demo-openrc
+dev-controller01 # . ./admin-openrc
+</syntaxhighlight>
+
+swift サービスのステータスを確認します。
+
+<syntaxhighlight lang="console">
+dev-controller01 # swift stat
+               Account: AUTH_ffffffffffffffffffffffffffffffff
+            Containers: 0
+               Objects: 0
+                 Bytes: 0
+          Content-Type: text/plain; charset=utf-8
+           X-Timestamp: 1668341073.39333
+       X-Put-Timestamp: 1668341073.39333
+                  Vary: Accept
+            X-Trans-Id: eeeeeeeeeeeeeeeeeeeeeee-eeeeeeeeee
+X-Openstack-Request-Id: eeeeeeeeeeeeeeeeeeeeeee-eeeeeeeeee
+</syntaxhighlight>
+
+container1 コンテナを作成します。
+
+<syntaxhighlight lang="console">
+dev-controller01 # openstack container create container1
++---------------------------------------+------------+------------------------------------+
+| account                               | container  | x-trans-id                         |
++---------------------------------------+------------+------------------------------------+
+| AUTH_ffffffffffffffffffffffffffffffff | container1 | eeeeeeeeeeeeeeeeeeeeeee-eeeeeeeeee |
++---------------------------------------+------------+------------------------------------+
+</syntaxhighlight>
+
+container1 コンテナにテストファイルをアップロードします。
+
+<syntaxhighlight lang="console">
+dev-controller01 # echo "This is a test file" > test.txt
+dev-controller01 # openstack object create container1 test.txt
++----------+------------+----------------------------------+
+| object   | container  | etag                             |
++----------+------------+----------------------------------+
+| test.txt | container1 | dddddddddddddddddddddddddddddddd |
++----------+------------+----------------------------------+
+</syntaxhighlight>
+
+container1 コンテナのファイルを一覧表示します。
+
+<syntaxhighlight lang="console">
+dev-controller01 # openstack object list container1
++----------+
+| Name     |
++----------+
+| test.txt |
++----------+
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+dev-controller01 # openstack object save container1 test.txt
+dev-controller01 # cat test.txt
+This is a test file
 </syntaxhighlight>
 
