@@ -635,6 +635,15 @@ default = yes
 設定が完了したら、この設定ファイルを各swift-proxy-server を起動しているノードと、storage ノードにコピーしてください。
 今回は、<code>dev-controller01</code>, <code>dev-storage01</code>, <code>dev-storage02</code> になります。<br /><br />
 
+== internal-client.conf ファイルの準備 ==
+; swift-init all start throws error for missing config
+: https://bugs.launchpad.net/swift/+bug/1986723
+
+<syntaxhighlight lang="console">
+dev-storageXX # curl -o /etc/swift/internal-client.conf https://opendev.org/openstack/swift/raw/branch/master/etc/internal-client.conf-sample
+</syntaxhighlight>
+
+== 権限設定 ==
 ファイルをコピーしたら、権限を設定します。
 
 <syntaxhighlight lang="console">
@@ -660,95 +669,7 @@ dev-storageXX ~# swift-init all start
 
 <syntaxhighlight lang="console">
 dev-storage01 # swift-init all start
-Starting account-reaper...(/etc/swift/account-server.conf)
-Starting object-server...(/etc/swift/object-server.conf)
-Starting container-updater...(/etc/swift/container-server.conf)
-Starting container-sync...(/etc/swift/container-server.conf)
-Starting object-auditor...(/etc/swift/object-server.conf)
-Starting container-auditor...(/etc/swift/container-server.conf)
-Starting account-auditor...(/etc/swift/account-server.conf)
-Starting container-sharder...(/etc/swift/container-server.conf)
-Starting container-server...(/etc/swift/container-server.conf)
-Starting object-replicator...(/etc/swift/object-server.conf)
-Starting object-reconstructor...(/etc/swift/object-server.conf)
-Starting container-replicator...(/etc/swift/container-server.conf)
-Unable to locate config for container-reconciler
-Starting object-updater...(/etc/swift/object-server.conf)
-Starting account-replicator...(/etc/swift/account-server.conf)
-Starting account-server...(/etc/swift/account-server.conf)
-Traceback (most recent call last):
-  File "/usr/bin/swift-container-sync", line 23, in <module>
-    run_daemon(ContainerSync, conf_file, **options)
-  File "/usr/lib/python3/dist-packages/swift/common/daemon.py", line 318, in run_daemon
-    DaemonStrategy(klass(conf), logger).run(once=once, **kwargs)
-  File "/usr/lib/python3/dist-packages/swift/container/sync.py", line 195, in __init__
-    self.container_ring = container_ring or Ring(self.swift_dir,
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 290, in __init__
-    self._reload(force=True)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 295, in _reload
-    ring_data = RingData.load(self.serialized_path)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 181, in load
-    with contextlib.closing(RingReader(filename)) as gz_file:
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 55, in __init__
-    self.fp = open(filename, 'rb')
-FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/container.ring.gz'
 
-Traceback (most recent call last):
-  File "/usr/bin/swift-container-sharder", line 37, in <module>
-    run_daemon(ContainerSharder, conf_file, **options)
-  File "/usr/lib/python3/dist-packages/swift/common/daemon.py", line 318, in run_daemon
-    DaemonStrategy(klass(conf), logger).run(once=once, **kwargs)
-  File "/usr/lib/python3/dist-packages/swift/container/sharder.py", line 672, in __init__
-    ContainerReplicator.__init__(self, conf, logger=logger)
-  File "/usr/lib/python3/dist-packages/swift/container/replicator.py", line 42, in __init__
-    super(ContainerReplicator, self).__init__(conf, logger=logger)
-  File "/usr/lib/python3/dist-packages/swift/common/db_replicator.py", line 197, in __init__
-    self.ring = ring.Ring(swift_dir, ring_name=self.server_type)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 290, in __init__
-    self._reload(force=True)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 295, in _reload
-    ring_data = RingData.load(self.serialized_path)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 181, in load
-    with contextlib.closing(RingReader(filename)) as gz_file:
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 55, in __init__
-    self.fp = open(filename, 'rb')
-FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/container.ring.gz'
-
-Traceback (most recent call last):
-  File "/usr/bin/swift-container-replicator", line 34, in <module>
-    run_daemon(ContainerReplicator, conf_file, **options)
-  File "/usr/lib/python3/dist-packages/swift/common/daemon.py", line 318, in run_daemon
-    DaemonStrategy(klass(conf), logger).run(once=once, **kwargs)
-  File "/usr/lib/python3/dist-packages/swift/container/replicator.py", line 42, in __init__
-    super(ContainerReplicator, self).__init__(conf, logger=logger)
-  File "/usr/lib/python3/dist-packages/swift/common/db_replicator.py", line 197, in __init__
-    self.ring = ring.Ring(swift_dir, ring_name=self.server_type)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 290, in __init__
-    self._reload(force=True)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 295, in _reload
-    ring_data = RingData.load(self.serialized_path)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 181, in load
-    with contextlib.closing(RingReader(filename)) as gz_file:
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 55, in __init__
-    self.fp = open(filename, 'rb')
-FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/container.ring.gz'
-
-Traceback (most recent call last):
-  File "/usr/bin/swift-account-replicator", line 34, in <module>
-    run_daemon(AccountReplicator, conf_file, **options)
-  File "/usr/lib/python3/dist-packages/swift/common/daemon.py", line 318, in run_daemon
-    DaemonStrategy(klass(conf), logger).run(once=once, **kwargs)
-  File "/usr/lib/python3/dist-packages/swift/common/db_replicator.py", line 197, in __init__
-    self.ring = ring.Ring(swift_dir, ring_name=self.server_type)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 290, in __init__
-    self._reload(force=True)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 295, in _reload
-    ring_data = RingData.load(self.serialized_path)
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 181, in load
-    with contextlib.closing(RingReader(filename)) as gz_file:
-  File "/usr/lib/python3/dist-packages/swift/common/ring/ring.py", line 55, in __init__
-    self.fp = open(filename, 'rb')
-FileNotFoundError: [Errno 2] No such file or directory: '/etc/swift/account.ring.gz'
 </syntaxhighlight>
 
 systemd コマンドで管理したい場合は、<code>/lib/systemd/system</code> ディレクトリ配下を確認すると良いでしょう。
