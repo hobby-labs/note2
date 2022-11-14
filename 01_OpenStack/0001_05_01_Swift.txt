@@ -597,6 +597,14 @@ dev-controllerXX ~# swift-ring-builder object.builder rebalance
 > Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.00
 </syntaxhighlight>
 
+== internal-client.conf ファイルの準備 ==
+; swift-init all start throws error for missing config
+: https://bugs.launchpad.net/swift/+bug/1986723
+
+<syntaxhighlight lang="console">
+dev-storageXX # curl -o /etc/swift/internal-client.conf https://opendev.org/openstack/swift/raw/branch/master/etc/internal-client.conf-sample
+</syntaxhighlight>
+
 === Ring ファイルの配布 ===
 <code>/etc/swift</code> ディレクトリ下の<code>account.ring.gz</code>, <code>container.ring.gz</code>, <code>object.ring.gz</code> ファイルを各Storage ノードとStorage Proxy ノードにコピーしてください。
 
@@ -634,14 +642,6 @@ default = yes
 
 設定が完了したら、この設定ファイルを各swift-proxy-server を起動しているノードと、storage ノードにコピーしてください。
 今回は、<code>dev-controller01</code>, <code>dev-storage01</code>, <code>dev-storage02</code> になります。<br /><br />
-
-== internal-client.conf ファイルの準備 ==
-; swift-init all start throws error for missing config
-: https://bugs.launchpad.net/swift/+bug/1986723
-
-<syntaxhighlight lang="console">
-dev-storageXX # curl -o /etc/swift/internal-client.conf https://opendev.org/openstack/swift/raw/branch/master/etc/internal-client.conf-sample
-</syntaxhighlight>
 
 == 権限設定 ==
 ファイルをコピーしたら、権限を設定します。
