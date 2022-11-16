@@ -597,6 +597,8 @@ dev-controllerXX ~# swift-ring-builder object.builder rebalance
 > Reassigned 3072 (300.00%) partitions. Balance is now 0.00.  Dispersion is now 0.00
 </syntaxhighlight>
 
+// Snapshot swift_created_object_ring
+
 == internal-client.conf ファイルの準備 ==
 ; swift-init all start throws error for missing config
 : https://bugs.launchpad.net/swift/+bug/1986723
@@ -605,10 +607,11 @@ dev-controllerXX ~# swift-ring-builder object.builder rebalance
 dev-storageXX # curl -o /etc/swift/internal-client.conf https://opendev.org/openstack/swift/raw/branch/master/etc/internal-client.conf-sample
 </syntaxhighlight>
 
+// Snapshot swift_created_internal_client_conf
+
 === Ring ファイルの配布 ===
 <code>/etc/swift</code> ディレクトリ下の<code>account.ring.gz</code>, <code>container.ring.gz</code>, <code>object.ring.gz</code> ファイルを各Storage ノードとStorage Proxy ノードにコピーしてください。
 
-// Snapshot swift_created_object_ring
 
 = インストールの後処理 =
 ; Finalize installation
