@@ -611,7 +611,7 @@ dev-storageXX # curl -o /etc/swift/internal-client.conf https://opendev.org/open
 
 === Ring ファイルの配布 ===
 <code>/etc/swift</code> ディレクトリ下の<code>account.ring.gz</code>, <code>container.ring.gz</code>, <code>object.ring.gz</code> ファイルを各Storage ノードとStorage Proxy ノードにコピーしてください。
-
+手順は割愛します。
 
 = インストールの後処理 =
 ; Finalize installation
