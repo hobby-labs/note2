@@ -93,6 +93,13 @@ dev-controllerXX ~# openstack user create --domain default --password secret swi
 
 dev-controllerXX ~# openstack role add --project service --user swift admin
 
+dev-controllerXX ~# openstack role assignment list --user swift --project service --names
++-------+---------------+-------+-----------------+--------+--------+-----------+
+| Role  | User          | Group | Project         | Domain | System | Inherited |
++-------+---------------+-------+-----------------+--------+--------+-----------+
+| admin | swift@Default |       | service@Default |        |        | False     |
++-------+---------------+-------+-----------------+--------+--------+-----------+
+
 dev-controllerXX ~# openstack service create --name swift \
                                    --description "OpenStack Object Storage" object-store
 +-------------+----------------------------------+
