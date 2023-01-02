@@ -66,6 +66,12 @@ openstack-controller-node01 ~# # cinder ユーザを作成する
 openstack-controller-node01 ~# openstack user create --domain default --password secret cinder
 openstack-controller-node01 ~# # cinder ユーザにadmin ロールを追加する
 openstack-controller-node01 ~# openstack role add --project service --user cinder admin
+openstack-controller-node01 ~# openstack role assignment list --user cinder --project service --names
++-------+----------------+-------+-----------------+--------+--------+-----------+
+| Role  | User           | Group | Project         | Domain | System | Inherited |
++-------+----------------+-------+-----------------+--------+--------+-----------+
+| admin | cinder@Default |       | service@Default |        |        | False     |
++-------+----------------+-------+-----------------+--------+--------+-----------+
 openstack-controller-node01 ~# # cinderv3 サービスエンティティを作成する
 openstack-controller-node01 ~# openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
 </syntaxhighlight>
@@ -77,8 +83,47 @@ Block Storage サービスAPI エンドポイントを作成します。
 
 <syntaxhighlight lang="console">
 openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 public http://dev-controller01:8776/v3/%\(project_id\)s
++--------------+------------------------------------------------+
+| Field        | Value                                          |
++--------------+------------------------------------------------+
+| enabled      | True                                           |
+| id           | ffffffffffffffffffffffffffffffff               |
+| interface    | public                                         |
+| region       | RegionOne                                      |
+| region_id    | RegionOne                                      |
+| service_id   | ffffffffffffffffffffffffffffffff               |
+| service_name | cinderv3                                       |
+| service_type | volumev3                                       |
+| url          | http://dev-controller01:8776/v3/%(project_id)s |
++--------------+------------------------------------------------+
 openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 internal http://dev-controller01:8776/v3/%\(project_id\)s
++--------------+------------------------------------------------+
+| Field        | Value                                          |
++--------------+------------------------------------------------+
+| enabled      | True                                           |
+| id           | ffffffffffffffffffffffffffffffff               |
+| interface    | internal                                       |
+| region       | RegionOne                                      |
+| region_id    | RegionOne                                      |
+| service_id   | ffffffffffffffffffffffffffffffff               |
+| service_name | cinderv3                                       |
+| service_type | volumev3                                       |
+| url          | http://dev-controller01:8776/v3/%(project_id)s |
++--------------+------------------------------------------------+
 openstack-controller-node01 ~# openstack endpoint create --region RegionOne volumev3 admin http://dev-controller01:8776/v3/%\(project_id\)s
++--------------+------------------------------------------------+
+| Field        | Value                                          |
++--------------+------------------------------------------------+
+| enabled      | True                                           |
+| id           | ffffffffffffffffffffffffffffffff               |
+| interface    | admin                                          |
+| region       | RegionOne                                      |
+| region_id    | RegionOne                                      |
+| service_id   | ffffffffffffffffffffffffffffffff               |
+| service_name | cinderv3                                       |
+| service_type | volumev3                                       |
+| url          | http://dev-controller01:8776/v3/%(project_id)s |
++--------------+------------------------------------------------+
 </syntaxhighlight>
 
 // Snapshot created_endpoint_for_cinder
@@ -132,14 +177,14 @@ Block Storage データベースを作成します。
 # su -s /bin/sh -c "cinder-manage db sync" cinder
 </syntaxhighlight>
 
-// Snapshot configured_cinder_for_controllers
-
 == インストール後処理 ==
 <syntaxhighlight lang="console">
 openstack-controller-nodeXX ~# systemctl restart nova-api
 openstack-controller-nodeXX ~# systemctl restart cinder-scheduler
 openstack-controller-nodeXX ~# systemctl restart apache2
 </syntaxhighlight>
+
+// Snapshot configured_cinder_for_controllers
 
 = ストレージノードのインストールと設定 =
 
