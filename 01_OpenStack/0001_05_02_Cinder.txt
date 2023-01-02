@@ -206,7 +206,7 @@ devices {
 ...
 </syntaxhighlight>
 
-// Snapshot ciner01
+// Snapshot cinder_configure_lvm_filter
 
 == パッケージのインストールと設定 ==
 
@@ -236,8 +236,8 @@ www_authenticate_uri = http://dev-controller01:5000
 auth_url = http://dev-controller01:5000
 memcached_servers = dev-controller01:11211
 auth_type = password
-project_domain_name = default
-user_domain_name = default
+project_domain_name = Default
+user_domain_name = Default
 project_name = service
 username = cinder
 password = secret
@@ -259,7 +259,7 @@ openstack-cinderXX ~# systemctl restart tgt
 openstack-cinderXX ~# systemctl restart cinder-volume
 </syntaxhighlight>
 
-// Snapshot cinder02
+// Snapshot cinder_configure_cinder
 
 = バックアップサービス =
 ; Install and configure the backup service
