@@ -274,11 +274,21 @@ openstack-cinderXX ~# systemctl restart cinder-volume
 openstack-cinderXX ~# apt-get install cinder-backup
 </syntaxhighlight>
 
-* /etc/cinder/cinder.conf
+
+* /etc/cinder/cinder.conf @ dev-cinderXX
 <syntaxhighlight lang="text">
 [DEFAULT]
 # ...
 backup_driver = cinder.backup.drivers.swift.SwiftBackupDriver
 backup_swift_url = SWIFT_URL
+</syntaxhighlight>
+
+<code>SWIFT_URL</code>には、<code>openstack catalog show object-store</code> コマンドを使って、表示されるエンドポイントを指定してください。
+
+* 例)
+<syntaxhighlight lang="console">
+$ SWIFT_URL=$(jq -r ".endpoints[] | select(.interface == \"internal\") | .url" < <(openstack catalog show object-store -f json))
+$ echo $SWIFT_URL
+http://dev-controller01:8080/v1/AUTH_ffffffffffffffffffffffffffffffff
 </syntaxhighlight>
 
