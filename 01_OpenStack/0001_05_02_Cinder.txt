@@ -292,3 +292,13 @@ $ echo $SWIFT_URL
 http://dev-controller01:8080/v1/AUTH_ffffffffffffffffffffffffffffffff
 </syntaxhighlight>
 
+<syntaxhighlight lang="console">
+openstack-cinderXX ~# systemctl restart cinder-backup
+</syntaxhighlight>
+
+; Cinder Administration
+: https://docs.openstack.org/cinder/yoga/admin/index.html
+
+; Cinder Service Configuration
+: https://docs.openstack.org/cinder/yoga/configuration/index.html
+
