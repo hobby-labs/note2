@@ -136,7 +136,7 @@ openstack-controller-node01 ~# apt-get install cinder-api cinder-scheduler
 
 <code>/etc/cinder/cinder.conf</code> ファイルを編集します。
 
-* /etc/cinder/cinder.conf
+* /etc/cinder/cinder.conf @ dev-controller01
 <syntaxhighlight lang="text">
 [DEFAULT]
 # ...
@@ -301,4 +301,9 @@ openstack-cinderXX ~# systemctl restart cinder-backup
 
 ; Cinder Service Configuration
 : https://docs.openstack.org/cinder/yoga/configuration/index.html
+
+= Cinder ボリュームをマウントする =
+
+; Manage volumes
+: https://docs.openstack.org/cinder/latest/admin/manage-volumes.html
 
