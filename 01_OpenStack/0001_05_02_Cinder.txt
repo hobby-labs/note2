@@ -304,6 +304,76 @@ openstack-cinderXX ~# systemctl restart cinder-backup
 
 = Cinder ボリュームをマウントする =
 
+== ボリュームの作成 ==
+
+; Create OpenStack Cinder Volumes and Attach to a VM Instance
+: https://computingforgeeks.com/create-openstack-cinder-volumes-and-attach-to-vm/
+
+<syntaxhighlight lang="console">
+$ openstack volume create --size 1 vol1
++---------------------+--------------------------------------+
+| Field               | Value                                |
++---------------------+--------------------------------------+
+| attachments         | []                                   |
+| availability_zone   | nova                                 |
+| bootable            | false                                |
+| consistencygroup_id | None                                 |
+| created_at          | 2023-01-15T15:36:14.915887           |
+| description         | None                                 |
+| encrypted           | False                                |
+| id                  | fb8cb910-454a-4677-a0fd-ba184af5be62 |
+| migration_status    | None                                 |
+| multiattach         | False                                |
+| name                | vol1                                 |
+| properties          |                                      |
+| replication_status  | None                                 |
+| size                | 1                                    |
+| snapshot_id         | None                                 |
+| source_volid        | None                                 |
+| status              | creating                             |
+| type                | __DEFAULT__                          |
+| updated_at          | None                                 |
+| user_id             | ab787e30dac643d1b3fc1e1114e798bb     |
++---------------------+--------------------------------------+
+
+$ openstack server list
++--------------------------------------+------+--------+-----------------------------------------+--------------+-----------+
+| ID                                   | Name | Status | Networks                                | Image        | Flavor    |
++--------------------------------------+------+--------+-----------------------------------------+--------------+-----------+
+| 23b28eb7-324c-4746-a5c9-784c50ea0d55 | vm2  | ACTIVE | private=a.a.a.a, b.b.b.b                | ubuntu-22.04 | m1.medium |
+| 2cda986c-7767-4d97-971b-4b9d559fe2d3 | vm1  | ACTIVE | private=c.c.c.c, d.d.d.d                | cirros-0.5.2 | m1.tiny   |
++--------------------------------------+------+--------+-----------------------------------------+--------------+-----------+
+
+$ openstack volume list
++--------------------------------------+------+-----------+------+-------------+
+| ID                                   | Name | Status    | Size | Attached to |
++--------------------------------------+------+-----------+------+-------------+
+| fb8cb910-454a-4677-a0fd-ba184af5be62 | vol1 | available |    1 |             |
++--------------------------------------+------+-----------+------+-------------+
+
+$ openstack server add volume 23b28eb7-324c-4746-a5c9-784c50ea0d55 fb8cb910-454a-4677-a0fd-ba184af5be62
++-----------------------+--------------------------------------+
+| Field                 | Value                                |
++-----------------------+--------------------------------------+
+| ID                    | fb8cb910-454a-4677-a0fd-ba184af5be62 |
+| Server ID             | 23b28eb7-324c-4746-a5c9-784c50ea0d55 |
+| Volume ID             | fb8cb910-454a-4677-a0fd-ba184af5be62 |
+| Device                | /dev/vdb                             |
+| Tag                   | None                                 |
+| Delete On Termination | False                                |
++-----------------------+--------------------------------------+
+
+$ openstack volume list
++--------------------------------------+------+-----------+------+-------------+
+| ID                                   | Name | Status    | Size | Attached to |
++--------------------------------------+------+-----------+------+-------------+
+| fb8cb910-454a-4677-a0fd-ba184af5be62 | vol1 | available |    1 |             |
++--------------------------------------+------+-----------+------+-------------+
+
+$ openstack volume show fb8cb910-454a-4677-a0fd-ba184af5be62
+TODO:
+</syntaxhighlight>
+
 ; Manage volumes
 : https://docs.openstack.org/cinder/latest/admin/manage-volumes.html
 
