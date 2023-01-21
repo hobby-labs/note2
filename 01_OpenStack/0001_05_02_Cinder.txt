@@ -302,6 +302,36 @@ openstack-cinderXX ~# systemctl restart cinder-backup
 ; Cinder Service Configuration
 : https://docs.openstack.org/cinder/yoga/configuration/index.html
 
+== Cinder ボリュームのインクルード設定ファイル作成 ==
+各Cinder ノードで、下記コマンドを実行し、cinder.conf ファイルを作成します。
+
+<syntaxhighlight lang="console">
+dev-cinderXX # echo 'include /var/lib/cinder/volumes/*' >> /etc/tgt/conf.d/cinder.conf
+</syntaxhighlight>
+
+ファイルを作成したら、tgt サービスを再起動させます。
+
+<syntaxhighlight lang="console">
+dev-cinderXX # systemctl restart tgt
+</syntaxhighlight>
+
+== サービスの自動起動設定 ==
+各ノードで、サービスの自動起動設定を行います。
+
+* On compute nodes
+<syntaxhighlight lang="console">
+dev-computeXX # systemctl restart iscsid.service
+dev-computeXX # systemctl enable iscsid.service
+</syntaxhighlight>
+
+* On cinder nodes
+<syntaxhighlight lang="console">
+dev-cinderXX # systemctl stop iscsid.service
+dev-cinderXX # systemctl disable iscsid.service
+dev-cinderXX # systemctl restart cinder-volume
+dev-cinderXX # systemctl enable cinder-volume
+</syntaxhighlight>
+
 = Cinder ボリュームをマウントする =
 
 == ボリュームの作成 ==
