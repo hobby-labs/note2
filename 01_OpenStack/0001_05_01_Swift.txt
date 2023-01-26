@@ -470,6 +470,7 @@ dev-controllerXX ~# swift-ring-builder account.builder
 </syntaxhighlight>
 
 Ring のリバランスを行います。
+このコマンドによって、<code>/etc/swift/account.ring.gz</code>ファイルが作成されます。
 
 <syntaxhighlight lang="console">
 dev-controllerXX ~# swift-ring-builder account.builder rebalance
