@@ -401,7 +401,34 @@ $ openstack volume list
 +--------------------------------------+------+-----------+------+-------------+
 
 $ openstack volume show fb8cb910-454a-4677-a0fd-ba184af5be62
-TODO:
++--------------------------------+----------------------------------------------------------------------------------+
+| Field                          | Value                                                                            |
++--------------------------------+----------------------------------------------------------------------------------+
+| attachments                    | [{'id': 'fb8cb910-454a-4677-a0fd-ba184af5be62', 'attachment_id': 'xxxxxxxx-...'] |
+| availability_zone              | nova                                                                             |
+| bootable                       | false                                                                            |
+| consistencygroup_id            | None                                                                             |
+| created_at                     | 2023-01-28T14:09:58.000000                                                       |
+| description                    | None                                                                             |
+| encrypted                      | False                                                                            |
+| id                             | xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxx                                             |
+| migration_status               | None                                                                             |
+| multiattach                    | False                                                                            |
+| name                           | vol1                                                                             |
+| os-vol-host-attr:host          | dev-cinder02@lvm#LVM                                                             |
+| os-vol-mig-status-attr:migstat | None                                                                             |
+| os-vol-mig-status-attr:name_id | None                                                                             |
+| os-vol-tenant-attr:tenant_id   | ffffffffffffffffffffffffffffffff                                                 |
+| properties                     |                                                                                  |
+| replication_status             | None                                                                             |
+| size                           | 1                                                                                |
+| snapshot_id                    | None                                                                             |
+| source_volid                   | None                                                                             |
+| status                         | in-use                                                                           |
+| type                           | __DEFAULT__                                                                      |
+| updated_at                     | 2023-01-28T14:10:56.000000                                                       |
+| user_id                        | 00000000000000000000000000000000                                                 |
++--------------------------------+----------------------------------------------------------------------------------+
 </syntaxhighlight>
 
 ; Manage volumes
