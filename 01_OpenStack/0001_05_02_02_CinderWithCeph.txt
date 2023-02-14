@@ -1,0 +1,22 @@
+= Swift のインストール =
+; ceph : BLOCK DEVICES AND OPENSTACK
+: https://docs.ceph.com/en/latest/rbd/rbd-openstack/
+
+; RedHat : Chapter 3. Configuring OpenStack to Use Ceph
+: https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/2/html/ceph_block_device_to_openstack_guide/configuring_openstack_to_use_ceph
+
+; Configuring the Block (cinder) storage service (optional)
+: https://docs.openstack.org/openstack-ansible-os_cinder/zed/configure-cinder.html
+
+ここでは、Cinder のバックエンドとしてCeph を使う設定について説明していきます。
+
+
+== Ceph バックエンド ==
+OpenStack のCinder では、Ceph のブロックデバイスをバックエンドとして、取り付けることができます。
+Ceph はブロックボリュームを複数のOSD(Object Storage Daemon) に分散できるため、高い性能が期待できます。<br /><br />
+
+Ceph をバックエンドとして利用するために、<code>libvirtd</code> をインストールする必要があります。
+
+
+
+
