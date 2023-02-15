@@ -15,8 +15,11 @@
 OpenStack のCinder では、Ceph のブロックデバイスをバックエンドとして、取り付けることができます。
 Ceph はブロックボリュームを複数のOSD(Object Storage Daemon) に分散できるため、高い性能が期待できます。<br /><br />
 
-Ceph をバックエンドとして利用するために、<code>libvirtd</code> をインストールする必要があります。
+Ceph をバックエンドとして利用するために、<code>libvirtd</code> をインストールする必要があります。<br /><br />
 
+OpenStack はCeph をバックエンドにすることでImage サービス、Volume(Cinder)、ゲストディスクを統合することができますが、ここではVolume(Cinder)について、説明していきます。
 
-
+== Pool を作成する ==
+デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
+Cinder のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
 
