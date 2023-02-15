@@ -11,7 +11,16 @@
 ; Ceph Quincy : Configure Cluster #1
 : https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=1
 
-ここでは、Cinder のバックエンドとしてCeph を使う設定について説明していきます。
+Cinder のバックエンドとしてCeph を使う設定について説明していきます。
+ここでは、下記の3 ノードをCeph クラスタとして使っていきます。
+下記と同様の定義を、各ノードの/etc/hosts に設定してください。
+
+* /etc/hosts @ dev-storage01, dev-storage02, dev-storage03
+<syntaxhighlight lang="text">
+172.22.1.101 dev-storage01 dev-storage01.openstack.example.com
+172.22.1.102 dev-storage02 dev-storage02.openstack.example.com
+172.22.1.103 dev-storage03 dev-storage03.openstack.example.com
+</syntaxhighlight>
 
 
 == Ceph バックエンド ==
@@ -22,12 +31,32 @@ Ceph をバックエンドとして利用するために、<code>libvirtd</code>
 
 OpenStack はCeph をバックエンドにすることでImage サービス、Volume(Cinder)、ゲストディスクを統合することができますが、ここではVolume(Cinder)について、説明していきます。
 
-== Ceph をインストールする ==
-<syntaxhighlight lang="console">
+== Ceph のSSH 認証設定 ==
+Ceph cluster 内で、使用するSSH 公開鍵を作成します。
+代表して、dev-storage01 で作成します。
 
+* dev-storage01
+<syntaxhighlight lang="console">
+# ssh-keygen -q -N "" -f ~/.ssh/ceph_cluster
 </syntaxhighlight>
+
+SSH クライアント設定ファイルを作成します。
+
+* ~/.ssh/config @ dev-storage01
+<syntaxhighlight lang="console">
+# cat << EOF
+Host dev-storage* dev-storage*.openstack.example.com
+    PreferredAuthentications publickey
+    User root
+    IdentityFile ~/.ssh/ceph_cluster
+EOF
+</syntaxhighlight>
+
+公開鍵を、他のノードにコピーします。
+
+// TODO: 
 
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
-Cinder のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
+Ceph のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
 
