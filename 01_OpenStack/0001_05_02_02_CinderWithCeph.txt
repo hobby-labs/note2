@@ -37,24 +37,66 @@ Ceph cluster 内で、使用するSSH 公開鍵を作成します。
 
 * dev-storage01
 <syntaxhighlight lang="console">
-# ssh-keygen -q -N "" -f ~/.ssh/ceph_cluster
+dev-storage01 # ssh-keygen -q -N "" -f ~/.ssh/ceph_cluster
+</syntaxhighlight>
+
+公開鍵の内容を表示します。
+
+* dev-storage01
+<syntaxhighlight lang="console">
+dev-storage01 # cat ~/.ssh/ceph_cluster.pub
+${CONTENT_OF_PUBLIC_KEY}
+</syntaxhighlight>
+
+この公開鍵の内容を、各Ceph ノードのroot ユーザの<code>~/.ssh/authorized_keys</code> に追加してください。
+
+* dev-storage01,02,03
+<syntaxhighlight lang="console">
+dev-storage{01,02,03} # echo ${CONTENT_OF_PUBLIC_KEY} ~/.ssh/authorized_keys
 </syntaxhighlight>
 
 SSH クライアント設定ファイルを作成します。
 
 * ~/.ssh/config @ dev-storage01
 <syntaxhighlight lang="console">
-# cat << EOF
+dev-storage01 # cat << EOF > ~/.ssh/config
 Host dev-storage* dev-storage*.openstack.example.com
     PreferredAuthentications publickey
     User root
     IdentityFile ~/.ssh/ceph_cluster
 EOF
+
+dev-storage01 # chmod 600 ~/.ssh/config
 </syntaxhighlight>
 
 公開鍵を、他のノードにコピーします。
 
-// TODO: 
+<syntaxhighlight lang="console">
+dev-storage01 # ssh-copy-id -i ~/.ssh/ceph_cluster.pub dev-storage01
+......
+dev-storage01 # ssh-copy-id dev-storage02
+......
+dev-storage01 # ssh-copy-id dev-storage03
+......
+</syntaxhighlight>
+
+== Ceph をインストールする ==
+
+* dev-storage01
+<syntaxhighlight lang="console">
+dev-storage01 # for NODE in 01 02 03
+do
+    ssh dev-storage${NODE} "apt update; apt -y install ceph"
+done 
+</syntaxhighlight>
+
+== 管理ノードでMonitor daemon とManager daemon を設定する ==
+
+<syntaxhighlight lang="console">
+dev-storage01 # uuidgen
+ffffffff-ffff-ffff-ffff-ffffffffffff
+</syntaxhighlight>
+
 
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
