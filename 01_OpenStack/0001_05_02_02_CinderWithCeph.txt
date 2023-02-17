@@ -69,25 +69,23 @@ EOF
 dev-storage01 # chmod 600 ~/.ssh/config
 </syntaxhighlight>
 
-公開鍵を、他のノードにコピーします。
+この情報を各ノードにコピーします。
 
 <syntaxhighlight lang="console">
-dev-storage01 # ssh-copy-id -i ~/.ssh/ceph_cluster.pub dev-storage01
-......
-dev-storage01 # ssh-copy-id dev-storage02
-......
-dev-storage01 # ssh-copy-id dev-storage03
-......
+dev-storage01 # for i in 02 03; do
+    scp ~/.ssh/config dev-storage${i}:.ssh/config
+    ssh dev-storage${i} -- chmod 600 ~/.ssh/config
+done
 </syntaxhighlight>
 
 == Ceph をインストールする ==
 
 * dev-storage01
 <syntaxhighlight lang="console">
-dev-storage01 # for NODE in 01 02 03
+dev-storage01 # for i in 01 02 03
 do
-    ssh dev-storage${NODE} "apt update; apt -y install ceph"
-done 
+    ssh dev-storage${i} "apt update; apt -y install ceph"
+done
 </syntaxhighlight>
 
 == 管理ノードでMonitor daemon とManager daemon を設定する ==
@@ -97,6 +95,31 @@ dev-storage01 # uuidgen
 ffffffff-ffff-ffff-ffff-ffffffffffff
 </syntaxhighlight>
 
+* /etc/ceph/ceph.conf
+<syntaxhighlight lang="text">
+[global]
+# specify cluster network for monitoring
+cluster network = 172.22.0.0/16
+# specify public network
+public network = 172.22.0.0/16
+
+# specify UUID genarated above
+fsid = ffffffff-ffff-ffff-ffff-ffffffffffff
+# specify IP address of Monitor Daemon
+mon host = 172.22.1.101
+# specify Hostname of Monitor Daemon
+mon initial members = dev-storage01
+osd pool default crush rule = -1
+
+# mon.(Node name)
+[mon.node01]
+# specify Hostname of Monitor Daemon
+host = dev-storage01
+# specify IP address of Monitor Daemon
+mon addr = 172.22.1.101
+# allow to delete pools
+mon allow pool delete = true
+</syntaxhighlight>
 
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
