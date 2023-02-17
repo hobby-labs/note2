@@ -121,6 +121,29 @@ mon addr = 172.22.1.101
 mon allow pool delete = true
 </syntaxhighlight>
 
+クラスタの監視のための秘密鍵を生成します。
+
+* dev-storage01
+<syntaxhighlight lang="console">
+dev-storage01 # ceph-authtool --create-keyring /etc/ceph/ceph.mon.keyring --gen-key -n mon. --cap mon 'allow *'
+</syntaxhighlight>
+
+クラスタ管理のための秘密鍵を作成します。
+
+* dev-storage01
+<syntaxhighlight lang="console">
+dev-storage01 # ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring --gen-key -n client.admin --cap mon 'allow *' --cap osd 'allow *' --cap mds 'allow *' --cap mgr 'allow *'
+</syntaxhighlight>
+
+起動のための秘密鍵を作成します。
+<syntaxhighlight lang="console">
+dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring --gen-key -n client.bootstrap-osd --cap mon 'profile bootstrap-osd' --cap mgr 'allow r'
+</syntaxhighlight>
+
+作成された鍵をインポートします。
+
+
+
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
 Ceph のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
