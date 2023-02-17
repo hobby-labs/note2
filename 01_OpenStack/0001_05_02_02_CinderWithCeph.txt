@@ -141,8 +141,12 @@ dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.
 </syntaxhighlight>
 
 作成された鍵をインポートします。
+<syntaxhighlight lang="console">
+dev-storage01 # ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /etc/ceph/ceph.client.admin.keyring
+dev-storage01 # ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring
+</syntaxhighlight>
 
-
+// Snapshot imported_generated_keys
 
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
