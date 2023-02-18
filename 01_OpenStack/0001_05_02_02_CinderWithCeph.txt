@@ -148,6 +148,36 @@ dev-storage01 # ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /var/l
 
 // Snapshot imported_generated_keys
 
+== モニタマップを作成する ==
+<syntaxhighlight lang="console">
+dev-storage01 # FSID=$(grep "^fsid" /etc/ceph/ceph.conf | awk {'print $NF'})
+dev-storage01 # NODENAME=$(grep "^mon initial" /etc/ceph/ceph.conf | awk {'print $NF'})
+dev-storage01 # NODEIP=$(grep "^mon host" /etc/ceph/ceph.conf | awk {'print $NF'})
+dev-storage01 # monmaptool --create --add $NODENAME $NODEIP --fsid $FSID /etc/ceph/monmap
+</syntaxhighlight>
+
+モニタデーモンのためのディレクトリを作成します。
+ディレクトリ名は<code>/var/lib/ceph/mon/<Cluster name>-<Host name></code> となるようにしてください。
+
+<syntaxhighlight lang="console">
+dev-storage01 # mkdir /var/lib/ceph/mon/ceph-${HOSTNAME}
+</syntaxhighlight>
+
+鍵とモニタマップをモニタデーモンに関連付けます。
+<code>--cluster</code> オプションにはクラスタ名を指定してください。
+
+<syntaxhighlight lang="console">
+dev-storage01 # ceph-mon --cluster ceph --mkfs -i $NODENAME --monmap /etc/ceph/monmap --keyring /etc/ceph/ceph.mon.keyring
+dev-storage01 # chown ceph. /etc/ceph/ceph.*
+dev-storage01 # chown -R ceph. /var/lib/ceph/mon/ceph-${HOSTNAME} /var/lib/ceph/bootstrap-osd
+dev-storage01 # systemctl enable --now ceph-mon@$NODENAME
+</syntaxhighlight>
+
+Messenger v2 プロトコルを有効化します。
+<syntaxhighlight lang="console">
+dev-storage01 # ceph mon enable-msgr2
+</syntaxhighlight>
+
 == Pool を作成する ==
 デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
 Ceph のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
