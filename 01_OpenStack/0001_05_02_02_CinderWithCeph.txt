@@ -38,24 +38,25 @@ Ceph cluster 内で、使用するSSH 公開鍵を作成します。
 * dev-storage01
 <syntaxhighlight lang="console">
 dev-storage01 # ssh-keygen -q -N "" -f ~/.ssh/ceph_cluster
+dev-storage01 # cp ~/.ssh/ceph_cluster.pub ~/.ssh/authorized_keys
+dev-storage01 # chmod 600 ~/.ssh/authorized_keys
 </syntaxhighlight>
 
-公開鍵の内容を表示します。
+<code>ceph_cluster</code>(秘密鍵), <code>ceph_cluster.pub</code>(公開鍵), <code>authorized_keys</code> ファイルを、残りのノード<code>dev-storage02</code>, <code>dev-storage03</code> にコピーし、権限を<code>600</code>に設定してください。<br /><br />
 
-* dev-storage01
-<syntaxhighlight lang="console">
-dev-storage01 # cat ~/.ssh/ceph_cluster.pub
-${CONTENT_OF_PUBLIC_KEY}
-</syntaxhighlight>
+<!--
+ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster"
+ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub"
+ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys"
+ssh dev-storage02 -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,authorized_keys}
 
-この公開鍵の内容を、各Ceph ノードのroot ユーザの<code>~/.ssh/authorized_keys</code> に追加してください。
+ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster"
+ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub"
+ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys"
+ssh dev-storage03 -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,authorized_keys}
+-->
 
-* dev-storage01,02,03
-<syntaxhighlight lang="console">
-dev-storage{01,02,03} # echo ${CONTENT_OF_PUBLIC_KEY} ~/.ssh/authorized_keys
-</syntaxhighlight>
-
-SSH クライアント設定ファイルを作成します。
+次にSSH クライアント設定ファイルを作成します。
 
 * ~/.ssh/config @ dev-storage01
 <syntaxhighlight lang="console">
@@ -73,10 +74,12 @@ dev-storage01 # chmod 600 ~/.ssh/config
 
 <syntaxhighlight lang="console">
 dev-storage01 # for i in 02 03; do
-    scp ~/.ssh/config dev-storage${i}:.ssh/config
-    ssh dev-storage${i} -- chmod 600 ~/.ssh/config
+    scp -i ~/.ssh/ceph_cluster ~/.ssh/config dev-storage${i}:.ssh/config
+    ssh -i ~/.ssh/ceph_cluster dev-storage${i} -- chmod 600 .ssh/config
 done
 </syntaxhighlight>
+
+// Snapshot created_ssh_keys
 
 == Ceph をインストールする ==
 
@@ -95,6 +98,9 @@ dev-storage01 # uuidgen
 ffffffff-ffff-ffff-ffff-ffffffffffff
 </syntaxhighlight>
 
+クラスタ設定ファイルを作成します。
+ファイル名は<code>(Cluster name).confg</code> となるように設定します。
+
 * /etc/ceph/ceph.conf
 <syntaxhighlight lang="text">
 [global]
@@ -112,7 +118,7 @@ mon initial members = dev-storage01
 osd pool default crush rule = -1
 
 # mon.(Node name)
-[mon.node01]
+[mon.dev-storage01]
 # specify Hostname of Monitor Daemon
 host = dev-storage01
 # specify IP address of Monitor Daemon
@@ -153,6 +159,7 @@ dev-storage01 # ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /var/l
 dev-storage01 # FSID=$(grep "^fsid" /etc/ceph/ceph.conf | awk {'print $NF'})
 dev-storage01 # NODENAME=$(grep "^mon initial" /etc/ceph/ceph.conf | awk {'print $NF'})
 dev-storage01 # NODEIP=$(grep "^mon host" /etc/ceph/ceph.conf | awk {'print $NF'})
+dev-storage01 # echo "Debug. FSID=${FSID}, NODENAME=${NODENAME}, NODEIP=${NODEIP}"
 dev-storage01 # monmaptool --create --add $NODENAME $NODEIP --fsid $FSID /etc/ceph/monmap
 </syntaxhighlight>
 
@@ -160,7 +167,7 @@ dev-storage01 # monmaptool --create --add $NODENAME $NODEIP --fsid $FSID /etc/ce
 ディレクトリ名は<code>/var/lib/ceph/mon/<Cluster name>-<Host name></code> となるようにしてください。
 
 <syntaxhighlight lang="console">
-dev-storage01 # mkdir /var/lib/ceph/mon/ceph-${HOSTNAME}
+dev-storage01 # mkdir /var/lib/ceph/mon/ceph-${NODENAME}
 </syntaxhighlight>
 
 鍵とモニタマップをモニタデーモンに関連付けます。
@@ -169,13 +176,80 @@ dev-storage01 # mkdir /var/lib/ceph/mon/ceph-${HOSTNAME}
 <syntaxhighlight lang="console">
 dev-storage01 # ceph-mon --cluster ceph --mkfs -i $NODENAME --monmap /etc/ceph/monmap --keyring /etc/ceph/ceph.mon.keyring
 dev-storage01 # chown ceph. /etc/ceph/ceph.*
-dev-storage01 # chown -R ceph. /var/lib/ceph/mon/ceph-${HOSTNAME} /var/lib/ceph/bootstrap-osd
-dev-storage01 # systemctl enable --now ceph-mon@$NODENAME
+dev-storage01 # chown -R ceph. /var/lib/ceph/mon/ceph-${NODENAME} /var/lib/ceph/bootstrap-osd
+dev-storage01 # systemctl enable --now ceph-mon@${NODENAME}
 </syntaxhighlight>
 
 Messenger v2 プロトコルを有効化します。
 <syntaxhighlight lang="console">
 dev-storage01 # ceph mon enable-msgr2
+dev-storage01 # ceph config set mon auth_allow_insecure_global_id_reclaim false
+</syntaxhighlight>
+
+Placement Groups オートスケールモジュールを有効化します。
+<syntaxhighlight lang="console">
+dev-storage01 # ceph mgr module enable pg_autoscaler
+</syntaxhighlight>
+
+管理デーモンのディレクトリを作成します。
+
+<syntaxhighlight lang="console">
+dev-storage01 # mkdir /var/lib/ceph/mgr/ceph-${NODENAME}
+</syntaxhighlight>
+
+認証用の鍵を作成します。
+
+<syntaxhighlight lang="console">
+dev-storage01 # ceph auth get-or-create mgr.${NODENAME} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
+[mgr.dev-storage01]
+        key = ..................................
+
+dev-storage01 # ceph auth get-or-create mgr.${NODENAME} | tee /etc/ceph/ceph.mgr.admin.keyring
+dev-storage01 # cp /etc/ceph/ceph.mgr.admin.keyring /var/lib/ceph/mgr/ceph-${NODENAME}/keyring
+dev-storage01 # chown ceph. /etc/ceph/ceph.mgr.admin.keyring
+dev-storage01 # chown -R ceph. /var/lib/ceph/mgr/ceph-${NODENAME}
+dev-storage01 # systemctl enable --now ceph-mgr@${NODENAME}
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+dev-storage01 # ceph -s
+  cluster:
+    id:     ffffffff-ffff-ffff-ffff-ffffffffffff
+    health: HEALTH_OK
+
+  services:
+    mon: 1 daemons, quorum dev-storage01 (age 12m)
+    mgr: dev-storage01(active, since 12s)
+    osd: 0 osds: 0 up, 0 in
+
+  data:
+    pools:   0 pools, 0 pgs
+    objects: 0 objects, 0 B
+    usage:   0 B used, 0 B / 0 B avail
+    pgs:
+</syntaxhighlight>
+
+// Snapshot configure_ceph_manager_mon_node
+
+== クラスタを設定する ==
+; Ceph Quincy : Configure Cluster #2
+: https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=2
+
+<syntaxhighlight lang="console">
+dev-storage01 # for node in dev-storage01 dev-storage02 dev-storage03
+do
+    if [ ! ${node} = "dev-storage01 ]
+    then
+        scp /etc/ceph/ceph.conf dev-storage${node}:/etc/ceph/ceph.conf
+        scp /etc/ceph/ceph.client.admin.keyring ${node}:/etc/ceph
+        scp /var/lib/ceph/bootstrap-osd/ceph.keyring ${node}:/var/lib/ceph/bootstrap-osd
+    fi
+    ssh $node \
+    "chown ceph. /etc/ceph/ceph.* /var/lib/ceph/bootstrap-osd/*; \
+    parted --script /dev/sdb 'mklabel gpt'; \
+    parted --script /dev/sdb "mkpart primary 0% 100%"; \
+    ceph-volume lvm create --data /dev/sdb1"
+done 
 </syntaxhighlight>
 
 == Pool を作成する ==
