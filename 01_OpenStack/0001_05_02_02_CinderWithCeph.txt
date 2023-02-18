@@ -231,25 +231,43 @@ dev-storage01 # ceph -s
 
 // Snapshot configure_ceph_manager_mon_node
 
-== クラスタを設定する ==
+== クラスタ(OSD:Object Storage Device)を設定する ==
 ; Ceph Quincy : Configure Cluster #2
 : https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=2
 
+管理ノードから、各ノードの<code>/dev/sdb</code> をOSD のボリュームとしてフォーマットして使います。
+下記コマンドをターミナルに貼り付けて、各ノードのCephボリュームを作成します。
+
+* dev-storage01
 <syntaxhighlight lang="console">
-dev-storage01 # for node in dev-storage01 dev-storage02 dev-storage03
+for node in dev-storage01 dev-storage02 dev-storage03
 do
-    if [ ! ${node} = "dev-storage01 ]
+    if [ ! ${node} = "dev-storage01" ]
     then
-        scp /etc/ceph/ceph.conf dev-storage${node}:/etc/ceph/ceph.conf
+        scp /etc/ceph/ceph.conf ${node}:/etc/ceph/ceph.conf
         scp /etc/ceph/ceph.client.admin.keyring ${node}:/etc/ceph
         scp /var/lib/ceph/bootstrap-osd/ceph.keyring ${node}:/var/lib/ceph/bootstrap-osd
     fi
     ssh $node \
-    "chown ceph. /etc/ceph/ceph.* /var/lib/ceph/bootstrap-osd/*; \
-    parted --script /dev/sdb 'mklabel gpt'; \
-    parted --script /dev/sdb "mkpart primary 0% 100%"; \
-    ceph-volume lvm create --data /dev/sdb1"
-done 
+        "chown ceph. /etc/ceph/ceph.* /var/lib/ceph/bootstrap-osd/*; \
+        parted --script /dev/vdb 'mklabel gpt'; \
+        parted --script /dev/vdb "mkpart primary 0% 100%"; \
+        count=0; \
+        while [ \${count} -lt 30 ]; \
+        do \
+            echo \"\$(date) - INFO: Creating a ceph volume at /dev/vdb1 on \$(uname -n)\"; \
+            ceph-volume lvm create --data /dev/vdb1; \
+            vg_name=\$(vgdisplay | grep -P \"^ *VG Name *ceph\-.*\$\" | grep -o '[^ ]*\$'); \
+            if [[ \"\${vg_name}\" =~ ^ceph\\-.*\$ ]]; \
+            then \
+                echo \"\$(date) - INFO: Volume group for Ceph has found. vg_name=\${vg_name}.\"; \
+                break; \
+            fi; \
+            (( ++count )); \
+            echo \"\$(date) - ERROR: Failed to create ceph volume. Retrying to execute it agin (count=\${count}).\" >&2; \
+            sleep 5; \
+        done;"
+done
 </syntaxhighlight>
 
 == Pool を作成する ==
