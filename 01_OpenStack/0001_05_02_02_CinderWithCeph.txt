@@ -239,7 +239,7 @@ dev-storage01 # ceph -s
 下記コマンドをターミナルに貼り付けて、各ノードのCephボリュームを作成します。
 
 * dev-storage01
-<syntaxhighlight lang="console">
+<syntaxhighlight lang="text">
 for node in dev-storage01 dev-storage02 dev-storage03
 do
     if [ ! ${node} = "dev-storage01" ]
@@ -268,6 +268,54 @@ do
             sleep 5; \
         done;"
 done
+</syntaxhighlight>
+
+クラスタの状態を確認します。
+
+<syntaxhighlight lang="console">
+dev-storage01 # ceph -s
+  cluster:
+    id:     ffffffff-ffff-ffff-ffff-ffffffffffff
+    health: HEALTH_OK
+
+  services:
+    mon: 1 daemons, quorum dev-storage01 (age 45m)
+    mgr: dev-storage01(active, since 45m)
+    osd: 3 osds: 3 up (since 10m), 3 in (since 10m)
+
+  data:
+    pools:   1 pools, 1 pgs
+    objects: 2 objects, 449 KiB
+    usage:   61 MiB used, 24 GiB / 24 GiB avail
+    pgs:     1 active+clean
+
+dev-storage01 # ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME               STATUS  REWEIGHT  PRI-AFF
+-1         0.02339  root default
+-3         0.00780      host dev-storage01
+ 0    hdd  0.00780          osd.0               up   1.00000  1.00000
+-5         0.00780      host dev-storage02
+ 1    hdd  0.00780          osd.1               up   1.00000  1.00000
+-7         0.00780      host dev-storage03
+ 2    hdd  0.00780          osd.2               up   1.00000  1.00000
+
+dev-storage01 # ceph df
+--- RAW STORAGE ---
+CLASS    SIZE   AVAIL    USED  RAW USED  %RAW USED
+hdd    24 GiB  24 GiB  61 MiB    61 MiB       0.25
+TOTAL  24 GiB  24 GiB  61 MiB    61 MiB       0.25
+
+--- POOLS ---
+POOL  ID  PGS   STORED  OBJECTS     USED  %USED  MAX AVAIL
+.mgr   1    1  389 KiB        2  1.1 MiB      0    7.6 GiB
+
+dev-storage01 # ceph osd df
+ID  CLASS  WEIGHT   REWEIGHT  SIZE     RAW USE  DATA     OMAP  META    AVAIL    %USE  VAR   PGS  STATUS
+ 0    hdd  0.00780   1.00000  8.0 GiB   20 MiB  568 KiB   0 B  20 MiB  8.0 GiB  0.25  1.00    1      up
+ 1    hdd  0.00780   1.00000  8.0 GiB   20 MiB  568 KiB   0 B  20 MiB  8.0 GiB  0.25  1.00    1      up
+ 2    hdd  0.00780   1.00000  8.0 GiB   20 MiB  564 KiB   0 B  20 MiB  8.0 GiB  0.25  1.00    1      up
+                       TOTAL   24 GiB   61 MiB  1.7 MiB   0 B  59 MiB   24 GiB  0.25
+MIN/MAX VAR: 1.00/1.00  STDDEV: 0
 </syntaxhighlight>
 
 == Pool を作成する ==
