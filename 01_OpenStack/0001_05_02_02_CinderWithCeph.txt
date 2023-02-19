@@ -39,21 +39,20 @@ Ceph cluster 内で、使用するSSH 公開鍵を作成します。
 <syntaxhighlight lang="console">
 dev-storage01 # ssh-keygen -q -N "" -f ~/.ssh/ceph_cluster
 dev-storage01 # cp ~/.ssh/ceph_cluster.pub ~/.ssh/authorized_keys
-dev-storage01 # chmod 600 ~/.ssh/authorized_keys
+dev-storage01 # chmod 600 ~/.ssh/*
 </syntaxhighlight>
 
 <code>ceph_cluster</code>(秘密鍵), <code>ceph_cluster.pub</code>(公開鍵), <code>authorized_keys</code> ファイルを、残りのノード<code>dev-storage02</code>, <code>dev-storage03</code> にコピーし、権限を<code>600</code>に設定してください。<br /><br />
 
 <!--
-ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster"
-ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub"
-ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh dev-storage02 -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys"
-ssh dev-storage02 -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,authorized_keys}
-
-ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster"
-ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub"
-ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh dev-storage03 -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys"
-ssh dev-storage03 -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,authorized_keys}
+# Commands in workspace. It is a comment for me.
+worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
+    echo "target => ${target}"
+    ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster > /dev/null"
+    ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub > /dev/null"
+    ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys > /dev/null"
+    ssh ${target} -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,authorized_keys}
+done
 -->
 
 次にSSH クライアント設定ファイルを作成します。
@@ -61,7 +60,7 @@ ssh dev-storage03 -- sudo chmod 600 /root/.ssh/{ceph_cluster,ceph_cluster.pub,au
 * ~/.ssh/config @ dev-storage01
 <syntaxhighlight lang="console">
 dev-storage01 # cat << EOF > ~/.ssh/config
-Host dev-storage* dev-storage*.openstack.example.com
+Host dev-storage* dev-storage*.openstack.example.com dev-compute* dev-storage*.openstack.example.com
     PreferredAuthentications publickey
     User root
     IdentityFile ~/.ssh/ceph_cluster
@@ -73,9 +72,9 @@ dev-storage01 # chmod 600 ~/.ssh/config
 この情報を各ノードにコピーします。
 
 <syntaxhighlight lang="console">
-dev-storage01 # for i in 02 03; do
-    scp -i ~/.ssh/ceph_cluster ~/.ssh/config dev-storage${i}:.ssh/config
-    ssh -i ~/.ssh/ceph_cluster dev-storage${i} -- chmod 600 .ssh/config
+dev-storage01 # for node in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
+    scp -i ~/.ssh/ceph_cluster ~/.ssh/config ${node}:.ssh/config
+    ssh -i ~/.ssh/ceph_cluster ${node} -- chmod 600 .ssh/config
 done
 </syntaxhighlight>
 
@@ -85,9 +84,9 @@ done
 
 * dev-storage01
 <syntaxhighlight lang="console">
-dev-storage01 # for i in 01 02 03
+dev-storage01 # for node in dev-storage01 dev-storage02 dev-storage03
 do
-    ssh dev-storage${i} "apt update; apt -y install ceph"
+    ssh ${node} "apt update; apt -y install ceph"
 done
 </syntaxhighlight>
 
@@ -318,7 +317,48 @@ ID  CLASS  WEIGHT   REWEIGHT  SIZE     RAW USE  DATA     OMAP  META    AVAIL    
 MIN/MAX VAR: 1.00/1.00  STDDEV: 0
 </syntaxhighlight>
 
-== Pool を作成する ==
-デフォルトで、Ceph ブロックデバイスは<code>rbd</code> プールに入っています。
-Ceph のプール名を指定することで、それ使うことができますが、ここでは新しくプールを作成することにします。
+// Snapshot created_ceph_cluster
+
+== Block デバイスを使用する ==
+; Use Block Device
+: https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=3
+
+クライアント側にssh の公開鍵を送信します。
+ここでは、<code>dev-storage01</code> で作成された公開鍵を<code>dev-compute01</code>, <code>dev-compute02</code> にコピーします。
+手順は割愛します。<br /><br />
+
+次に、各クライアントに<code>ceph-common</code> をインストールし、設定していきます。
+
+<syntaxhighlight lang="console">
+dev-storage01 # for node in dev-compute01 dev-compute02; do
+    ssh ${node} "apt -y install ceph-common"
+    scp /etc/ceph/ceph.conf ${node}:/etc/ceph/
+
+    scp /etc/ceph/ceph.client.admin.keyring ${node}:/etc/ceph/
+    ssh ${node} "chown ceph. /etc/ceph/ceph.*"
+done
+</syntaxhighlight>
+
+== クライアントでのデバイス作成とマウント ==
+ここから先は、Ceph クライアントノードで作業を実施していきます。
+クライアント側でデバイスを作成し、マウントするために、まずプールを作成します。
+ここでは<code>rbd</code> プールを作成します。
+
+<syntaxhighlight lang="console">
+dev-compute{01,02} # ceph osd pool create rbd 32
+</syntaxhighlight>
+
+Placement グループのオートスケールを有効化します。
+
+<syntaxhighlight lang="console">
+dev-compute{01,02} # ceph osd pool set rbd pg_autoscale_mode on
+</syntaxhighlight>
+
+オートスケールの初期化と、状態の確認をします。
+
+<syntaxhighlight lang="console">
+dev-compute{01,02} # rdb pool init rbd
+
+dev-compute{01,02} # ceph osd pool autoscale-status
+</syntaxhighlight>
 
