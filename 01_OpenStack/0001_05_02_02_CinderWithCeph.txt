@@ -60,7 +60,7 @@ done
 * ~/.ssh/config @ dev-storage01
 <syntaxhighlight lang="console">
 dev-storage01 # cat << EOF > ~/.ssh/config
-Host dev-storage* dev-storage*.openstack.example.com dev-compute* dev-storage*.openstack.example.com
+Host dev-storage* dev-storage*.openstack.example.com dev-compute* dev-compute*.openstack.example.com
     PreferredAuthentications publickey
     User root
     IdentityFile ~/.ssh/ceph_cluster
@@ -345,20 +345,37 @@ done
 ここでは<code>rbd</code> プールを作成します。
 
 <syntaxhighlight lang="console">
-dev-compute{01,02} # ceph osd pool create rbd 32
+dev-storage01 # ceph osd pool create rbd 32
 </syntaxhighlight>
 
 Placement グループのオートスケールを有効化します。
 
 <syntaxhighlight lang="console">
-dev-compute{01,02} # ceph osd pool set rbd pg_autoscale_mode on
+// dev-compute{01, 02}
+dev-storage01 # ceph osd pool set rbd pg_autoscale_mode on
 </syntaxhighlight>
 
 オートスケールの初期化と、状態の確認をします。
 
 <syntaxhighlight lang="console">
-dev-compute{01,02} # rdb pool init rbd
+// dev-compute{01,02}
+dev-storage01 # rbd pool init rbd
 
-dev-compute{01,02} # ceph osd pool autoscale-status
+// dev-compute{01,02}
+cdev-storage01 # ceph osd pool autoscale-status
 </syntaxhighlight>
+
+1GB のブロックデバイスを作成します。
+
+<syntaxhighlight lang="console">
+// dev-compute{01,02}
+dev-storage01 # rbd create --size 1GB --pool rbd rbd01
+
+// dev-compute{01,02}
+dev-storage01 # rbd ls -l
+NAME   SIZE   PARENT  FMT  PROT  LOCK
+rbd01  1 GiB            2
+
+</syntaxhighlight>
+
 
