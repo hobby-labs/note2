@@ -378,4 +378,10 @@ rbd01  1 GiB            2
 
 </syntaxhighlight>
 
+デバイスをマッピングします。
+クライアントノードで下記コマンドを実行し、クライアントのドライブにマッピングします。
+<syntaxhighlight lang="console">
+dev-compute01 # rbd map rbd01
+// 1 デバイス1 クライアントでマッピングします。1 デバイス複数クライアントでマッピング/マウントして使用しても、正常に利用できません
+</syntaxhighlight>
 
