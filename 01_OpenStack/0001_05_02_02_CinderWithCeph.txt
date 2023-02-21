@@ -362,7 +362,7 @@ dev-storage01 # ceph osd pool set rbd pg_autoscale_mode on
 dev-storage01 # rbd pool init rbd
 
 // dev-compute{01,02}
-cdev-storage01 # ceph osd pool autoscale-status
+dev-storage01 # ceph osd pool autoscale-status
 </syntaxhighlight>
 
 1GB のブロックデバイスを作成します。
@@ -383,5 +383,17 @@ rbd01  1 GiB            2
 <syntaxhighlight lang="console">
 dev-compute01 # rbd map rbd01
 // 1 デバイス1 クライアントでマッピングします。1 デバイス複数クライアントでマッピング/マウントして使用しても、正常に利用できません
+
+dev-compute01 # rbd showmapped
+id  pool  namespace  image  snap  device
+0   rbd              rbd01  -     /dev/rbd0
+</syntaxhighlight>
+
+ブロックデバイスをフォーマットします。
+
+<syntaxhighlight lang="console">
+dev-compute01 # mkfs.xfs /dev/rbd0
+...
+dev-compute01 # mount /dev/rbd0 /mnt
 </syntaxhighlight>
 
