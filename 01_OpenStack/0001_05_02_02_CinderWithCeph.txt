@@ -397,3 +397,22 @@ dev-compute01 # mkfs.xfs /dev/rbd0
 dev-compute01 # mount /dev/rbd0 /mnt
 </syntaxhighlight>
 
+// Snapshot mount_device_on_client
+
+== ブロックデバイス、Pool の削除 ==
+デバイスのunmap をするには、<code>rbd unmap</code> コマンドを実行します。
+
+<syntaxhighlight lang="console">
+dev-compute01 # rbd unmap /dev/rbd/rbd/rbd01
+</syntaxhighlight>
+
+Block デバイスを削除する。
+
+<syntaxhighlight lang="console">
+dev-compute01 # rbd rm rbd01 -p rbd
+</syntaxhighlight>
+
+<syntaxhighlight lang="console">
+dev-compute01 # ceph osd pool delete rbd rbd --yes-i-really-really-mean-it
+</syntaxhighlight>
+
