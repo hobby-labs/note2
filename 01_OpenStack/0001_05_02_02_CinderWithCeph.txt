@@ -416,3 +416,34 @@ dev-compute01 # rbd rm rbd01 -p rbd
 dev-compute01 # ceph osd pool delete rbd rbd --yes-i-really-really-mean-it
 </syntaxhighlight>
 
+== ファイルシステムを使用する ==
+; Use File System
+: https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=4
+
+SSH の鍵の転送については、手順を割愛します。<br /><br />
+
+ノード上のMetaData Server を設定します。
+まず、ディレクトリを作成します。
+ディレクトリ名はクラスタ名とノード名を含む<code>directory name ⇒ (Cluster Name)-(Node Name)</code> となるようにしてください。
+
+<syntaxhighlight lang="console">
+dev-storage01 # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
+creating ...
+dev-storage01 # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage01 # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
+added key for mds.${HOSTNAME}
+dev-storage01 # systemctl enable --now ceph-mds@${HOSTNAME}
+</syntaxhighlight>
+
+MDS ノード上に2 つのRADOS プールを作成します。
+
+<syntaxhighlight lang="console">
+dev-storage01 # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
+dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+dev-storage01 # ceph osd pool create cephfs_data 32
+
+dev-storage01 # ceph osd pool create cephfs_data 32
+</syntaxhighlight>
+
+
