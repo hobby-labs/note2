@@ -420,6 +420,9 @@ dev-compute01 # ceph osd pool delete rbd rbd --yes-i-really-really-mean-it
 ; Use File System
 : https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=4
 
+; Introduction to Ceph
+: https://parhamzardoshti.medium.com/introduction-to-ceph-7ed07be08a69
+
 SSH の鍵の転送については、手順を割愛します。<br /><br />
 
 ノード上のMetaData Server を設定します。
@@ -444,6 +447,6 @@ dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-gr
 dev-storage01 # ceph osd pool create cephfs_data 32
 
 dev-storage01 # ceph osd pool create cephfs_data 32
-</syntaxhighlight>
 
+</syntaxhighlight>
 
