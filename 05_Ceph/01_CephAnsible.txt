@@ -1,0 +1,17 @@
+# Ceph Ansible
+Ceph Ansible をインストールします。
+また、それに依存するパッケージもインストールします。
+
+```
+$ git clone https://github.com/ceph/ceph-ansible.git
+$ git checkout stable-3.2    # <- Which version should I use?
+$ sudo cp -a ceph-ansible/* /etc/ansible/
+```
+
+```
+$ sudo apt-get install python-pip
+$ sudo pip install notario netaddr
+```
+
+各設定ファイルのコメントに説明が書いてあるので、それを読みましょう。
+
