@@ -45,7 +45,7 @@ dev-storage01 # chmod 600 ~/.ssh/*
 <code>ceph_cluster</code>(秘密鍵), <code>ceph_cluster.pub</code>(公開鍵), <code>authorized_keys</code> ファイルを、残りのノード<code>dev-storage02</code>, <code>dev-storage03</code> にコピーし、権限を<code>600</code>に設定してください。<br /><br />
 
 <!--
-# Commands in workspace. It is a comment for me.
+# Commands in workspace. It is an additional comment for my environment.
 worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
     echo "target => ${target}"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster > /dev/null"
@@ -100,7 +100,7 @@ ffffffff-ffff-ffff-ffff-ffffffffffff
 クラスタ設定ファイルを作成します。
 ファイル名は<code>(Cluster name).confg</code> となるように設定します。
 
-* /etc/ceph/ceph.conf
+* /etc/ceph/ceph.conf @ dev-storage01
 <syntaxhighlight lang="text">
 [global]
 # specify cluster network for monitoring
@@ -283,10 +283,10 @@ dev-storage01 # ceph -s
     osd: 3 osds: 3 up (since 10m), 3 in (since 10m)
 
   data:
-    pools:   1 pools, 1 pgs
-    objects: 2 objects, 449 KiB
-    usage:   61 MiB used, 24 GiB / 24 GiB avail
-    pgs:     1 active+clean
+    pools:   0 pools, 0 pgs
+    objects: 0 objects, 0 B
+    usage:   0 B used, 0 B / 0 B avail
+    pgs:
 
 dev-storage01 # ceph osd tree
 ID  CLASS  WEIGHT   TYPE NAME               STATUS  REWEIGHT  PRI-AFF
