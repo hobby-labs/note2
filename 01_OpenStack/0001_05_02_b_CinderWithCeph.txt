@@ -348,6 +348,9 @@ done
 dev-storage01 # ceph osd pool create rbd 32
 </syntaxhighlight>
 
+// プール数について  
+https://docs.ceph.com/en/latest/rados/operations/placement-groups/#choosing-number-of-placement-groups  
+
 Placement グループのオートスケールを有効化します。
 
 <syntaxhighlight lang="console">
