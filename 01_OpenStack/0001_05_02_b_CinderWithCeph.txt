@@ -353,39 +353,39 @@ https://docs.ceph.com/en/latest/rados/operations/placement-groups/#choosing-numb
 
 Placement グループのオートスケールを有効化します。
 
+* dev-compute0{1,2} 
 <syntaxhighlight lang="console">
-// dev-compute{01, 02}
+// dev-compute0{1,2} でも実行可能
 dev-storage01 # ceph osd pool set rbd pg_autoscale_mode on
 </syntaxhighlight>
 
 オートスケールの初期化と、状態の確認をします。
 
 <syntaxhighlight lang="console">
-// dev-compute{01,02}
+// dev-compute0{1,2} でも実行可能
 dev-storage01 # rbd pool init rbd
-
-// dev-compute{01,02}
 dev-storage01 # ceph osd pool autoscale-status
 </syntaxhighlight>
 
 1GB のブロックデバイスを作成します。
 
 <syntaxhighlight lang="console">
-// dev-compute{01,02}
+// dev-compute0{1,2} でも実行可能
 dev-storage01 # rbd create --size 1GB --pool rbd rbd01
 
-// dev-compute{01,02}
+// dev-compute0{1,2} でも実行可能
 dev-storage01 # rbd ls -l
 NAME   SIZE   PARENT  FMT  PROT  LOCK
 rbd01  1 GiB            2
-
 </syntaxhighlight>
+
+// Snapshot create_ceph_block_device
 
 デバイスをマッピングします。
 クライアントノードで下記コマンドを実行し、クライアントのドライブにマッピングします。
 <syntaxhighlight lang="console">
 dev-compute01 # rbd map rbd01
-// 1 デバイス1 クライアントでマッピングします。1 デバイス複数クライアントでマッピング/マウントして使用しても、正常に利用できません
+// 1 デバイス1 クライアントでマッピングします。現状、この設定では1 デバイス複数クライアントでマッピング/マウントして使用しても、正常に利用できません
 
 dev-compute01 # rbd showmapped
 id  pool  namespace  image  snap  device
@@ -396,11 +396,12 @@ id  pool  namespace  image  snap  device
 
 <syntaxhighlight lang="console">
 dev-compute01 # mkfs.xfs /dev/rbd0
-...
-dev-compute01 # mount /dev/rbd0 /mnt
 </syntaxhighlight>
 
-// Snapshot mount_device_on_client
+
+<syntaxhighlight lang="console">
+dev-compute01 # mount /dev/rbd0 /mnt
+</syntaxhighlight>
 
 == ブロックデバイス、Pool の削除 ==
 デバイスのunmap をするには、<code>rbd unmap</code> コマンドを実行します。
