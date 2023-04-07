@@ -403,6 +403,8 @@ dev-compute01 # mkfs.xfs /dev/rbd0
 dev-compute01 # mount /dev/rbd0 /mnt
 </syntaxhighlight>
 
+// Snapshot mapped_ceph_block_device
+
 == ブロックデバイス、Pool の削除 ==
 デバイスのunmap をするには、<code>rbd unmap</code> コマンドを実行します。
 
