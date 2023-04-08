@@ -83,4 +83,3 @@ dev-compute01 # ceph osd pool delete rbd rbd --yes-i-really-really-mean-it
 
 // Snapshot removed_ceph_block_device
 
-

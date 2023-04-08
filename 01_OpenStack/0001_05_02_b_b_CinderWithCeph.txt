@@ -27,8 +27,11 @@ MDS ノード上に2 つのRADOS プールを作成します。
 dev-storage01 # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
 dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
 dev-storage01 # ceph osd pool create cephfs_data 32
-
-dev-storage01 # ceph osd pool create cephfs_data 32
-
+> pool 'cephfs_data' created
+dev-storage01 # ceph osd pool create cephfs_metadata 32
+> pool 'cephfs_metadata' created
+dev-storage01 # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
+dev-storage01 # ceph fs new cephfs cephfs_metadata cephfs_data
+> new fs with metadata pool 3 and data pool 2
 </syntaxhighlight>
 
