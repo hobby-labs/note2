@@ -33,5 +33,20 @@ dev-storage01 # ceph osd pool create cephfs_metadata 32
 dev-storage01 # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
 dev-storage01 # ceph fs new cephfs cephfs_metadata cephfs_data
 > new fs with metadata pool 3 and data pool 2
+dev-storage01 # ceph fs ls
+> name: cephfs, metadata pool: cephfs_metadata, data pools: [cephfs_data ]
+dev-storage01 # ceph mds stat
+cephfs:1 {0=dev-storage01=up:active}
+dev-storage01 # ceph fs status cephfs
+cephfs - 0 clients
+======
+RANK  STATE        MDS          ACTIVITY     DNS    INOS   DIRS   CAPS
+ 0    active  dev-storage01  Reqs:    0 /s    10     13     12      0
+      POOL         TYPE     USED  AVAIL
+cephfs_metadata  metadata  96.0k  7771M
+  cephfs_data      data       0   7771M
+MDS version: ceph version 17.2.5 (98318ae89f1a893a6ded3a640405cdbb33e08757) quincy (stable)
 </syntaxhighlight>
+
+CephFS をマウントします。
 
