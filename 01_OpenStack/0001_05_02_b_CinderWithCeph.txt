@@ -339,6 +339,11 @@ dev-storage01 # for node in dev-compute01 dev-compute02; do
 done
 </syntaxhighlight>
 
+// Snapshot installed_ceph_clients
+
+// ここで分岐？
+
+
 == クライアントでのデバイス作成とマウント ==
 ここから先は、Ceph クライアントノードで作業を実施していきます。
 クライアント側でデバイスを作成し、マウントするために、まずプールを作成します。
@@ -403,12 +408,11 @@ dev-compute01 # mkfs.xfs /dev/rbd0
 dev-compute01 # mount /dev/rbd0 /mnt
 </syntaxhighlight>
 
-// Snapshot mapped_ceph_block_device
-
 == ブロックデバイス、Pool の削除 ==
 デバイスのunmap をするには、<code>rbd unmap</code> コマンドを実行します。
 
 <syntaxhighlight lang="console">
+dev-compute01 # umount /dev/rbd0
 dev-compute01 # rbd unmap /dev/rbd/rbd/rbd01
 </syntaxhighlight>
 
@@ -421,6 +425,9 @@ dev-compute01 # rbd rm rbd01 -p rbd
 <syntaxhighlight lang="console">
 dev-compute01 # ceph osd pool delete rbd rbd --yes-i-really-really-mean-it
 </syntaxhighlight>
+
+// Snapshot removed_ceph_block_device
+
 
 == ファイルシステムを使用する ==
 ; Use File System
