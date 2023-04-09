@@ -10,34 +10,35 @@ SSH の鍵の転送については、手順を割愛します。<br /><br />
 ノード上のMetaData Server を設定します。
 まず、ディレクトリを作成します。
 ディレクトリ名はクラスタ名とノード名を含む<code>directory name ⇒ (Cluster Name)-(Node Name)</code> となるようにしてください。
+これらのコマンドは、ストレージサーバ全体(dev-storage01, dev-storage02, dev-storage03)で、実施してください。
 
 <syntaxhighlight lang="console">
-dev-storage01 # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
-dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
+dev-storage{01,02,03} # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage{01,02,03} # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
 creating ...
-dev-storage01 # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
-dev-storage01 # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
+dev-storage{01,02,03} # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage{01,02,03} # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
 added key for mds.${HOSTNAME}
-dev-storage01 # systemctl enable --now ceph-mds@${HOSTNAME}
+dev-storage{01,02,03} # systemctl enable --now ceph-mds@${HOSTNAME}
 </syntaxhighlight>
 
 MDS ノード上に2 つのRADOS プールを作成します。
 
 <syntaxhighlight lang="console">
-dev-storage01 # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
-dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
-dev-storage01 # ceph osd pool create cephfs_data 32
+dev-storage{01,02,03} # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
+dev-storage{01,02,03} # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+dev-storage{01,02,03} # ceph osd pool create cephfs_data 32
 > pool 'cephfs_data' created
-dev-storage01 # ceph osd pool create cephfs_metadata 32
+dev-storage{01,02,03} # ceph osd pool create cephfs_metadata 32
 > pool 'cephfs_metadata' created
-dev-storage01 # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
-dev-storage01 # ceph fs new cephfs cephfs_metadata cephfs_data
+dev-storage{01,02,03} # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
+dev-storage{01,02,03} # ceph fs new cephfs cephfs_metadata cephfs_data
 > new fs with metadata pool 3 and data pool 2
-dev-storage01 # ceph fs ls
+dev-storage{01,02,03} # ceph fs ls
 > name: cephfs, metadata pool: cephfs_metadata, data pools: [cephfs_data ]
-dev-storage01 # ceph mds stat
+dev-storage{01,02,03} # ceph mds stat
 cephfs:1 {0=dev-storage01=up:active}
-dev-storage01 # ceph fs status cephfs
+dev-storage{01,02,03} # ceph fs status cephfs
 cephfs - 0 clients
 ======
 RANK  STATE        MDS          ACTIVITY     DNS    INOS   DIRS   CAPS
@@ -48,5 +49,21 @@ cephfs_metadata  metadata  96.0k  7771M
 MDS version: ceph version 17.2.5 (98318ae89f1a893a6ded3a640405cdbb33e08757) quincy (stable)
 </syntaxhighlight>
 
-CephFS をマウントします。
+クライアントで、CephFS をマウントします。
+<syntaxhighlight lang="console">
+dev-compute01 # # Create base64 encoded client key
+dev-compute01 # ceph-authtool -p /etc/ceph/ceph.client.admin.keyring > admin.key
+dev-compute01 # chmod 600 admin.key
+dev-compute01 # mount -t ceph dev-storage01.openstack.example.com:6789:/ /mnt -o name=admin,secretfile=admin.key
+dev-compute01 # df -hT
+Filesystem          Type   Size  Used Avail Use% Mounted on
+tmpfs               tmpfs  1.6G  1.3M  1.6G   1% /run
+/dev/vda1           ext4    51G  7.4G   44G  15% /
+tmpfs               tmpfs  7.9G     0  7.9G   0% /dev/shm
+tmpfs               tmpfs  5.0M     0  5.0M   0% /run/lock
+tmpfs               tmpfs  7.9G     0  7.9G   0% /run/qemu
+/dev/vda15          vfat   105M  6.1M   99M   6% /boot/efi
+tmpfs               tmpfs  1.6G  4.0K  1.6G   1% /run/user/1000
+172.22.1.101:6789:/ ceph   7.6G     0  7.6G   0% /mnt
+</syntaxhighlight>
 

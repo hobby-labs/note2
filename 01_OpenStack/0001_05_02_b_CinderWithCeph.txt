@@ -256,6 +256,7 @@ do
         do \
             echo \"\$(date) - INFO: Creating a ceph volume at /dev/vdb1 on \$(uname -n)\"; \
             ceph-volume lvm create --data /dev/vdb1; \
+            ceph-volume lvm list; \
             vg_name=\$(vgdisplay | grep -P \"^ *VG Name *ceph\-.*\$\" | grep -o '[^ ]*\$'); \
             if [[ \"\${vg_name}\" =~ ^ceph\\-.*\$ ]]; \
             then \
