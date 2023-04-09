@@ -10,35 +10,36 @@ SSH の鍵の転送については、手順を割愛します。<br /><br />
 ノード上のMetaData Server を設定します。
 まず、ディレクトリを作成します。
 ディレクトリ名はクラスタ名とノード名を含む<code>directory name ⇒ (Cluster Name)-(Node Name)</code> となるようにしてください。
-これらのコマンドは、ストレージサーバ全体(dev-storage01, dev-storage02, dev-storage03)で、実施してください。
+これらのコマンドは、ストレージサーバ全体で共有されますので、いずれか1 つのノードで実行してください。
+複数プールを作成する場合も、ストレージサーバ全体で共有されているため、それぞれことなる名前で作成してください。
 
 <syntaxhighlight lang="console">
-dev-storage{01,02,03} # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
-dev-storage{01,02,03} # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
+dev-storage01 # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
 creating ...
-dev-storage{01,02,03} # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
-dev-storage{01,02,03} # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
+dev-storage01 # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
+dev-storage01 # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
 added key for mds.${HOSTNAME}
-dev-storage{01,02,03} # systemctl enable --now ceph-mds@${HOSTNAME}
+dev-storage01 # systemctl enable --now ceph-mds@${HOSTNAME}
 </syntaxhighlight>
 
 MDS ノード上に2 つのRADOS プールを作成します。
 
 <syntaxhighlight lang="console">
-dev-storage{01,02,03} # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
-dev-storage{01,02,03} # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
-dev-storage{01,02,03} # ceph osd pool create cephfs_data 32
+dev-storage01 # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
+dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
+dev-storage01 # ceph osd pool create cephfs_data 32
 > pool 'cephfs_data' created
-dev-storage{01,02,03} # ceph osd pool create cephfs_metadata 32
+dev-storage01 # ceph osd pool create cephfs_metadata 32
 > pool 'cephfs_metadata' created
-dev-storage{01,02,03} # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
-dev-storage{01,02,03} # ceph fs new cephfs cephfs_metadata cephfs_data
+dev-storage01 # # Pool が作成されたら、`fs new` コマンドで、それを有効化します
+dev-storage01 # ceph fs new cephfs cephfs_metadata cephfs_data
 > new fs with metadata pool 3 and data pool 2
-dev-storage{01,02,03} # ceph fs ls
+dev-storage01 # ceph fs ls
 > name: cephfs, metadata pool: cephfs_metadata, data pools: [cephfs_data ]
-dev-storage{01,02,03} # ceph mds stat
+dev-storage01 # ceph mds stat
 cephfs:1 {0=dev-storage01=up:active}
-dev-storage{01,02,03} # ceph fs status cephfs
+dev-storage01 # ceph fs status cephfs
 cephfs - 0 clients
 ======
 RANK  STATE        MDS          ACTIVITY     DNS    INOS   DIRS   CAPS
