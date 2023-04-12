@@ -97,7 +97,7 @@ dev-storage01 # uuidgen
 ffffffff-ffff-ffff-ffff-ffffffffffff
 </syntaxhighlight>
 
-クラスタ設定ファイルを作成します。
+クラスタ設定ファイルを、監視(mon)ノード上に作成します。
 ファイル名は<code>(Cluster name).confg</code> となるように設定します。
 
 * /etc/ceph/ceph.conf @ dev-storage01
@@ -211,7 +211,13 @@ dev-storage01 # chown -R ceph. /var/lib/ceph/mgr/ceph-${NODENAME}
 dev-storage01 # systemctl enable --now ceph-mgr@${NODENAME}
 </syntaxhighlight>
 
+Ceph の状態を確認します。
+monノード(監視ノード)が作成されたことが確認できます。
+
 <syntaxhighlight lang="console">
+dev-storage01 # ceph osd lspools
+1 .mgr
+
 dev-storage01 # ceph -s
   cluster:
     id:     ffffffff-ffff-ffff-ffff-ffffffffffff
@@ -227,6 +233,22 @@ dev-storage01 # ceph -s
     objects: 0 objects, 0 B
     usage:   0 B used, 0 B / 0 B avail
     pgs:
+
+dev-storage01 # ceph osd tree
+ID  CLASS  WEIGHT  TYPE NAME     STATUS  REWEIGHT  PRI-AFF
+-1              0  root default
+root@dev-storage01:~# ceph df
+--- RAW STORAGE ---
+CLASS  SIZE  AVAIL  USED  RAW USED  %RAW USED
+TOTAL   0 B    0 B   0 B       0 B          0
+
+--- POOLS ---
+POOL  ID  PGS  STORED  OBJECTS  USED  %USED  MAX AVAIL
+
+dev-storage01 # ceph osd df
+ID  CLASS  WEIGHT  REWEIGHT  SIZE  RAW USE  DATA  OMAP  META  AVAIL  %USE  VAR  PGS  STATUS
+                      TOTAL   0 B      0 B   0 B   0 B   0 B    0 B     0
+MIN/MAX VAR: -/-  STDDEV: 0
 </syntaxhighlight>
 
 // Snapshot configure_ceph_manager_mon_node
@@ -272,6 +294,7 @@ done
 </syntaxhighlight>
 
 クラスタの状態を確認します。
+pool, osd が作成されたことがわかります。
 
 <syntaxhighlight lang="console">
 dev-storage01 # ceph -s
@@ -321,7 +344,7 @@ MIN/MAX VAR: 1.00/1.00  STDDEV: 0
 
 // Snapshot created_ceph_cluster
 
-== Block デバイスを使用する ==
+== 各クライアントにパッケージをインストールする ==
 ; Use Block Device
 : https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=3
 
