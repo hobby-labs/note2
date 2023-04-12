@@ -159,6 +159,7 @@ dev-storage01 # FSID=$(grep "^fsid" /etc/ceph/ceph.conf | awk {'print $NF'})
 dev-storage01 # NODENAME=$(grep "^mon initial" /etc/ceph/ceph.conf | awk {'print $NF'})
 dev-storage01 # NODEIP=$(grep "^mon host" /etc/ceph/ceph.conf | awk {'print $NF'})
 dev-storage01 # echo "Debug. FSID=${FSID}, NODENAME=${NODENAME}, NODEIP=${NODEIP}"
+> Debug. FSID=ffffffff-ffff-ffff-ffff-ffffffffffff, NODENAME=dev-storage01, NODEIP=172.22.1.101
 dev-storage01 # monmaptool --create --add $NODENAME $NODEIP --fsid $FSID /etc/ceph/monmap
 </syntaxhighlight>
 
