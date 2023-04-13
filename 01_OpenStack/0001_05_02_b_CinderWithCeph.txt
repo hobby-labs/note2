@@ -296,6 +296,11 @@ done
 クラスタの状態を確認します。
 pool, osd が作成されたことがわかります。
 
+; Ceph Placement Group
+: https://www.oreilly.com/library/view/ceph-designing-and/9781788295413/b8902238-fd69-4c48-8df4-df95e34ca098.xhtml
+
+![CephPoolAndOsd](./img/CephPoolAndOsd_0001.jpg "Ceph pool and osd")
+
 <syntaxhighlight lang="console">
 dev-storage01 # ceph -s
   cluster:
