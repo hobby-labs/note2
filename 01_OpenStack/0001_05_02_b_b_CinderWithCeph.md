@@ -1,4 +1,4 @@
-== ファイルシステムを使用する ==
+## ファイルシステムを使用する
 ; Use File System
 : https://www.server-world.info/en/note?os=Ubuntu_22.04&p=ceph&f=4
 
@@ -13,7 +13,7 @@ SSH の鍵の転送については、手順を割愛します。<br /><br />
 これらのコマンドは、ストレージサーバ全体で共有されますので、いずれか1 つのノードで実行してください。
 複数プールを作成する場合も、ストレージサーバ全体で共有されているため、それぞれことなる名前で作成してください。
 
-<syntaxhighlight lang="console">
+```
 dev-storage01 # mkdir -p /var/lib/ceph/mds/ceph-${HOSTNAME}
 dev-storage01 # ceph-authtool --create-keyring /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring --gen-key -n mds.${HOSTNAME}
 creating ...
@@ -21,14 +21,14 @@ dev-storage01 # chown -R ceph. /var/lib/ceph/mds/ceph-${HOSTNAME}
 dev-storage01 # ceph auth add mds.${HOSTNAME} osd "allow rwx" mds "allow" mon "allow profile mds" -i /var/lib/ceph/mds/ceph-${HOSTNAME}/keyring
 added key for mds.${HOSTNAME}
 dev-storage01 # systemctl enable --now ceph-mds@${HOSTNAME}
-</syntaxhighlight>
+```
 
 MDS ノード上に2 つのRADOS プールを作成します。
 
 ; 参考
 : https://community.cisco.com/t5/tkb-%E3%83%87%E3%83%BC%E3%82%BF%E3%82%BB%E3%83%B3%E3%82%BF%E3%83%BC-%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88/cvim-ceph-placement-group-%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6/ta-p/4121577
 
-<syntaxhighlight lang="console">
+```
 dev-storage01 # # 下記のCeph プールを作成するコマンドの数字は、下記ドキュメントを参照してください
 dev-storage01 # # http://docs.ceph.com/docs/master/rados/operations/placement-groups/
 dev-storage01 # ceph osd pool create cephfs_data 32
@@ -51,10 +51,10 @@ RANK  STATE        MDS          ACTIVITY     DNS    INOS   DIRS   CAPS
 cephfs_metadata  metadata  96.0k  7771M
   cephfs_data      data       0   7771M
 MDS version: ceph version 17.2.5 (98318ae89f1a893a6ded3a640405cdbb33e08757) quincy (stable)
-</syntaxhighlight>
+```
 
 クライアントで、CephFS をマウントします。
-<syntaxhighlight lang="console">
+```
 dev-compute01 # # Create base64 encoded client key
 dev-compute01 # ceph-authtool -p /etc/ceph/ceph.client.admin.keyring > admin.key
 dev-compute01 # chmod 600 admin.key
@@ -69,5 +69,5 @@ tmpfs               tmpfs  7.9G     0  7.9G   0% /run/qemu
 /dev/vda15          vfat   105M  6.1M   99M   6% /boot/efi
 tmpfs               tmpfs  1.6G  4.0K  1.6G   1% /run/user/1000
 172.22.1.101:6789:/ ceph   7.6G     0  7.6G   0% /mnt
-</syntaxhighlight>
+```
 
