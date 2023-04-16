@@ -260,36 +260,41 @@ MIN/MAX VAR: -/-  STDDEV: 0
 管理ノードから、各ノードの<code>/dev/sdb</code> をOSD のボリュームとしてフォーマットして使います。
 下記コマンドをターミナルに貼り付けて、各ノードのCephボリュームを作成します。
 
-* dev-storage01
+* create_ceph_volumes.sh @ dev-storage01
 ```
-for node in dev-storage01 dev-storage02 dev-storage03
-do
-    if [ ! ${node} = "dev-storage01" ]
-    then
+#!/usr/bin/env bash
+
+for node_index in {1..3}; do
+    node=$(printf "dev-storage%02d" ${node_index})
+
+    if [ ! ${node} = "dev-storage01" ]; then
         scp /etc/ceph/ceph.conf ${node}:/etc/ceph/ceph.conf
         scp /etc/ceph/ceph.client.admin.keyring ${node}:/etc/ceph
         scp /var/lib/ceph/bootstrap-osd/ceph.keyring ${node}:/var/lib/ceph/bootstrap-osd
     fi
-    ssh $node \
-        "chown ceph. /etc/ceph/ceph.* /var/lib/ceph/bootstrap-osd/*; \
-        parted --script /dev/vdb 'mklabel gpt'; \
-        parted --script /dev/vdb "mkpart primary 0% 100%"; \
-        count=0; \
-        while [ \${count} -lt 30 ]; \
-        do \
-            echo \"\$(date) - INFO: Creating a ceph volume at /dev/vdb1 on \$(uname -n)\"; \
-            ceph-volume lvm create --data /dev/vdb1; \
-            ceph-volume lvm list; \
-            vg_name=\$(vgdisplay | grep -P \"^ *VG Name *ceph\-.*\$\" | grep -o '[^ ]*\$'); \
-            if [[ \"\${vg_name}\" =~ ^ceph\\-.*\$ ]]; \
-            then \
-                echo \"\$(date) - INFO: Volume group for Ceph has found. vg_name=\${vg_name}.\"; \
-                break; \
-            fi; \
-            (( ++count )); \
-            echo \"\$(date) - ERROR: Failed to create ceph volume. Retrying to execute it agin (count=\${count}).\" >&2; \
-            sleep 5; \
-        done;"
+
+    ssh $node << 'EOF'
+        chown ceph. /etc/ceph/ceph.* /var/lib/ceph/bootstrap-osd/*
+
+        for drive_letter_index in d; do
+            parted --script /dev/vd${drive_letter_index} 'mklabel gpt'
+            parted --script /dev/vd${drive_letter_index} "mkpart primary 0% 100%"
+            count=0
+            while [ ${count} -lt 30 ]; do
+                echo "$(date) - ${HOSTNAME} - INFO: Creating a ceph volume at /dev/vd${drive_letter_index}1 on $(uname -n)"
+                ceph-volume lvm create --data /dev/vd${drive_letter_index}1
+                ceph-volume lvm list
+                vg_name=$(vgdisplay | grep -P "^ *VG Name *ceph\-.*\$" | grep -o '[^ ]*$')
+                if [[ "${vg_name}" =~ ^ceph\-.*$ ]]; then
+                    echo "$(date) - ${HOSTNAME} - INFO: Volume group for Ceph has found. vg_name=${vg_name}."
+                    break
+                fi
+                (( ++count ))
+                echo "$(date) - ${HOSTNAME} - ERROR: Failed to create ceph volume(Obtained vg_name=${vg_name}). Retrying to execute it agin (count=${count})." >&2
+                sleep 5
+            done
+        done
+EOF
 done
 ```
 
