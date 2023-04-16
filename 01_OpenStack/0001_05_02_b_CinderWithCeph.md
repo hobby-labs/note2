@@ -299,6 +299,9 @@ pool, osd が作成されたことがわかります。
 ; Ceph Placement Group
 : https://www.oreilly.com/library/view/ceph-designing-and/9781788295413/b8902238-fd69-4c48-8df4-df95e34ca098.xhtml
 
+; Our Experiences with Ceph - Part 1
+: https://www.nine.ch/en/engineering-logbook/our-experiences-with-ceph-1
+
 ![CephPoolAndOsd](./img/CephPoolAndOsd_0001.jpg "Ceph pool and osd")
 
 ```
