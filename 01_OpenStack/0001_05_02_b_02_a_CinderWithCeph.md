@@ -2,7 +2,7 @@
 ## クライアントでのデバイス作成とマウント
 ここから先は、Ceph クライアントノードで作業を実施していきます。
 クライアント側でデバイスを作成し、マウントするために、まずプールを作成します。
-ここでは<code>rbd</code> プールを作成します。
+ここでは<code>rbd(RADOS Block Device)</code> プールを作成します。
 
 ```
 dev-storage01 # ceph osd pool create rbd 32
