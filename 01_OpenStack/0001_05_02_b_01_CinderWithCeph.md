@@ -284,7 +284,7 @@ for node_index in {1..3}; do
                 echo "$(date) - ${HOSTNAME} - INFO: Creating a ceph volume at /dev/vd${drive_letter_index}1 on $(uname -n)"
                 ceph-volume lvm create --data /dev/vd${drive_letter_index}1
                 ceph-volume lvm list
-                vg_name=$(vgdisplay | grep -P "^ *VG Name *ceph\-.*\$" | grep -o '[^ ]*$')
+                vg_name=$(pvdisplay /dev/vd${drive_letter_index}1 | grep -P "^ *VG Name *ceph\-.*\$" | grep -o '[^ ]*$')
                 if [[ "${vg_name}" =~ ^ceph\-.*$ ]]; then
                     echo "$(date) - ${HOSTNAME} - INFO: Volume group for Ceph has found. vg_name=${vg_name}."
                     break

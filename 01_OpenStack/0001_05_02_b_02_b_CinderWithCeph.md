@@ -5,11 +5,14 @@
 ; Introduction to Ceph
 : https://parhamzardoshti.medium.com/introduction-to-ceph-7ed07be08a69
 
-SSH の鍵の転送については、手順を割愛します。<br /><br />
+; CREATE A CEPH FILE SYSTEM
+: https://docs.ceph.com/en/quincy/cephfs/createfs/
 
+SSH の鍵の転送については、手順を割愛します。  
+  
 ノード上のMetaData Server を設定します。
 まず、ディレクトリを作成します。
-ディレクトリ名はクラスタ名とノード名を含む<code>directory name ⇒ (Cluster Name)-(Node Name)</code> となるようにしてください。
+ディレクトリ名はクラスタ名とノード名を含む`directory name ⇒ (Cluster Name)-(Node Name)` となるようにしてください。
 これらのコマンドは、ストレージサーバ全体で共有されますので、いずれか1 つのノードで実行してください。
 複数プールを作成する場合も、ストレージサーバ全体で共有されているため、それぞれことなる名前で作成してください。
 
