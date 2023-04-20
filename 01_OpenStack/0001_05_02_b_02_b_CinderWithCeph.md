@@ -81,6 +81,9 @@ tmpfs               tmpfs  1.6G  4.0K  1.6G   1% /run/user/1000
 ; ceph status
 : https://serverfault.com/questions/814741/how-do-i-mount-one-of-multiple-filesystems-in-a-ceph-cluster
 
+; 2.8. 複数のアクティブな Metadata Server デーモンの設定
+: https://access.redhat.com/documentation/ja-jp/red_hat_ceph_storage/5/html/file_system_guide/configuring-multiple-active-metadata-server-daemons_fs
+
 1 クラスタで複数のファイルシステムを作成して、マウントする方法です。
 それぞれのファイルシステムに、それぞれのmds が必要になります。
 
