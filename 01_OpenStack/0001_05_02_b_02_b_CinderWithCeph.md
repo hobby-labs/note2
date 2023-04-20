@@ -5,6 +5,9 @@
 ; Introduction to Ceph
 : https://parhamzardoshti.medium.com/introduction-to-ceph-7ed07be08a69
 
+; CEPH FILE SYSTEM
+: https://docs.ceph.com/en/quincy/cephfs/index.html
+
 ; CREATE A CEPH FILE SYSTEM
 : https://docs.ceph.com/en/quincy/cephfs/createfs/
 
@@ -73,4 +76,11 @@ tmpfs               tmpfs  7.9G     0  7.9G   0% /run/qemu
 tmpfs               tmpfs  1.6G  4.0K  1.6G   1% /run/user/1000
 172.22.1.101:6789:/ ceph   7.6G     0  7.6G   0% /mnt
 ```
+
+# 複数のファイルシステムをマウントする
+; ceph status
+: https://serverfault.com/questions/814741/how-do-i-mount-one-of-multiple-filesystems-in-a-ceph-cluster
+
+1 クラスタで複数のファイルシステムを作成して、マウントする方法です。
+それぞれのファイルシステムに、それぞれのmds が必要になります。
 
