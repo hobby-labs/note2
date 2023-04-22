@@ -28,3 +28,10 @@ dev-{compute,controller}XX # apt-get update
 dev-{compute,controller}XX # apt-get intall python-rbd ceph-common
 ```
 
+Glance ノードには`python-rbd` をインストールします。
+今回は、controller ノードにGlance もインストールされているので、スキップします。
+
+```
+dev-{compute,controller}XX # apt-get update
+```
+
