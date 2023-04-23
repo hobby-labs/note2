@@ -37,3 +37,13 @@ dev-glanceXX # apt-get update
 dev-glanceXX # apt-get intall python-rbd
 ```
 
+# Ceph 設定ファイルのコピー
+Ceph 設定ファイルを、OpenStack ノードである`Nova`, `Cinder`, `Cinder Backup`, `Glance` ノードにコピーします
+今回は、これらのサービスはcontroller ノードに集約されているので、コピー処理は割愛します。
+
+```
+# while read OPENSTACK_NODES in dev-novaXX dev-cinderXX dev-cinderbackuppXX dev-glanceXX; do
+#     scp /etc/ceph/ceph.conf ${OPENSTACK_NODES}:/etc/ceph
+# done
+```
+
