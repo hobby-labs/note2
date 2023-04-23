@@ -32,6 +32,8 @@ Glance ノードには`python-rbd` をインストールします。
 今回は、controller ノードにGlance もインストールされているので、スキップします。
 
 ```
-dev-{compute,controller}XX # apt-get update
+# Install python-rbd if you had a Glance node.
+dev-glanceXX # apt-get update
+dev-glanceXX # apt-get intall python-rbd
 ```
 
