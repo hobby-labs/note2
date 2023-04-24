@@ -42,8 +42,19 @@ Ceph 設定ファイルを、OpenStack ノードである`Nova`, `Cinder`, `Cind
 今回は、これらのサービスはcontroller ノードに集約されているので、コピー処理は割愛します。
 
 ```
-# while read OPENSTACK_NODES in dev-novaXX dev-cinderXX dev-cinderbackuppXX dev-glanceXX; do
-#     scp /etc/ceph/ceph.conf ${OPENSTACK_NODES}:/etc/ceph
-# done
+### while read OPENSTACK_NODES in dev-novaXX dev-cinderXX dev-cinderbackuppXX dev-glanceXX; do
+###     scp /etc/ceph/ceph.conf ${OPENSTACK_NODES}:/etc/ceph
+### done
 ```
+
+# Ceph クライアント認証を設定する
+Ceph モニターノードから、Cinder, Cinder Backup, Glance のユーザを作成します。
+今回のケースでは、Ceph モニターノードは、dev-controller01 になります。
+
+```
+dev-controller01 # ceph auth get-or-create client.cinder mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images'
+dev-controller01 # ceph auth get-or-create client.cinder-backup mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups'
+dev-controller01 # ceph auth get-or-create client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
+```
+
 
