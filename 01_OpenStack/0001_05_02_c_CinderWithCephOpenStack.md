@@ -57,4 +57,15 @@ dev-controller01 # ceph auth get-or-create client.cinder-backup mon 'allow r' os
 dev-controller01 # ceph auth get-or-create client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
 ```
 
+`client.cinder`, `client.cinder-backup`, `client.glance` のためのkeyring を、適切なノードに追加します。
+今回は、`dev-controller01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
+
+```
+dev-controller01 # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
+dev-controller01 # chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+dev-controller01 # ceph auth get-or-create client.cinder-backup > /etc/ceph/ceph.client.cinder-backup.keyring
+dev-controller01 # chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
+dev-controller01 # ceph auth get-or-create client.glance > /etc/ceph/ceph.client.glance.keyring
+dev-controller01 # chown glance:glance /etc/ceph/ceph.client.glance.keyring
+```
 
