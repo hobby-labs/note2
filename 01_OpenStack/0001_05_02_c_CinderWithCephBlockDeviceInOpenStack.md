@@ -69,3 +69,25 @@ dev-controller01 # ceph auth get-or-create client.glance > /etc/ceph/ceph.client
 dev-controller01 # chown glance:glance /etc/ceph/ceph.client.glance.keyring
 ```
 
+OpenStack Nova ノードは、`nova-compute` プロセスのために、keyring ファイルを必要とします。
+今回は、`dev-controller01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
+
+```
+dev-controller01 # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
+```
+
+OpenStack Nova ノードはまた、`libvirt` 内の`cinder.cinder` ユーザの秘密鍵を必要とします。
+また、Cinder から、デバイスをアタッチしている間、クラスタにアクセスするために必要となります。
+
+```
+dev-controller01 # ceph auth get-key client.cinder > client.cinder.key
+```
+
+`exclusive-lock` 機能を使っている、Ceph ブロックデバイスイメージを含むストレージクラスタが含まれている場合、Ceph ブロックデバイスユーザは、クライアントをブラックリスト化する権限を持っている必要があります。
+
+```
+dev-controller01 # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+```
+
+
+
