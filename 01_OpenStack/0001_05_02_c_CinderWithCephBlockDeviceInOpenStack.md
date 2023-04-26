@@ -90,3 +90,9 @@ dev-controller01(mon) # ceph auth get-key client.cinder > client.cinder.key
 dev-controller01(mon) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
 ```
 
+Nova ノードにて、下記のコマンド実行します。
+
+```
+dev-controller01(nova) # uuidgen > uuid-secret.txt
+```
+
