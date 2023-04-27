@@ -90,9 +90,32 @@ dev-controller01(mon) # ceph auth get-key client.cinder > client.cinder.key
 dev-controller01(mon) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
 ```
 
-Nova ノードにて、下記のコマンド実行します。
+Nova ノードにて、下記のコマンド実行し、UUID を生成します。
 
 ```
-dev-controller01(nova) # uuidgen > uuid-secret.txt
+dev-controller01(nova) # uuidgen
+3753f63d-338b-4f3d-b54e-a9117e7d9990
+```
+
+Nova compute ノードで、`libvirt` に、シークレットキーを登録します。
+先程のコマンドで生成したUUID を全Nova コンピュータ上にコピーし、下記のコマンドを実行します。
+厳密には、すべてのノードにUUID は必要ありませんが、プラットフォームの一貫性の側面から、同じUUID を指定することを推奨します。
+
+```
+dev-controller01(nova) # cat > secret.xml <<EOF
+<secret ephemeral='no' private='no'>
+  <uuid>3753f63d-338b-4f3d-b54e-a9117e7d9990</uuid>
+  <usage type='ceph'>
+    <name>client.cinder secret</name>
+  </usage>
+</secret>
+EOF
+```
+
+secret.xml ファイルを作成したら、登録します。
+
+```
+dev-controller01(nova) # virsh secret-define --file secret.xml
+dev-controller01(nova) # virsh secret-set-value --secret 3753f63d-338b-4f3d-b54e-a9117e7d9990 --base64 $(cat client.cinder.key) && rm client.cinder.key secret.xml
 ```
 
