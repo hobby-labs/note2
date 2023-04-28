@@ -119,3 +119,27 @@ dev-controller01(nova) # virsh secret-define --file secret.xml
 dev-controller01(nova) # virsh secret-set-value --secret 3753f63d-338b-4f3d-b54e-a9117e7d9990 --base64 $(cat client.cinder.key) && rm client.cinder.key secret.xml
 ```
 
+# Ceph Block デバイスを使うための設定
+; Chapter 3. Configuring OpenStack to use Ceph block devices
+: https://access.redhat.com/documentation/en-us/red_hat_ceph_storage/4/html/block_device_to_openstack_guide/configuring-openstack-to-use-ceph-block-devices
+
+Ceph ブロックデバイスを、Cinder、Cinder Backup、Glance、Nova で使うための設定を行います。
+
+## Ceph ブロックデバイスを使うためにCinder の設定
+Ceph ブロックデバイスを使うために、Cinder のback-end ストレージとしてCeph を指定します。
+
+* /etc/cinder/cinder.conf
+```
+[DEFAULT]
+...
+enabled_backends = ceph
+# multiple cinder back ends を設定したら、glance_api_version を2 に設定する必要があります
+glance_api_version = 2
+...
+# ceph セクションを新規作成する
+[ceph]
+volume_driver = cinder.volume.drivers.rbd.RBDDriver
+```
+
+
+
