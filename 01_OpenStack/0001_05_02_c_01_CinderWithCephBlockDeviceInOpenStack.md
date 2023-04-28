@@ -139,7 +139,25 @@ glance_api_version = 2
 # ceph セクションを新規作成する
 [ceph]
 volume_driver = cinder.volume.drivers.rbd.RBDDriver
+
+# Cluster 名とCeph ファイルの場所を指定する。cluster 名を"ceph" 意外に設定する場合、ファイルの場所を適切なものに設定する必要があります
+rbd_cluster_name = jp-east
+rbd_ceph_conf = /etc/ceph/jp-east.conf
+
+# Ceph ボリュームを、デフォルトで`rbd` pool に保存します。事前に作成された、pool に保存するようにするには、`rbd_pool` で指定する必要があります
+rbd_pool = volumes
+
+# ユーザ名とパスワードを指定します
+rbd_user = cinder
+rbd_secret_uuid = 3753f63d-338b-4f3d-b54e-a9117e7d9990
+
+rbd_flatten_volume_from_snapshot = false
+rbd_max_clone_depth = 5
+rbd_store_chunk_size = 4
+rados_connect_timeout = -1
 ```
 
+デフォルトの`[lvm]` セクションの削除も検討してください。
 
+## Cinder backup を設定する
 
