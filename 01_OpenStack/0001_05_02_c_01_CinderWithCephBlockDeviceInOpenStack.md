@@ -162,7 +162,7 @@ rados_connect_timeout = -1
 ## Cinder backup を設定する
 Ceph block デバイスを使うように、cinder の設定ファイルの`[ceph]` セクションにcinder backup を設定します。
 
-* /etc/cinder/cinder.conf
+* /etc/cinder/cinder.conf @ dev-controller01(cinder)
 ```
 [ceph]
 ...
@@ -266,5 +266,13 @@ inject_key = false
 inject_partition = -2
 live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
 hw_disk_discard = unmap
+```
+
+## OpenStack サービスを再起動する
+```
+dev-controller01(cinder) # systemctl restart openstack-cinder-volume
+dev-controller01(cinder) # systemctl restart openstack-cinder-backup
+dev-controller01(glance) # systemctl restart openstack-glance-api
+dev-controller01(nova) # systemctl restart openstack-nova-compute
 ```
 
