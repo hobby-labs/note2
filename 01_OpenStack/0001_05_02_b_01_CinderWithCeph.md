@@ -84,10 +84,9 @@ done
 
 * dev-storage01
 ```
-dev-storage01 # for node in dev-storage01 dev-storage02 dev-storage03
-do
-    ssh ${node} "apt update; apt -y install ceph"
-done
+dev-storage01 # for i in $(seq 1 3); do
+                    ssh dev-storage0${i} "apt update; apt -y install ceph"
+                done
 ```
 
 ## 管理ノードでMonitor daemon とManager daemon を設定する

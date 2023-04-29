@@ -26,8 +26,11 @@ dev-storage01(mon) # ceph osd pool create vms 128
 Ceph クライアントを`Nova`, `Cinder`, `Cinder Backup` ノードにインストールします。
 
 ```
-dev-{compute,controller}XX(nova-compute) # apt-get update
-dev-{compute,controller}XX(nova-compute) # apt-get intall python-rbd ceph-common
+dev-storage01 # # dev-controller01,dev-computeXX(nova,nova-compute)
+dev-storage01 # for node in dev-compute01 dev-compute02 dev-controller01; do
+                    ssh ${node} -- apt-get update
+                    ssh ${node} -- apt-get install -y python3-rbd ceph-common
+                done
 ```
 
 Glance ノードには`python-rbd` をインストールします。
@@ -35,8 +38,9 @@ Glance ノードには`python-rbd` をインストールします。
 
 ```
 # Install python-rbd if you had a Glance node.
-dev-glanceXX(glance) # apt-get update
-dev-glanceXX(glance) # apt-get intall python-rbd
+dev-storage01 # # dev-controller01(glance)
+dev-storage01 # ssh dev-controller01 -- apt-get update
+dev-storage01 # ssh dev-controller01 -- apt-get install python3-rbd
 ```
 
 # Ceph 設定ファイルのコピー
@@ -52,44 +56,61 @@ Ceph 設定ファイルを、OpenStack ノードである`Nova`, `Cinder`, `Cind
 
 # Ceph クライアント認証を設定する
 Ceph モニターノードから、Cinder, Cinder Backup, Glance のユーザを作成します。
-今回のケースでは、Ceph モニターノードは、dev-controller01 になります。
+今回のケースでは、Ceph モニターノードは、dev-storage01 になります。
 
 ```
-dev-controller01(mon) # ceph auth get-or-create client.cinder mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images'
-dev-controller01(mon) # ceph auth get-or-create client.cinder-backup mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups'
-dev-controller01(mon) # ceph auth get-or-create client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
+dev-storage01(mon) # ceph auth get-or-create client.cinder mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images'
+dev-storage01(mon) # ceph auth get-or-create client.cinder-backup mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups'
+dev-storage01(mon) # ceph auth get-or-create client.glance mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
 ```
 
 `client.cinder`, `client.cinder-backup`, `client.glance` のためのkeyring を、適切なノードに追加します。
-今回は、`dev-controller01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
+今回は、`dev-storage01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
 
 ```
-dev-controller01(mon) # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
-dev-controller01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
-dev-controller01(mon) # ceph auth get-or-create client.cinder-backup > /etc/ceph/ceph.client.cinder-backup.keyring
-dev-controller01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
-dev-controller01(mon) # ceph auth get-or-create client.glance > /etc/ceph/ceph.client.glance.keyring
-dev-controller01(mon) # chown glance:glance /etc/ceph/ceph.client.glance.keyring
+## dev-storage01(mon) # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
+## dev-storage01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+## dev-storage01(mon) # ceph auth get-or-create client.cinder-backup > /etc/ceph/ceph.client.cinder-backup.keyring
+## dev-storage01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
+## dev-storage01(mon) # ceph auth get-or-create client.glance > /etc/ceph/ceph.client.glance.keyring
+## dev-storage01(mon) # chown glance:glance /etc/ceph/ceph.client.glance.keyring
+
+dev-storage01(mon) # for i in $(seq 1 8); do
+                         echo "Creating client.cinder dev-storage0${i}"
+                         ceph auth get-or-create client.cinder | ssh dev-storage0${i} -- sudo tee /etc/ceph/ceph.client.cinder.keyring
+                         ssh dev-storage01 -- chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+                     done
+
+dev-storage01(mon) # for i in $(seq 1 8); do
+                         echo "Creating client.cinder-backup dev-storage0${i}"
+                         ceph auth get-or-create client.cinder-backup | ssh dev-storage0${i} -- sudo tee /etc/ceph/ceph.client.cinder-backup.keyring
+                         ssh dev-storage01 -- chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
+                     done
+
+dev-storage01(mon) # ceph auth get-or-create client.glance | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.glance.keyring
+dev-storage01(mon) # ssh dev-controller01 -- chown glance:glance /etc/ceph/ceph.client.glance.keyring
 ```
 
 OpenStack Nova ノードは、`nova-compute` プロセスのために、keyring ファイルを必要とします。
 今回は、`dev-controller01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
 
 ```
-dev-controller01(mon) # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
+dev-storage01(mon) # ceph auth get-or-create client.cinder | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.cinder.keyring
 ```
 
 OpenStack Nova ノードはまた、`libvirt` 内の`cinder.cinder` ユーザの秘密鍵を必要とします。
 また、Cinder から、デバイスをアタッチしている間、クラスタにアクセスするために必要となります。
 
 ```
-dev-controller01(mon) # ceph auth get-key client.cinder > client.cinder.key
+dev-storage01(mon) # ceph auth get-key client.cinder | ssh dev-controller01 -- sudo tee client.cinder.key
 ```
 
 `exclusive-lock` 機能を使っている、Ceph ブロックデバイスイメージを含むストレージクラスタが含まれている場合、Ceph ブロックデバイスユーザは、クライアントをブラックリスト化する権限を持っている必要があります。
 
 ```
-dev-controller01(mon) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+## dev-storage01(mon) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+
+dev-storage01(mon) # ceph auth caps client.cinder mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
 ```
 
 Nova ノードにて、下記のコマンド実行し、UUID を生成します。
