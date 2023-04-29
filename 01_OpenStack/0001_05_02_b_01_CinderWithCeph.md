@@ -46,7 +46,7 @@ dev-storage01 # chmod 600 ~/.ssh/*
 
 <!--
 # Commands in workspace. It is an additional comment for my environment.
-worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
+worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02 dev-controller01; do
     echo "Copying ssh credentials to ${target}"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster > /dev/null"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub > /dev/null"
