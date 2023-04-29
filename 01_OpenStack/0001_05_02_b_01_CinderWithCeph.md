@@ -47,7 +47,7 @@ dev-storage01 # chmod 600 ~/.ssh/*
 <!--
 # Commands in workspace. It is an additional comment for my environment.
 worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
-    echo "target => ${target}"
+    echo "Copying ssh credentials to ${target}"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster > /dev/null"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub > /dev/null"
     ssh dev-storage01 -- sudo cat /root/.ssh/authorized_keys | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/authorized_keys > /dev/null"
@@ -94,7 +94,7 @@ done
 
 ```
 dev-storage01 # uuidgen
-ffffffff-ffff-ffff-ffff-ffffffffffff
+3753f63d-338b-4f3d-b54e-a9117e7d9990
 ```
 
 クラスタ設定ファイルを、監視(mon)ノード上に作成します。
@@ -109,7 +109,7 @@ cluster network = 172.22.0.0/16
 public network = 172.22.0.0/16
 
 # specify UUID genarated above
-fsid = ffffffff-ffff-ffff-ffff-ffffffffffff
+fsid = 3753f63d-338b-4f3d-b54e-a9117e7d9990
 # specify IP address of Monitor Daemon
 mon host = 172.22.1.101
 # specify Hostname of Monitor Daemon
@@ -298,6 +298,10 @@ EOF
 done
 ```
 
+```
+dev-storage01 # ./create_ceph_volumes.sh
+```
+
 クラスタの状態を確認します。
 pool, osd が作成されたことがわかります。
 
@@ -381,3 +385,4 @@ done
 
 * Ceph をブロックデバイスとして使用する
 * Ceph をファイルシステムとして使用する
+* Ceph for OpenStack
