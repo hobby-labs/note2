@@ -46,7 +46,7 @@ dev-storage01 # chmod 600 ~/.ssh/*
 
 <!--
 # Commands in workspace. It is an additional comment for my environment.
-worksptation# for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02 dev-controller01; do
+worksptation # for target in dev-storage02 dev-storage03 dev-compute01 dev-compute02 dev-controller01; do
     echo "Copying ssh credentials to ${target}"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster > /dev/null"
     ssh dev-storage01 -- sudo cat /root/.ssh/ceph_cluster.pub | ssh ${target} -- sudo bash -c "cat - | sudo tee /root/.ssh/ceph_cluster.pub > /dev/null"
@@ -60,7 +60,7 @@ done
 * ~/.ssh/config @ dev-storage01
 ```
 dev-storage01 # cat << EOF > ~/.ssh/config
-Host dev-storage* dev-storage*.openstack.example.com dev-compute* dev-compute*.openstack.example.com
+Host dev-storage* dev-storage*.openstack.example.com dev-compute* dev-compute*.openstack.example.com dev-controller* dev-controller*.openstack.example.com
     PreferredAuthentications publickey
     User root
     IdentityFile ~/.ssh/ceph_cluster
@@ -72,7 +72,7 @@ dev-storage01 # chmod 600 ~/.ssh/config
 この情報を各ノードにコピーします。
 
 ```
-dev-storage01 # for node in dev-storage02 dev-storage03 dev-compute01 dev-compute02; do
+dev-storage01 # for node in dev-storage02 dev-storage03 dev-compute01 dev-compute02 dev-controller01; do
     scp -i ~/.ssh/ceph_cluster ~/.ssh/config ${node}:.ssh/config
     ssh -i ~/.ssh/ceph_cluster ${node} -- chmod 600 .ssh/config
 done
@@ -216,7 +216,7 @@ monノード(監視ノード)が作成されたことが確認できます。
 
 ```
 dev-storage01 # ceph osd lspools
-1 .mgr
+> (No output)
 
 dev-storage01 # ceph -s
   cluster:
@@ -237,6 +237,7 @@ dev-storage01 # ceph -s
 dev-storage01 # ceph osd tree
 ID  CLASS  WEIGHT  TYPE NAME     STATUS  REWEIGHT  PRI-AFF
 -1              0  root default
+
 root@dev-storage01:~# ceph df
 --- RAW STORAGE ---
 CLASS  SIZE  AVAIL  USED  RAW USED  %RAW USED
@@ -314,6 +315,9 @@ pool, osd が作成されたことがわかります。
 ![CephPoolAndOsd](./img/CephPoolAndOsd_0001.jpg "Ceph pool and osd")
 
 ```
+dev-storage01:~# ceph osd lspools
+1 .mgr
+
 dev-storage01 # ceph -s
   cluster:
     id:     ffffffff-ffff-ffff-ffff-ffffffffffff
