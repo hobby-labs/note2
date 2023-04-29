@@ -128,7 +128,7 @@ Ceph ブロックデバイスを、Cinder、Cinder Backup、Glance、Nova で使
 ## Ceph ブロックデバイスを使うためにCinder の設定
 Ceph ブロックデバイスを使うために、Cinder のback-end ストレージとしてCeph を指定します。
 
-* /etc/cinder/cinder.conf
+* /etc/cinder/cinder.conf @ dev-controller01(cinder)
 ```
 [DEFAULT]
 ...
@@ -160,4 +160,40 @@ rados_connect_timeout = -1
 デフォルトの`[lvm]` セクションの削除も検討してください。
 
 ## Cinder backup を設定する
+Ceph block デバイスを使うように、cinder の設定ファイルの`[ceph]` セクションにcinder backup を設定します。
+
+* /etc/cinder/cinder.conf
+```
+[ceph]
+...
+# backup_driver として、Ceph ドライバに指定します
+backup_driver = cinder.backup.drivers.ceph
+# backup_ceph_conf 設定ファイルを指定します。このファイルは、Cinder のCeph 設定ファイルと違うものにすることがでます。
+# 具体的には、クラスタ名を異なるものにすることができます
+backup_ceph_conf = /etc/ceph/ceph.conf
+# backup ceph に使うPool を指定します
+backup_ceph_pool = backups
+# ユーザを指定します
+backup_ceph_user = cinder-backup
+# その他、下記設定を追加します
+backup_ceph_chunk_size = 134217728
+backup_ceph_stripe_unit = 0
+backup_ceph_stripe_count = 0
+restore_discard_excess_bytes = true
+```
+
+Cinder backup が有効化されているか確認します。
+
+```
+dev-controller01(cinder) # grep enable_backup /etc/openstack-dashboard/local_settings
+```
+
+False が設定されている場合、それを`True` へ変更します。
+
+* /etc/openstack-dashboard/local_settings @ dev-controller01(cinder)
+```
+OPENSTACK_CINDER_FEATURES = {
+    'enable_backup': True,
+}
+```
 
