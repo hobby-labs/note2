@@ -228,3 +228,43 @@ hw_qemu_guest_agent=yes
 os_require_quiesce=yes
 ```
 
+## Nova を設定する
+すべてのVM がephemeral back-end ストレージを利用できるよう、各Nova ノードに対して、設定を行います。
+
+* /etc/ceph/ceph.conf @ dev-controller01(nova)
+```
+[client]
+rbd cache = true
+rbd cache writethrough until flush = true
+rbd concurrent management ops = 20
+admin socket = /var/run/ceph/guests/$cluster-$type.$id.$pid.$cctid.asok
+log file = /var/log/ceph/qemu-guest-$pid.log
+```
+
+管理ソケットとログファイルのためのディレクトリを作成します。
+
+```
+dev-controller01(nova) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
+dev-controller01(nova) # chown qemu:libvirt /var/run/ceph/guests /var/log/ceph/
+```
+
+TODO: AppArmor で上記ディレクトリを許可するように設定をします。
+
+各Nova ノードの`/etc/nova/nova.conf` ファイルの`[libvirt]` セクションを編集します。
+`rbd_secret_uuid` には、qemu に登録したUUID と同じものを指定します。
+
+```
+[libvirt]
+images_type = rbd
+images_rbd_pool = vms
+images_rbd_ceph_conf = /etc/ceph/ceph.conf
+rbd_user = cinder
+rbd_secret_uuid = 3753f63d-338b-4f3d-b54e-a9117e7d9990
+disk_cachemodes="network=writeback"
+inject_password = false
+inject_key = false
+inject_partition = -2
+live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRATE_LIVE,VIR_MIGRATE_PERSIST_DEST,VIR_MIGRATE_TUNNELLED"
+hw_disk_discard = unmap
+```
+
