@@ -68,13 +68,6 @@ dev-storage01(mon) # ceph auth get-or-create client.glance mon 'allow r' osd 'al
 今回は、`dev-storage01` ノードに、これらの機能を集約しているので、そのノードの所定のファイルに、鍵情報を保存していきます。
 
 ```
-## dev-storage01(mon) # ceph auth get-or-create client.cinder > /etc/ceph/ceph.client.cinder.keyring
-## dev-storage01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
-## dev-storage01(mon) # ceph auth get-or-create client.cinder-backup > /etc/ceph/ceph.client.cinder-backup.keyring
-## dev-storage01(mon) # chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
-## dev-storage01(mon) # ceph auth get-or-create client.glance > /etc/ceph/ceph.client.glance.keyring
-## dev-storage01(mon) # chown glance:glance /etc/ceph/ceph.client.glance.keyring
-
 dev-storage01(mon) # for i in $(seq 1 8); do
                          echo "Creating client.cinder dev-storage0${i}"
                          ceph auth get-or-create client.cinder | ssh dev-storage0${i} -- sudo tee /etc/ceph/ceph.client.cinder.keyring
@@ -156,16 +149,6 @@ Nova compute ノードで、`libvirt` に、シークレットキーを登録し
 厳密には、すべてのノードにUUID は必要ありませんが、プラットフォームの一貫性の側面から、同じUUID を指定することを推奨します。
 
 ```
-### dev-controller01(nova) # cat > secret.xml <<EOF
-### <secret ephemeral='no' private='no'>
-###   <uuid>3753f63d-338b-4f3d-b54e-a9117e7d9990</uuid>
-###   <usage type='ceph'>
-###     <name>client.cinder secret</name>
-###   </usage>
-### </secret>
-### EOF
-
-
 dev-storage01(mon) # for i in $(seq 1 2); do
                          ssh dev-compute0${i} -- tee secret.xml << 'EOF'
 <secret ephemeral='no' private='no'>
@@ -184,12 +167,14 @@ secret.xml ファイルを作成したら、登録します。
 dev-storage01(mon) # # "error: Passing secret value as command-line argument is insecure!" というメッセージは出るが、設定はできています
 dev-storage01(mon) # for i in $(seq 1 2); do
                          ssh -t dev-compute0${i} << 'EOF'
-                             #virsh secret-define --file secret.xml
-                             #virsh secret-set-value --secret 3753f63d-338b-4f3d-b54e-a9117e7d9990 --base64 $(cat client.cinder.key)
-                             #rm client.cinder.key secret.xml
+                             virsh secret-define --file secret.xml
+                             virsh secret-set-value --secret 3753f63d-338b-4f3d-b54e-a9117e7d9990 --base64 $(cat client.cinder.key)
+                             rm client.cinder.key secret.xml
 EOF
                      done
 ```
+
+// Snapshot created_libvirtd_secret
 
 # Ceph Block デバイスを使うための設定
 ; Chapter 3. Configuring OpenStack to use Ceph block devices
@@ -260,9 +245,9 @@ Cinder backup が有効化されているか確認します。
 dev-controller01(cinder) # grep enable_backup /etc/openstack-dashboard/local_settings
 ```
 
-False が設定されている場合、それを`True` へ変更します。
+False が設定されている場合、もしくは何も表示されない場合、それを`True` へ変更します。
 
-* /etc/openstack-dashboard/local_settings @ dev-controller01(cinder)
+* /etc/openstack-dashboard/local_settings.py @ dev-controller01(cinder)
 ```
 OPENSTACK_CINDER_FEATURES = {
     'enable_backup': True,
@@ -275,6 +260,8 @@ OPENSTACK_CINDER_FEATURES = {
 
 * /etc/glance/glance-api.conf @ dev-controller01(glance)
 ```
+[glance_store]
+...
 stores = rbd
 default_store = rbd
 rbd_store_chunk_size = 8
