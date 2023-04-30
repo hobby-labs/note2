@@ -106,11 +106,39 @@ dev-storage01(mon) # ceph auth get-key client.cinder | ssh dev-controller01 -- s
 ```
 
 `exclusive-lock` 機能を使っている、Ceph ブロックデバイスイメージを含むストレージクラスタが含まれている場合、Ceph ブロックデバイスユーザは、クライアントをブラックリスト化する権限を持っている必要があります。
+下記の書式のコマンドで、"osd blacklist" コマンドを許可するようにします。
 
 ```
-## dev-storage01(mon) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+```
 
-dev-storage01(mon) # ceph auth caps client.cinder mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+`client.ID` には、全Ceph ブロックデバイスユーザ分指定します。
+`EXISTING_OSD_USER_CAPS` には、そのユーザが持っているcaps を指定します。
+
+```
+dev-storage01(mon) # ceph auth get client.cinder
+[client.cinder]
+        key = ........................................
+        caps mon = "allow r"
+        caps osd = "allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images"
+exported keyring for client.cinder
+dev-storage01(mon) # ceph auth caps client.cinder mon 'allow r, allow command "osd blacklist"' osd 'allow class-read object_prefix rbd_children, allow rwx pool=volumes, allow rwx pool=vms, allow rx pool=images'
+
+root@dev-storage01:~# ceph auth get client.cinder-backup
+[client.cinder-backup]
+        key = ........................................
+        caps mon = "allow r"
+        caps osd = "allow class-read object_prefix rbd_children, allow rwx pool=backups"
+exported keyring for client.cinder-backup
+dev-storage01(mon) # ceph auth caps client.cinder-backup mon 'allow r, allow command "osd blacklist"' osd 'allow class-read object_prefix rbd_children, allow rwx pool=backups'
+
+root@dev-storage01:~# ceph auth get client.glance
+[client.glance]
+        key = ........................................
+        caps mon = "allow r"
+        caps osd = "allow class-read object_prefix rbd_children, allow rwx pool=images"
+exported keyring for client.glance
+dev-storage01(mon) # ceph auth caps client.glance mon 'allow r, allow command "osd blacklist"' osd 'allow class-read object_prefix rbd_children, allow rwx pool=images'
 ```
 
 Nova ノードにて、下記のコマンド実行し、UUID を生成します。
