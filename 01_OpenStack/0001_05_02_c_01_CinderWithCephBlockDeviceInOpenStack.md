@@ -242,7 +242,7 @@ restore_discard_excess_bytes = true
 Cinder backup が有効化されているか確認します。
 
 ```
-dev-controller01(cinder) # grep enable_backup /etc/openstack-dashboard/local_settings
+dev-controller01(cinder) # grep enable_backup /etc/openstack-dashboard/local_settings.py
 ```
 
 False が設定されている場合、もしくは何も表示されない場合、それを`True` へ変更します。
@@ -290,7 +290,7 @@ os_require_quiesce=yes
 ## Nova を設定する
 すべてのVM がephemeral back-end ストレージを利用できるよう、各Nova ノードに対して、設定を行います。
 
-* /etc/ceph/ceph.conf @ dev-controller01(nova)
+* /etc/ceph/ceph.conf @ dev-compute01,02(nova-compute)
 ```
 [client]
 rbd cache = true
@@ -303,15 +303,27 @@ log file = /var/log/ceph/qemu-guest-$pid.log
 管理ソケットとログファイルのためのディレクトリを作成します。
 
 ```
-dev-controller01(nova) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
-dev-controller01(nova) # chown qemu:libvirt /var/run/ceph/guests /var/log/ceph/
+dev-compute01(nova-compute) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
+dev-compute01(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests /var/log/ceph/
 ```
 
-TODO: AppArmor で上記ディレクトリを許可するように設定をします。
+AppArmor で上記ディレクトリを許可するように設定をします。
 
-各Nova ノードの`/etc/nova/nova.conf` ファイルの`[libvirt]` セクションを編集します。
+* /etc/apparmor.d/abstractions/libvirt-qemu @ dev-compute01,02
+```
+  /var/log/ceph/** rw,
+  /var/run/ceph/guests/** rw,
+```
+
+* /etc/apparmor.d/usr.sbin.libvirtd
+```
+# 変更なし。既に"/** rwmkl," が定義されているため、不要
+```
+
+各Nova compute ノードの`/etc/nova/nova.conf` ファイルの`[libvirt]` セクションを編集します。
 `rbd_secret_uuid` には、qemu に登録したUUID と同じものを指定します。
 
+* /etc/nova/nova.conf @ dev-compute01,02(nova-compute)
 ```
 [libvirt]
 images_type = rbd
@@ -329,9 +341,10 @@ hw_disk_discard = unmap
 
 ## OpenStack サービスを再起動する
 ```
-dev-controller01(cinder) # systemctl restart openstack-cinder-volume
-dev-controller01(cinder) # systemctl restart openstack-cinder-backup
-dev-controller01(glance) # systemctl restart openstack-glance-api
-dev-controller01(nova) # systemctl restart openstack-nova-compute
+dev-controller01(cinder) # systemctl restart cinder-scheduler
+dev-controller01(cinder) # systemctl restart glance-api
+dev-compute01,02(nova) # systemctl restart nova-compute
 ```
+
+// Snapshot prepared_ceph
 
