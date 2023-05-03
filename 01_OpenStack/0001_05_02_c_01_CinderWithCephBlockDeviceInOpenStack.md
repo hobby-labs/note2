@@ -185,6 +185,11 @@ Ceph ブロックデバイスを、Cinder、Cinder Backup、Glance、Nova で使
 ## Ceph ブロックデバイスを使うためにCinder の設定
 Ceph ブロックデバイスを使うために、Cinder のback-end ストレージとしてCeph を指定します。
 
+```
+# TODO: cinder.conf の権限設定のタイミングを、より適切なところにする
+dev-controller01(cinder) # chown root:cinder /etc/cinder/cinder.conf
+```
+
 * /etc/cinder/cinder.conf @ dev-controller01(cinder)
 ```
 [DEFAULT]
@@ -193,18 +198,18 @@ enabled_backends = ceph
 # multiple cinder back ends を設定したら、glance_api_version を2 に設定する必要があります
 glance_api_version = 2
 ...
-# ceph セクションを新規作成する
+# Create a cection "ceph"
 [ceph]
 volume_driver = cinder.volume.drivers.rbd.RBDDriver
 
-# Cluster 名とCeph ファイルの場所を指定する。cluster 名を"ceph" 意外に設定する場合、ファイルの場所を適切なものに設定する必要があります
-rbd_cluster_name = jp-east
-rbd_ceph_conf = /etc/ceph/jp-east.conf
+# Specify a name of cluster and location of a config file of it. If you want to specify a name of cluster other than "ceph", you have to specify a name of cluster and change the location of it.
+##rbd_cluster_name = jp-east
+##rbd_ceph_conf = /etc/ceph/jp-east.conf
 
-# Ceph ボリュームを、デフォルトで`rbd` pool に保存します。事前に作成された、pool に保存するようにするには、`rbd_pool` で指定する必要があります
+# Set a name of pool as "rbd". If you want to specify it to store data, you should specify like "rbd_pool".
 rbd_pool = volumes
 
-# ユーザ名とパスワードを指定します
+# Specify user-name and password
 rbd_user = cinder
 rbd_secret_uuid = 3753f63d-338b-4f3d-b54e-a9117e7d9990
 
@@ -303,8 +308,8 @@ log file = /var/log/ceph/qemu-guest-$pid.log
 管理ソケットとログファイルのためのディレクトリを作成します。
 
 ```
-dev-compute01(nova-compute) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
-dev-compute01(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests /var/log/ceph/
+dev-compute01,02(nova-compute) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
+dev-compute01,02(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests /var/log/ceph/
 ```
 
 AppArmor で上記ディレクトリを許可するように設定をします。

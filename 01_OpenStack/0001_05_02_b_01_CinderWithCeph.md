@@ -264,7 +264,7 @@ MIN/MAX VAR: -/-  STDDEV: 0
 ```
 #!/usr/bin/env bash
 
-for node_index in {1..3}; do
+for node_index in $(seq 1 3); do
     node=$(printf "dev-storage%02d" ${node_index})
 
     if [ ! ${node} = "dev-storage01" ]; then
