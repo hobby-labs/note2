@@ -195,7 +195,8 @@ dev-controller01(cinder) # chown root:cinder /etc/cinder/cinder.conf
 [DEFAULT]
 ...
 enabled_backends = ceph
-# multiple cinder back ends を設定したら、glance_api_version を2 に設定する必要があります
+
+# You have to set "glance_api_version = 2" if you enable multiple_cinder_back_ends
 glance_api_version = 2
 ...
 # Create a cection "ceph"
@@ -228,16 +229,15 @@ Ceph block デバイスを使うように、cinder の設定ファイルの`[cep
 ```
 [ceph]
 ...
-# backup_driver として、Ceph ドライバに指定します
+# Specify a driver ceph for backup_driver
 backup_driver = cinder.backup.drivers.ceph
-# backup_ceph_conf 設定ファイルを指定します。このファイルは、Cinder のCeph 設定ファイルと違うものにすることがでます。
-# 具体的には、クラスタ名を異なるものにすることができます
+# Specify a location of file of backup_ceph_conf. You can specify it another file of ceph.
+# You can specify another name of cluster by specifying another configuration for example.
 backup_ceph_conf = /etc/ceph/ceph.conf
-# backup ceph に使うPool を指定します
+# A pool for backup_ceph
 backup_ceph_pool = backups
-# ユーザを指定します
 backup_ceph_user = cinder-backup
-# その他、下記設定を追加します
+# Specify configurations below additionally.
 backup_ceph_chunk_size = 134217728
 backup_ceph_stripe_unit = 0
 backup_ceph_stripe_count = 0
