@@ -244,6 +244,10 @@ backup_ceph_stripe_count = 0
 restore_discard_excess_bytes = true
 ```
 
+// Snapshot created_libvirtd_secret
+
+## Horizon の設定
+
 Cinder backup が有効化されているか確認します。
 
 ```
@@ -258,6 +262,8 @@ OPENSTACK_CINDER_FEATURES = {
     'enable_backup': True,
 }
 ```
+
+// Snapshot enable_cinder_features_in_horizon
 
 ## Glance でCeph ブロックデバイスを使うように指定する
 デフォルトでCeph ブロックデバイスを使うよう、`/etc/glance/glance-api.conf` ファイルを編集します。
@@ -274,18 +280,19 @@ rbd_store_pool = images
 rbd_store_user = glance
 rbd_store_ceph_conf = /etc/ceph/ceph.conf
 
-# copy-on-write(CoW) cloning set を有効化するために、`show_image_direct_url` を`True` に設定します。
-# この設定は、Glance API 経由で、バックエンドのロケーションをさらけ出すことになるので、CoW を有効化する場合、エンドポイントは公開すべきではありません
+# To enable copy-on-write(CoW) cloning set, set "show_image_direct_url = True".
+# Not to be public an endpoint for API if you enable CoW because the configuration of backend will be exposed.
 show_image_direct_url = True
 
-# 必要に応じて、cache management を無効化します。
-# "keystone+cachemanagement" ではなく、"keystone" のみを指定します
+# Disable "cachemanagement" as you need.
+# You can specify not "keystone+cachemanagement" but "keystone" instead.
 flavor = keystone
 
-# Red Hat として推奨されている値を設定します。
-# hw_scsi_model=virtio-scsi を設定することで、パフォーマンスを向上でき、discard operation(不良ブロックを使わないようにする機能?) を有効化することができます。
-# SCSI/SAS ドライブをつ開くことで、各Cinder ブロックデバイスはそのコントローラに接続するようになります。
-# また、QEMU ゲストエージェントを有効にし、`fs-freeze/thaw` をQEMU ゲストエージェント経由で送信することができます。
+# Set values recommended by Red Hat.
+# You may be able to improbe performance and enable discard-operation by specifying "hw_scsi_model=virtio-scsi".
+# // discard-operation is a feature not to use bad blocks on device.
+# Each block devices will connect the controller by using drive of SCSI/SAS.
+# It will also make qemu-guest-agent enabled and be able to send "fs-freeze/thaw" via QEMU guest agent.
 hw_scsi_model=virtio-scsi
 hw_disk_bus=scsi
 hw_qemu_guest_agent=yes
