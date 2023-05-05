@@ -71,7 +71,14 @@ dev-storage01(mon) # ceph auth get-or-create client.glance mon 'allow r' osd 'al
 dev-storage01(mon) # for i in $(seq 1 8); do
                          echo "Creating client.cinder dev-storage0${i}"
                          ceph auth get-or-create client.cinder | ssh dev-storage0${i} -- sudo tee /etc/ceph/ceph.client.cinder.keyring
-                         ssh dev-storage01 -- chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+                         ssh dev-storage0${i} -- chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+                     done
+
+dev-storage01(mon) # for i in $(seq 1 2); do
+                         echo "Creating client.cinder dev-compute0${i}"
+                         ceph auth get-or-create client.cinder | ssh dev-compute0${i} -- sudo tee /etc/ceph/ceph.client.cinder.keyring
+                         # A user "cinder" and a group "cinder" are not existed on each compute nodes. Set a owner "ceph:ceph" and permission 644 temporary.
+                         ssh dev-compute0${i} -- bash -c "chown ceph:ceph /etc/ceph/ceph.client.cinder.keyring; chmod 644 /etc/ceph/ceph.client.cinder.keyring"
                      done
 
 dev-storage01(mon) # for i in $(seq 1 8); do
@@ -82,6 +89,9 @@ dev-storage01(mon) # for i in $(seq 1 8); do
 
 dev-storage01(mon) # ceph auth get-or-create client.glance | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.glance.keyring
 dev-storage01(mon) # ssh dev-controller01 -- chown glance:glance /etc/ceph/ceph.client.glance.keyring
+
+dev-storage01(mon) # for i in $(seq 1 8); do
+    echo "Creating client.cinder dev-storage0${i}"
 ```
 
 OpenStack Nova ノードは、`nova-compute` プロセスのために、keyring ファイルを必要とします。
@@ -317,8 +327,16 @@ log file = /var/log/ceph/qemu-guest-$pid.log
 管理ソケットとログファイルのためのディレクトリを作成します。
 
 ```
+# TODO: ディレクトリ自体は、ゲストOS 作成時に自動的に作られていそう。AppArmor の設定だけで大丈夫か？
 dev-compute01,02(nova-compute) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
 dev-compute01,02(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests /var/log/ceph/
+```
+
+`ceph.conf` ファイルを、controller(Glance) ノードにコピーします。
+
+```
+dev-storage01 # scp dev-controller01:/etc/ceph/ceph.conf
+dev-storage01 # ssh dev-controller01 -- bash -c "chown ceph:ceph /etc/ceph/ceph.conf; chmod 644 /etc/ceph/ceph.conf"
 ```
 
 // Snapshot configured_ceph_conf_for_nova_compute_nodes
