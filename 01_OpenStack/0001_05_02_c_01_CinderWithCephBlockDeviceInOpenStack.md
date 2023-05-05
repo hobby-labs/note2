@@ -200,7 +200,7 @@ Ceph ブロックデバイスを使うために、Cinder のback-end ストレ�
 dev-controller01(cinder) # chown root:cinder /etc/cinder/cinder.conf
 ```
 
-* /etc/cinder/cinder.conf @ dev-controller01(cinder)
+* /etc/cinder/cinder.conf @ dev-controller01(Cinder)
 ```
 [DEFAULT]
 ...
@@ -230,12 +230,12 @@ rbd_store_chunk_size = 4
 rados_connect_timeout = -1
 ```
 
-デフォルトの`[lvm]` セクションの削除も検討してください。
+デフォルトの`[lvm]` セクションの削除も実施してください。
 
 ## Cinder backup を設定する
 Ceph block デバイスを使うように、cinder の設定ファイルの`[ceph]` セクションにcinder backup を設定します。
 
-* /etc/cinder/cinder.conf @ dev-controller01(cinder)
+* /etc/cinder/cinder.conf @ dev-controller01(Cinder)
 ```
 [ceph]
 ...
@@ -252,6 +252,20 @@ backup_ceph_chunk_size = 134217728
 backup_ceph_stripe_unit = 0
 backup_ceph_stripe_count = 0
 restore_discard_excess_bytes = true
+```
+
+作成したcinder.conf ファイルを、各Nova compute, Storage ノードにコピーします。
+
+```
+dev-storage01 # scp dev-controller01:/etc/cinder/cinder.conf .
+dev-storage01 # for i in $(seq 1 8); do
+                    scp cinder.conf dev-storage0${i}:/etc/cinder/cinder.conf
+                    ssh dev-storage0${i} -- bash -c "chown root:cinder /etc/cinder/cinder.conf; chmod 644 /etc/cinder/cinder.conf"
+                done
+                for i in $(seq 1 2); do
+                    scp cinder.conf dev-compute0${i}:/etc/cinder/cinder.conf
+                    ssh dev-compute0${i} -- bash -c "chown root:cinder /etc/cinder/cinder.conf; chmod 644 /etc/cinder/cinder.conf"
+                done
 ```
 
 // Snapshot created_libvirtd_secret
