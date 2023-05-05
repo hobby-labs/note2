@@ -299,6 +299,8 @@ hw_qemu_guest_agent=yes
 os_require_quiesce=yes
 ```
 
+// Snapshot configured_glance_api_for_ceph
+
 ## Nova を設定する
 すべてのVM がephemeral back-end ストレージを利用できるよう、各Nova ノードに対して、設定を行います。
 
@@ -319,6 +321,9 @@ dev-compute01,02(nova-compute) # mkdir -p /var/run/ceph/guests/ /var/log/ceph/
 dev-compute01,02(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests /var/log/ceph/
 ```
 
+// Snapshot configured_ceph_conf_for_nova_compute_nodes
+
+## AppArmor の設定
 AppArmor で上記ディレクトリを許可するように設定をします。
 
 * /etc/apparmor.d/abstractions/libvirt-qemu @ dev-compute01,02
@@ -327,9 +332,15 @@ AppArmor で上記ディレクトリを許可するように設定をします�
   /var/run/ceph/guests/** rw,
 ```
 
-* /etc/apparmor.d/usr.sbin.libvirtd
+* /etc/apparmor.d/usr.sbin.libvirtd @ dev-compute01,02
 ```
 # 変更なし。既に"/** rwmkl," が定義されているため、不要
+```
+
+AppArmor の設定を適用します。
+
+```
+dev-compute01,02(Nova compute) # systemctl reload apparmor
 ```
 
 各Nova compute ノードの`/etc/nova/nova.conf` ファイルの`[libvirt]` セクションを編集します。
