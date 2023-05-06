@@ -429,5 +429,69 @@ dev-compute01,02(nova) # systemctl restart nova-compute
 // Snapshot prepared_ceph
 
 # テストインスタンスを作成する
+以下の手順は、テストインスタンスを作成する手順に加えて、ネットワーク、セキュリティグループ、SSH 公開鍵等も作成するので、テスト完了後は、適宜削除するようにしてください。
 
+## ネットワークの作成
+```
+dev-controller01 # openstack network create --provider-network-type flat --provider-physical-network provider --external public
+dev-controller01 # openstack network create --mtu 1400 --provider-network-type geneve --provider-segment 1001 private    # Is it too small in the config of Ansible?
+
+dev-controller01 # openstack subnet create --network public --allocation-pool start=172.31.230.2,end=172.31.230.254 --no-dhcp --subnet-range 172.31.0.0/16 public_subnet
+dev-controller01 # openstack subnet create --network private --allocation-pool start=192.168.255.2,end=192.168.255.254 --subnet-range 192.168.255.0/24 --dns-nameserver 172.31.0.1 --dns-nameserver 8.8.8.8 --dns-nameserver 8.8.4.4 private_subnet
+
+dev-controller01 # openstack router create private_router
+dev-controller01 # openstack router set --external-gateway public private_router
+dev-controller01 # openstack router add subnet private_router private_subnet
+dev-controller01 # openstack router list
+
+dev-controller01 # ovn-nbctl show
+dev-controller01 # ovn-sbctl list datapath_binding
+```
+
+## イメージの作成
+```
+dev-controller01 # wget "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+dev-controller01 # openstack image create --disk-format qcow2 \
+                       --container-format bare --public \
+                       --file ./jammy-server-cloudimg-amd64.img "ubuntu"
+```
+
+## SSH 公開鍵の作成
+
+```
+dev-controller01 # ssh-keygen -t rsa -b 4096 -f ~/.ssh/example_openstack_id_rsa
+dev-controller01 # openstack keypair create --public-key ~/.ssh/example_openstack_id_rsa.pub admin
+dev-controller01 # openstack keypair list
+```
+
+## フレーバーの作成
+
+```
+dev-controller01 # openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
+dev-controller01 # openstack flavor create --id 2 --ram 2048 --disk 1 --vcpus 2 m1.medium
+dev-controller01 # openstack flavor list
+```
+
+## セキュリティグループの作成
+
+```
+dev-controller01 # openstack security group create permit_all --description "Allow all ports"
+dev-controller01 # openstack security group rule create --protocol TCP --dst-port 1:65535 --remote-ip 0.0.0.0/0 permit_all
+dev-controller01 # openstack security group rule create --protocol ICMP --remote-ip 0.0.0.0/0 permit_all
+
+dev-controller01 # # 22, 80, 443 といった、基本的なポートのみのアクセス許可をするセキュリティグループを作成します
+dev-controller01 # openstack security group create limited_access --description "Allow base ports"
+dev-controller01 # openstack security group rule create --protocol ICMP --remote-ip 0.0.0.0/0 limited_access
+dev-controller01 # openstack security group rule create --protocol TCP --dst-port 22 --remote-ip 0.0.0.0/0 limited_access
+dev-controller01 # openstack security group rule create --protocol TCP --dst-port 80 --remote-ip 0.0.0.0/0 limited_access
+dev-controller01 # openstack security group rule create --protocol TCP --dst-port 443 --remote-ip 0.0.0.0/0 limited_access
+
+dev-controller01 # openstack security group list
+```
+
+## サーバの作成
+
+```
+dev-controller01 # openstack server create --flavor m1.medium --image "ubuntu" --key-name admin --security-group permit_all --network private ubuntu-server
+```
 
