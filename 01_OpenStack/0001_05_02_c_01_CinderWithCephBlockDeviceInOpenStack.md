@@ -258,13 +258,16 @@ restore_discard_excess_bytes = true
 
 ```
 dev-storage01 # scp dev-controller01:/etc/cinder/cinder.conf .
+dev-storage01 # sed -i '/^my_ip = .*/d' cinder.conf
 dev-storage01 # for i in $(seq 1 8); do
                     scp cinder.conf dev-storage0${i}:/etc/cinder/cinder.conf
-                    ssh dev-storage0${i} -- bash -c "chown root:cinder /etc/cinder/cinder.conf; chmod 644 /etc/cinder/cinder.conf"
+                    ssh dev-storage0${i} -- bash -c \"chown root:cinder /etc/cinder/cinder.conf\; chmod 644 /etc/cinder/cinder.conf\"
                 done
                 for i in $(seq 1 2); do
+                    ssh dev-compute0${i} -- mkdir -p /etc/cinder/
                     scp cinder.conf dev-compute0${i}:/etc/cinder/cinder.conf
-                    ssh dev-compute0${i} -- bash -c "chown root:cinder /etc/cinder/cinder.conf; chmod 644 /etc/cinder/cinder.conf"
+                    #ssh dev-compute0${i} -- bash -c \"chown root:cinder /etc/cinder/cinder.conf\; chmod 644 /etc/cinder/cinder.conf\"
+                    ssh dev-compute0${i} -- bash -c \"chmod 644 /etc/cinder/cinder.conf\"
                 done
 ```
 
@@ -323,6 +326,11 @@ hw_qemu_guest_agent=yes
 os_require_quiesce=yes
 ```
 
+```
+TODO: 権限を設定するタイミングはここで良いのか。考える
+dev-controller01(glance) # chown root:glance /etc/glance/glance-api.conf
+```
+
 // Snapshot configured_glance_api_for_ceph
 
 ## Nova を設定する
@@ -349,8 +357,12 @@ dev-compute01,02(nova-compute) # chown libvirt-qemu:libvirt /var/run/ceph/guests
 `ceph.conf` ファイルを、controller(Glance) ノードにコピーします。
 
 ```
-dev-storage01 # scp dev-controller01:/etc/ceph/ceph.conf
-dev-storage01 # ssh dev-controller01 -- bash -c "chown ceph:ceph /etc/ceph/ceph.conf; chmod 644 /etc/ceph/ceph.conf"
+dev-storage01 # #scp dev-controller01:/etc/ceph/ceph.conf .
+dev-storage01 # scp dev-compute01:/etc/ceph/ceph.conf .
+dev-storage01 # scp ceph.conf dev-controller01:/etc/ceph/ceph.conf
+
+dev-storage01 # #ssh dev-controller01 -- bash -c "chown ceph:ceph /etc/ceph/ceph.conf; chmod 644 /etc/ceph/ceph.conf"
+dev-storage01 # ssh dev-controller01 -- bash -c \"chown ceph:ceph /etc/ceph/ceph.conf\; chmod 644 /etc/ceph/ceph.conf\"
 ```
 
 // Snapshot configured_ceph_conf_for_nova_compute_nodes
@@ -394,6 +406,19 @@ live_migration_flag="VIR_MIGRATE_UNDEFINE_SOURCE,VIR_MIGRATE_PEER2PEER,VIR_MIGRA
 hw_disk_discard = unmap
 ```
 
+## keyring のコピー
+TODO: keyring をコピーする適切なタイミングを考慮する。また、各ノード毎に、必要とするkeyring が異なるので、選別する。権限も、644 ではなく、640 でいけないか検証する。
+
+```
+dev-storage01(cinder) # for i in $(seq 1 2); do
+                            scp /etc/ceph/*.keyring dev-compute0${i}:/etc/ceph/
+                            ssh dev-compute0${i} -- bash -c \"chown ceph:ceph /etc/ceph/*.keyring \; chmod 644 /etc/ceph/*.keyring\"
+                        done
+
+dev-storage01(cinder) # scp /etc/ceph/*.keyring dev-controller01:/etc/ceph/
+dev-storage01(cinder) # ssh dev-controller01 -- bash -c \"chown ceph:ceph /etc/ceph/*.keyring \; chmod 644 /etc/ceph/*.keyring\"
+```
+
 ## OpenStack サービスを再起動する
 ```
 dev-controller01(cinder) # systemctl restart cinder-scheduler
@@ -402,4 +427,7 @@ dev-compute01,02(nova) # systemctl restart nova-compute
 ```
 
 // Snapshot prepared_ceph
+
+# テストインスタンスを作成する
+
 
