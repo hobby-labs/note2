@@ -467,8 +467,8 @@ dev-controller01 # openstack keypair list
 ## フレーバーの作成
 
 ```
-dev-controller01 # openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
-dev-controller01 # openstack flavor create --id 2 --ram 2048 --disk 1 --vcpus 2 m1.medium
+dev-controller01 # openstack flavor create --id 1 --ram 512 --disk 8 --vcpus 1 m1.tiny
+dev-controller01 # openstack flavor create --id 2 --ram 2048 --disk 8 --vcpus 2 m1.medium
 dev-controller01 # openstack flavor list
 ```
 
@@ -489,9 +489,26 @@ dev-controller01 # openstack security group rule create --protocol TCP --dst-por
 dev-controller01 # openstack security group list
 ```
 
-## サーバの作成
+## テストインスタンスの作成
 
 ```
-dev-controller01 # openstack server create --flavor m1.medium --image "ubuntu" --key-name admin --security-group permit_all --network private ubuntu-server
+cat << 'EOF' > cloud-init.yml
+#cloud-config
+hostname: ubuntu-server
+fqdn: ubuntu-server.example.com
+manage_etc_hosts: true
+users:
+  - name: ubuntu2
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    home: /home/ubuntu2
+    shell: /bin/bash
+    # TODO: 'p@ssw0rd'
+    passwd: $6$xyz$rfUoxhnScmjOykLAVIhgfxmKgIWmTirRSrIZ9j5EJ1Vf765rQS.dCbXjXBx4PuhbcNNrXx2XpwUywQ96C7EJB/
+    lock_passwd: false
+EOF
+
+dev-controller01 # openstack server create --flavor m1.medium --image "ubuntu" \
+                       --key-name admin --security-group permit_all --network private ubuntu-server --user-data cloud-init.yml
 ```
 
