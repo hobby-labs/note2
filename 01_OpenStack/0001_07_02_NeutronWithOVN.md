@@ -354,7 +354,7 @@ VLAN ID レンジを指定すると、特権を持たないユーザでもVLAN �
 # </syntaxhighlight>
 
 <syntaxhighlight lang="console">
-# ovs-vsctl set open . external-ids:ovn-cms-options=enable-chassis-as-gw
+openstack-controller-node01 ~# ovs-vsctl set open . external-ids:ovn-cms-options=enable-chassis-as-gw
 </syntaxhighlight>
 
 = neutron のDB テーブル作成 =
@@ -443,7 +443,7 @@ openstack-compute-node01 # systemctl enable ovn-ovsdb-server-sb
 openstack-compute-node01 # systemctl enable ovn-controller
 openstack-compute-node01 # systemctl enable ovn-controller-vtep
 
-openstack-compute-node01 #shutdown -r now
+openstack-compute-node01 # shutdown -r now
 </syntaxhighlight>
 
 OVS サービスの設定を行います。
@@ -502,7 +502,7 @@ lock_path = /var/lib/neutron/tmp
 #connection = sqlite:////var/lib/neutron/neutron.sqlite  # <- コメントアウトします
 </syntaxhighlight>
 
-* /etc/neutron/l3_agent.ini
+* /etc/neutron/l3_agent.ini @ openstack-compute-node01
 <syntaxhighlight lang="console">
 [DEFAULT]
 interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver
