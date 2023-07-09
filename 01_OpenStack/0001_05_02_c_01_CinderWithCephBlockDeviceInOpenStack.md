@@ -87,11 +87,13 @@ dev-storage01(mon) # for i in $(seq 1 8); do
                          ssh dev-storage01 -- chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
                      done
 
+dev-storage01(mon) # # nova-compute プロセスで使うクライアント鍵を、Nova ノードへコピーします。今回はNova はcontroller の中にあるので、そこへコピーします
 dev-storage01(mon) # ceph auth get-or-create client.glance | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.glance.keyring
 dev-storage01(mon) # ssh dev-controller01 -- chown glance:glance /etc/ceph/ceph.client.glance.keyring
 
-dev-storage01(mon) # for i in $(seq 1 8); do
-    echo "Creating client.cinder dev-storage0${i}"
+dev-storage01(mon) # # libvirt に取り入れる`client.cinder` ユーザの鍵を、一時的に保管します。
+dev-storage01(mon) # # Cinder からデバイスを取り扱いできるようにするためです
+dev-storage01(mon) # ceph auth get-or-create client.cinder | ssh dev-controller01 -- sudo tee client.cinder.key
 ```
 
 OpenStack Nova ノードは、`nova-compute` プロセスのために、keyring ファイルを必要とします。
