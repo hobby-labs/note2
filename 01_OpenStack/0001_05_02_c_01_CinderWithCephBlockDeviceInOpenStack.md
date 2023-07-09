@@ -74,6 +74,7 @@ dev-storage01(mon) # for i in $(seq 1 8); do
                          ssh dev-storage0${i} -- chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
                      done
 
+dev-storage01(mon) # # Same key as upper one
 dev-storage01(mon) # for i in $(seq 1 2); do
                          echo "Creating client.cinder dev-compute0${i}"
                          ceph auth get-or-create client.cinder | ssh dev-compute0${i} -- sudo tee /etc/ceph/ceph.client.cinder.keyring
@@ -91,9 +92,11 @@ dev-storage01(mon) # # nova-compute プロセスで使うクライアント鍵�
 dev-storage01(mon) # ceph auth get-or-create client.glance | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.glance.keyring
 dev-storage01(mon) # ssh dev-controller01 -- chown glance:glance /etc/ceph/ceph.client.glance.keyring
 
-dev-storage01(mon) # # libvirt に取り入れる`client.cinder` ユーザの鍵を、一時的に保管します。
-dev-storage01(mon) # # Cinder からデバイスを取り扱いできるようにするためです
-dev-storage01(mon) # ceph auth get-or-create client.cinder | ssh dev-controller01 -- sudo tee client.cinder.key
+dev-storage01(mon) # # 不要。Nova compute ノードのlibvirtd に登録するために必要
+dev-storage01(mon) # # # libvirt に取り入れる`client.cinder` ユーザの鍵を、一時的に保管します。
+dev-storage01(mon) # # # Cinder からデバイスを取り扱いできるようにするためです
+dev-storage01(mon) # # # 鍵の内容は"ceph.ckient.cinder.keyring" と同じになります。
+dev-storage01(mon) # # ceph auth get-or-create client.cinder | ssh dev-controller01 -- sudo tee client.cinder.key
 ```
 
 OpenStack Nova ノードは、`nova-compute` プロセスのために、keyring ファイルを必要とします。
@@ -176,7 +179,7 @@ EOF
 secret.xml ファイルを作成したら、登録します。
 
 ```
-dev-storage01(mon) # # "error: Passing secret value as command-line argument is insecure!" というメッセージは出るが、設定はできています
+dev-storage01(mon) # # 下記コマンドで"error: Passing secret value as command-line argument is insecure!" というメッセージは出るが、設定はできています
 dev-storage01(mon) # for i in $(seq 1 2); do
                          ssh -t dev-compute0${i} << 'EOF'
                              virsh secret-define --file secret.xml
