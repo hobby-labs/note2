@@ -92,7 +92,7 @@ dev-storage01(mon) # # nova-compute プロセスで使うクライアント鍵�
 dev-storage01(mon) # ceph auth get-or-create client.glance | ssh dev-controller01 -- sudo tee /etc/ceph/ceph.client.glance.keyring
 dev-storage01(mon) # ssh dev-controller01 -- chown glance:glance /etc/ceph/ceph.client.glance.keyring
 
-dev-storage01(mon) # # 不要。Nova compute ノードのlibvirtd に登録するために必要
+dev-storage01(mon) # # Controller ノードへは不要。Nova compute ノードのlibvirtd に登録するために必要
 dev-storage01(mon) # # # libvirt に取り入れる`client.cinder` ユーザの鍵を、一時的に保管します。
 dev-storage01(mon) # # # Cinder からデバイスを取り扱いできるようにするためです
 dev-storage01(mon) # # # 鍵の内容は"ceph.ckient.cinder.keyring" と同じになります。
@@ -110,7 +110,6 @@ OpenStack Nova ノードはまた、`libvirt` 内の`cinder.cinder` ユーザの
 また、Cinder から、デバイスをアタッチしている間、クラスタにアクセスするために必要となります。
 
 ```
-dev-storage01(mon) # # TODO: Nova コントローラノードにはコピーしないが、それで大丈夫か
 dev-storage01(mon) # for i in $(seq 1 2); do
                          ceph auth get-key client.cinder | ssh dev-compute0${i} -- sudo tee client.cinder.key
                      done
@@ -120,7 +119,7 @@ dev-storage01(mon) # for i in $(seq 1 2); do
 下記の書式のコマンドで、"osd blacklist" コマンドを許可するようにします。
 
 ```
-ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
+(Example) # ceph auth caps client.ID mon 'allow r, allow command "osd blacklist"' osd 'EXISTING_OSD_USER_CAPS'
 ```
 
 `client.ID` には、全Ceph ブロックデバイスユーザ分指定します。
@@ -426,9 +425,9 @@ dev-storage01(cinder) # ssh dev-controller01 -- bash -c \"chown ceph:ceph /etc/c
 
 ## OpenStack サービスを再起動する
 ```
-dev-controller01(cinder) # systemctl restart cinder-scheduler
-dev-controller01(cinder) # systemctl restart glance-api
-dev-compute01,02(nova) # systemctl restart nova-compute
+dev-controller01(cinder controller) # systemctl restart cinder-scheduler
+dev-controller01(cinder controller) # systemctl restart glance-api
+dev-compute01,02(compute node) # systemctl restart nova-compute
 ```
 
 // Snapshot prepared_ceph
