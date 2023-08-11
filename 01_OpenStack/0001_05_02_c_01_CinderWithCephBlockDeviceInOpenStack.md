@@ -512,6 +512,8 @@ users:
     lock_passwd: false
 EOF
 
+// Snapshot openstack_has_installed_before_instances_are_created
+
 dev-controller01 # openstack server create --flavor m1.medium --image "ubuntu" \
                        --key-name admin --security-group permit_all --network private ubuntu-server --user-data cloud-init.yml
 
@@ -556,4 +558,50 @@ dev-controller01 # openstack server list --long
 +--------------------------------------+---------------+--------+------------+-------------+-----------------------------------------+------------+--------------------------------------+-------------+-----------+-------------------+---------------+------------+
 | 599cb200-351b-4e8c-a79d-45eb452225fd | ubuntu-server | ACTIVE | None       | Running     | private=172.31.230.163, 192.168.255.154 | ubuntu     | f33e3f11-9e2d-436e-90fc-e2d3741b67b8 | m1.medium   | 2         | nova              | dev-compute02 |            |
 +--------------------------------------+---------------+--------+------------+-------------+-----------------------------------------+------------+--------------------------------------+-------------+-----------+-------------------+---------------+------------+
+
+## Volume を作成する
+```
+dev-controller01 # openstack availability zone list
++-----------+-------------+
+| Zone Name | Zone Status |
++-----------+-------------+
+| internal  | available   |
+| nova      | available   |
+| nova      | available   |
++-----------+-------------+
+
+
+
+
+dev-storage01 # ceph osd lspools
+1 volumes
+2 backup
+3 images
+4 vms
+5 .mgr
+
+dev-storage01 # ceph osd tree
+ID  CLASS  WEIGHT   TYPE NAME              STATUS  REWEIGHT  PRI-AFF
+-1         0.03506  root default
+-3         0.01169      host dev-cinder01
+ 1    hdd  0.01169          osd.1              up   1.00000  1.00000
+-7         0.01169      host dev-cinder02
+ 0    hdd  0.01169          osd.0              up   1.00000  1.00000
+-5         0.01169      host dev-cinder03
+ 2    hdd  0.01169          osd.2              up   1.00000  1.00000
+
+dev-storage01 # ceph df
+--- RAW STORAGE ---
+CLASS    SIZE   AVAIL     USED  RAW USED  %RAW USED
+hdd    36 GiB  26 GiB  9.5 GiB   9.5 GiB      26.41
+TOTAL  36 GiB  26 GiB  9.5 GiB   9.5 GiB      26.41
+
+--- POOLS ---
+POOL     ID  PGS   STORED  OBJECTS     USED  %USED  MAX AVAIL
+volumes   1   32  977 MiB      253  2.9 GiB  10.41    8.2 GiB
+backup    2   32      0 B        0      0 B      0    8.2 GiB
+images    3   32  656 MiB       89  1.9 GiB   7.24    8.2 GiB
+vms       4   32  1.5 GiB      429  4.6 GiB  15.60    8.2 GiB
+.mgr      5    1  449 KiB        2  1.3 MiB      0    8.2 GiB
+```
 
