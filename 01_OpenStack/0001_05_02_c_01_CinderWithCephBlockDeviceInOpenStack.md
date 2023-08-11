@@ -603,5 +603,8 @@ backup    2   32      0 B        0      0 B      0    8.2 GiB
 images    3   32  656 MiB       89  1.9 GiB   7.24    8.2 GiB
 vms       4   32  1.5 GiB      429  4.6 GiB  15.60    8.2 GiB
 .mgr      5    1  449 KiB        2  1.3 MiB      0    8.2 GiB
+
+dev-storage01 # ceph-volume lvm list
+> output info of volumes
 ```
 
