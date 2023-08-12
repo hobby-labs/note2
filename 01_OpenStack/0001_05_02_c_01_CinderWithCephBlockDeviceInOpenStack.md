@@ -570,9 +570,6 @@ dev-controller01 # openstack availability zone list
 | nova      | available   |
 +-----------+-------------+
 
-
-
-
 dev-storage01 # ceph osd lspools
 1 volumes
 2 backup
