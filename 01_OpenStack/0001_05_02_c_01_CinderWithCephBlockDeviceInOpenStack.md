@@ -188,6 +188,11 @@ EOF
                      done
 ```
 
+確認を行うには、下記のコマンドを実行します。
+```
+dev-compute01 $ virsh secret-list
+```
+
 // Snapshot created_libvirtd_secret
 
 # Ceph Block デバイスを使うための設定
