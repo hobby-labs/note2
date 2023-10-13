@@ -16,5 +16,24 @@ echo \
 sudo apt-get update
 ```
 
+docker をインストールします。
 
+```
+apt-get install docker-ce docker-ce-cli containerd.io
+```
+
+```
+usermod -aG docker sushi7
+```
+
+# Kubernetes インストールに必要な準備
+今回は、swap 領域はマウントされていない想定で作業を進めます。
+
+```
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+```
 
