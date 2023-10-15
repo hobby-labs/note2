@@ -11,15 +11,18 @@ EOF
 k8s-(master|node) # apt-get update
 ```
 
-
+```
+k8s-(master|node) # swapoff -a
+k8s-(master|node) # sudo sed -i '/ swap / s/^/#/' /etc/fstab
+```
 
 ```
 k8s-(master|node) # apt-get install  apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 ```
 
 ```
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
+k8s-(master|node) # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+k8s-(master|node) # sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
 echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
@@ -31,7 +34,7 @@ sudo apt-get update
 docker をインストールします。
 
 ```
-apt-get install docker-ce docker-ce-cli containerd.io
+k8s-(master|node) # apt-get install docker-ce docker-ce-cli containerd.io
 ```
 
 ```
