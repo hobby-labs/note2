@@ -17,24 +17,25 @@ k8s-(master|node) # sudo sed -i '/ swap / s/^/#/' /etc/fstab
 ```
 
 ```
-k8s-(master|node) # apt-get install  apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+k8s-(master|node) # apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
 ```
 
 ```
 k8s-(master|node) # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 k8s-(master|node) # sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-echo \
-  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
+k8s-(master|node) # echo \
+                    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+                    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+k8s-(master|node) # sudo apt-get update
 ```
 
 docker をインストールします。
 
 ```
-k8s-(master|node) # apt-get install docker-ce docker-ce-cli containerd.io
+k8s-(master|node) # apt-get install -y docker-ce docker-ce-cli containerd.io
 ```
 
 ```
@@ -55,5 +56,5 @@ EOF
 # 参考
 * [https://www.cherryservers.com/blog/install-kubernetes-on-ubuntu](How to Install Kubernetes on Ubuntu 22.04 | Step-by-Step)
 * [https://kubernetes.io/blog/2019/03/15/kubernetes-setup-using-ansible-and-vagrant/](Kubernetes Setup Using Ansible and Vagrant)
-
+* [https://askubuntu.com/a/1236711](docker ps stuck ... docker install also just hangs)
 
