@@ -39,14 +39,14 @@ k8s-(master|node) # apt-get install -y docker-ce docker-ce-cli containerd.io
 ```
 
 ```
-usermod -aG docker sushi7
+k8s-(master|node) # usermod -aG docker ubuntu
 ```
 
 # Kubernetes インストールに必要な準備
 今回は、swap 領域はマウントされていない想定で作業を進めます。
 
 ```
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/kubernetes.gpg
+k8s-(master|node) # curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/kubernetes.gpg
 
 /etc/apt/sources.list.d/kubernetes.list
 deb http://apt.kubernetes.io/ kubernetes-xenial main
