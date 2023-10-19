@@ -48,10 +48,11 @@ k8s-(master|node) # usermod -aG docker ubuntu
 ```
 k8s-(master|node) # curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/kubernetes.gpg
 
-/etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
+k8s-(master|node) # cat << 'EOF' > /etc/apt/sources.list.d/kubernetes.list
+deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-jammy main
 EOF
 ```
+
 
 # 参考
 * [https://www.cherryservers.com/blog/install-kubernetes-on-ubuntu](How to Install Kubernetes on Ubuntu 22.04 | Step-by-Step)
