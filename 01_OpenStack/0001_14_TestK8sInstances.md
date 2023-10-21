@@ -46,14 +46,15 @@ k8s-(master|node) # usermod -aG docker ubuntu
 今回は、swap 領域はマウントされていない想定で作業を進めます。
 
 ```
-k8s-(master|node) # curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/kubernetes.gpg
-                    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+k8s-(master|node) # curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
 
 k8s-(master|node) # cat << 'EOF' > /etc/apt/sources.list.d/kubernetes.list
 deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 
-k8s-(master|node) # sudo apt-get update
+k8s-(master|node) # apt-get update
+
+k8s-(master|node) # apt-get install -y kubelet kubeadm kubectl
 ```
 
 
