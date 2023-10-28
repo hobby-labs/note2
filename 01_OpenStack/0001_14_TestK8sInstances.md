@@ -72,7 +72,14 @@ k8s-(master|node) # apt-get install -y kubelet kubeadm kubectl
 # Docker のインストール
 
 ```
-k8s-(master|node) # apt-get install docker.io
+k8s-(master|node) # apt-get install -y docker.io
+k8s-(master|node) # mkdir /etc/containerd
+k8s-(master|node) # sh -c "containerd config default > /etc/containerd/config.toml"
+k8s-(master|node) # sed -i 's/ SystemdCgroup = false/ SystemdCgroup = true/' /etc/containerd/config.toml
+k8s-(master|node) # systemctl restart containerd.service
+k8s-(master|node) # systemctl restart kubelet.service
+k8s-(master|node) # systemctl enable kubelet.service
+
 ```
 
 # 参考
