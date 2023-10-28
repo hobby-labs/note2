@@ -29,6 +29,31 @@ k8s-(master|node) # sudo sed -i '/ swap / s/^/#/' /etc/fstab
 192.168.255.16    dev-k8s-node06
 ```
 
+# IPv4 bridge の設定
+
+```
+k8s-(master|node) # cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+```
+
+```
+k8s-(master|node) # sudo modprobe overlay
+k8s-(master|node) # sudo modprobe br_netfilter
+
+k8s-(master|node) # # sysctl params required by setup, params persist across reboots
+
+k8s-(master|node) # cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+k8s-(master|node) # # Apply sysctl params without reboot
+k8s-(master|node) # sudo sysctl --system
+```
+
 # Kubernetes インストールに必要な準備
 今回は、swap 領域はマウントされていない想定で作業を進めます。
 
@@ -44,10 +69,11 @@ k8s-(master|node) # apt-get update
 k8s-(master|node) # apt-get install -y kubelet kubeadm kubectl
 ```
 
-```
+# Docker のインストール
 
 ```
-
+k8s-(master|node) # apt-get install docker.io
+```
 
 # 参考
 * [https://www.cherryservers.com/blog/install-kubernetes-on-ubuntu](How to Install Kubernetes on Ubuntu 22.04 | Step-by-Step)
