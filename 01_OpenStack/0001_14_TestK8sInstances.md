@@ -111,6 +111,25 @@ k8s-master # kubectl create -f custom-resources.yaml
 
 # Cluster にWorker ノードを追加する
 
+```
+k8s-nodeXX # kubeadm join 172.31.1.11:6443 --token <token> --discovery-token-ca-cert-hash <hash>
+```
+
+# Cluster の検証
+
+```
+k8s-master # kubectl get nodes
+NAME             STATUS     ROLES           AGE   VERSION
+dev-k8s-node01   NotReady   control-plane   40m   v1.28.2
+dev-k8s-node02   NotReady   <none>          23s   v1.28.2
+dev-k8s-node03   NotReady   <none>          20s   v1.28.2
+dev-k8s-node04   NotReady   <none>          18s   v1.28.2
+dev-k8s-node05   NotReady   <none>          17s   v1.28.2
+dev-k8s-node06   NotReady   <none>          16s   v1.28.2
+
+k8s-master # kubectl get pods -A
+```
+
 # 参考
 * [https://www.cherryservers.com/blog/install-kubernetes-on-ubuntu](How to Install Kubernetes on Ubuntu 22.04 | Step-by-Step)
 * [https://kubernetes.io/blog/2019/03/15/kubernetes-setup-using-ansible-and-vagrant/](Kubernetes Setup Using Ansible and Vagrant)
