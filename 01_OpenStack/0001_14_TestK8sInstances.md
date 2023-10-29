@@ -97,6 +97,20 @@ k8s-master $ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 k8s-master $ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
+# Calico オペレータのデプロイ
+
+```
+k8s-master # kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
+```
+
+```
+k8s-master # curl https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml -O
+k8s-master # sed -i 's/cidr: 192\.168\.0\.0\/16/cidr: 10.10.0.0\/16/g' custom-resources.yaml
+k8s-master # kubectl create -f custom-resources.yaml
+```
+
+# Cluster にWorker ノードを追加する
+
 # 参考
 * [https://www.cherryservers.com/blog/install-kubernetes-on-ubuntu](How to Install Kubernetes on Ubuntu 22.04 | Step-by-Step)
 * [https://kubernetes.io/blog/2019/03/15/kubernetes-setup-using-ansible-and-vagrant/](Kubernetes Setup Using Ansible and Vagrant)
