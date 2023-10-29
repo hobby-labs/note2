@@ -79,7 +79,22 @@ k8s-(master|node) # sed -i 's/ SystemdCgroup = false/ SystemdCgroup = true/' /et
 k8s-(master|node) # systemctl restart containerd.service
 k8s-(master|node) # systemctl restart kubelet.service
 k8s-(master|node) # systemctl enable kubelet.service
+```
 
+# Master ノードでKubernetes クラスタの初期化
+
+```
+k8s-master # kubeadm config images pull
+k8s-master # kubeadm init --pod-network-cidr=10.10.0.0/16
+```
+
+今後一般ユーザでクラスタを管理する場合は下記のようにして、事前にkubeconfig を取得しておきます。
+
+```
+k8s-master $ # 一般ユーザで実施
+k8s-master $ mkdir -p $HOME/.kube
+k8s-master $ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+k8s-master $ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 # 参考
