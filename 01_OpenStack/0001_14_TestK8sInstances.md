@@ -14,6 +14,7 @@ k8s-(master|node) # apt-get update
 ```
 k8s-(master|node) # swapoff -a
 k8s-(master|node) # sudo sed -i '/ swap / s/^/#/' /etc/fstab
+k8s-(master|node) # sudo sed -i '/\sswap\s/ s/^/#/' /etc/fstab
 ```
 
 # /etc/hosts の設定
