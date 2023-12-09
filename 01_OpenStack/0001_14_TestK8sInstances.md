@@ -129,6 +129,20 @@ dev-k8s-node05   NotReady   <none>          17s   v1.28.2
 dev-k8s-node06   NotReady   <none>          16s   v1.28.2
 
 k8s-master # kubectl get pods -A
+NAMESPACE         NAME                                 READY   STATUS    RESTARTS   AGE
+kube-system       coredns-5dd5756b68-5zhq5             0/1     Pending   0          2m1s
+kube-system       coredns-5dd5756b68-mwqsk             0/1     Pending   0          2m1s
+kube-system       etcd-k8s-master                      1/1     Running   0          2m15s
+kube-system       kube-apiserver-k8s-master            1/1     Running   0          2m15s
+kube-system       kube-controller-manager-k8s-master   1/1     Running   0          2m15s
+kube-system       kube-proxy-27h42                     1/1     Running   0          2m2s
+kube-system       kube-proxy-48kl5                     1/1     Running   0          63s
+kube-system       kube-proxy-8cn5f                     1/1     Running   0          63s
+kube-system       kube-proxy-966bj                     1/1     Running   0          63s
+kube-system       kube-proxy-s22c9                     1/1     Running   0          63s
+kube-system       kube-proxy-wkcf9                     1/1     Running   0          63s
+kube-system       kube-scheduler-k8s-master            1/1     Running   0          2m15s
+tigera-operator   tigera-operator-94d7f7696-z6nxw      1/1     Running   0          2m1s
 ```
 
 # 参考
