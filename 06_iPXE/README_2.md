@@ -175,6 +175,7 @@ Test it by running KVM instance in same network with the PXE server.
 some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-desktop-22.04/
 some-kvm-host ~# virt-install \
                      --pxe \
+                     --boot uefi \
                      --name ubuntu-desktop-22.04 \
                      --connect=qemu:///system \
                      --vcpus=2 \

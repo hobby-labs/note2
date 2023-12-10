@@ -106,7 +106,7 @@ tftp-root=/pxeboot
 
 # boot config for BIOS systems
 dhcp-match=set:bios-x86,option:client-arch,0
-dhcp-boot=tag:bios-x86,firmware/ipxe.pxe
+dhcp-boot=tag:bios-x86,firmware/ipxe.pxe,172.31.0.99
 
 # A variable "next-server" will be passed.
 # If you want to specify a value of it, you can put its value(y.y.y.y) like below.
@@ -117,7 +117,7 @@ pxe-service=tag:!ipxe,x86PC,"splash",firmware/undionly.kpxe
 # boot config for UEFI systems
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
-dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi,172.31.0.99
+dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi
 EOF
 ```
 
@@ -175,6 +175,7 @@ Test it by running KVM instance in same network with the PXE server.
 some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-desktop-22.04/
 some-kvm-host ~# virt-install \
                      --pxe \
+                     --boot uefi \
                      --name ubuntu-desktop-22.04 \
                      --connect=qemu:///system \
                      --vcpus=2 \
@@ -183,6 +184,6 @@ some-kvm-host ~# virt-install \
                      --os-variant=ubuntu22.04 \
                      --arch x86_64 \
                      --network bridge:br0 \
-                     --graphics vnc,port=5901,listen=127.0.0.1,password=changeme
+                     --graphics vnc,port=15901,listen=127.0.0.1
 ```
 
