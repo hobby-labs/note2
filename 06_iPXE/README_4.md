@@ -136,23 +136,44 @@ choose --default exit --timeout 60000 option && goto ${option}
 
 :ubuntu-22.04-desktop-amd64
 set os_root os-images/ubuntu-22.04-desktop-amd64
-kernel tftp://${server_ip}/${os_root}/casper/vmlinuz
-initrd tftp://${server_ip}/${os_root}/casper/initrd
+kernel http://${server_ip}/${os_root}/casper/vmlinuz
+initrd http://${server_ip}/${os_root}/casper/initrd
 imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/iso/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/autoinstall/default/ ---
 boot
 EOF
 ```
 
-## NFS
-
-In this section, I will install NFS server on a same node with `pxe-server`.
+## http
 
 ```
-pxe-server ~# apt-get install -y nfs-kernel-server
-pxe-server ~# cat << 'EOF' > /etc/exports
-/pxeboot           *(ro,sync,no_wdelay,insecure_locks,no_root_squash,insecure,no_subtree_check)
-EOF
-pxe-server ~# exportfs -av
+pxe-server ~# cat << 'EOF' > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+
+    index index.html index.htm index.nginx-debian.html;
+    server_name _;
+
+    location / {
+        # First attempt to serve request as file, then
+        # as directory, then fall back to displaying a 404.
+        try_files $uri $uri/ =404;
+    }
+    location /autoinstall {
+        root /var/www/;
+        autoindex on;
+    }
+    location /iso {
+        root /var/www/;
+        autoindex on;
+    }
+    location /os-images {
+        root /var/www/;
+        autoindex on;
+    }
+}
 ```
 
 ## OS image
@@ -160,9 +181,10 @@ pxe-server ~# exportfs -av
 ```
 pxe-server ~# wget https://releases.ubuntu.com/jammy/ubuntu-22.04.3-desktop-amd64.iso
 pxe-server ~# mount -o loop ubuntu-22.04.3-desktop-amd64.iso /mnt
-pxe-server ~# mkdir -p /pxeboot/os-images/ubuntu-22.04-desktop-amd64
-pxe-server ~# rsync -avz /mnt/ /pxeboot/os-images/ubuntu-22.04-desktop-amd64/
+pxe-server ~# mkdir -p /pxeboot/os-images/ubuntu-22.04.3-desktop-amd64
+pxe-server ~# rsync -avz /mnt/casper/* /pxeboot/os-images/ubuntu-22.04-desktop-amd64/casper/
 pxe-server ~# umount /mnt
+pxe-server ~# umount mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os-images/
 ```
 
 ## Test instlling OS from the PXE server
