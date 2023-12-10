@@ -3,7 +3,7 @@ This is an instruction to ...
 * Provide boot firmware(iPXE) with tftp
 * Provide images of casper boot with tftp
 * Provide images of OS with NFS
-* Specified fixed IP address in configurations like bootconfig.ipxe, boot.ipxe etc.
+* Specify IP address in some scripts dynamically with a variable next-server.
 
 # Creating iPXE server with docker container
 * [Configuring PXE Network Boot Server on Ubuntu 22.04 LTS](https://linuxhint.com/pxe_boot_ubuntu_server/)
@@ -117,7 +117,7 @@ pxe-service=tag:!ipxe,x86PC,"splash",firmware/undionly.kpxe
 # boot config for UEFI systems
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
-dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi
+dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi,172.31.0.99
 EOF
 ```
 
@@ -131,8 +131,8 @@ pxe-server ~# systemctl restart systemd-resolved.service
 ```
 pxe-server ~# cat << 'EOF' > /pxeboot/config/boot.ipxe
 #!ipxe
-set server_ip  172.31.0.99
-set root_path  /pxeboot
+set server_ip ${next-server}
+set root_path /pxeboot
 menu Select an OS to boot
 item ubuntu-22.04-desktop-amd64         Install Ubuntu Desktop 22.04 LTS
 choose --default exit --timeout 60000 option && goto ${option}
