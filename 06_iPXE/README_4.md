@@ -11,6 +11,7 @@ This is an instruction to ...
 * [chaperone/dnsmasq](https://web.chaperone.jp/w/index.php?dnsmasq#dd0961a7)
 * [Chainloading iPXE](https://ipxe.org/howto/chainloading)
 * [既存のDHCPサーバが存在する場合でもPXE Bootをする（dnsmasqを使ったProxy DHCPの設定）](https://zappy.hatenablog.jp/entry/2018/05/31/190434)
+* [iPXE ブート環境をセットアップする](https://qiita.com/Yuhkih/items/c7cc9978ee107784c97f)
 
 ```
 pxe-server ~# docker network create -d macvlan \
