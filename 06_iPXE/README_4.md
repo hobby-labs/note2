@@ -139,7 +139,7 @@ choose --default exit --timeout 60000 option && goto ${option}
 set os_root os-images//ubuntu-22.04.3-desktop-amd64
 kernel http://${server_ip}/${os_root}/casper/vmlinuz
 initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/iso/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/autoinstall/default/ ---
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os-images/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/autoinstall/default/ ---
 boot
 EOF
 ```
@@ -169,10 +169,6 @@ server {
         autoindex on;
     }
     location /config {
-        root /var/www/;
-        autoindex on;
-    }
-    location /iso {
         root /var/www/;
         autoindex on;
     }
