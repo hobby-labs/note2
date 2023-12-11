@@ -126,7 +126,8 @@ pxe-server ~# systemctl restart systemd-resolved.service
 
 * /pxeboot/config/boot.ipxe
 ```
-pxe-server ~# cat << 'EOF' > /pxeboot/config/boot.ipxe
+pxe-server ~# mkdir -p /var/www/config/
+pxe-server ~# cat << 'EOF' > /var/www/config/boot.ipxe
 #!ipxe
 set server_ip ${next-server}
 set root_path /pxeboot
@@ -135,7 +136,7 @@ item ubuntu-22.04-desktop-amd64         Install Ubuntu Desktop 22.04 LTS
 choose --default exit --timeout 60000 option && goto ${option}
 
 :ubuntu-22.04-desktop-amd64
-set os_root os-images/ubuntu-22.04-desktop-amd64
+set os_root os-images//ubuntu-22.04.3-desktop-amd64
 kernel http://${server_ip}/${os_root}/casper/vmlinuz
 initrd http://${server_ip}/${os_root}/casper/initrd
 imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/iso/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/autoinstall/default/ ---
@@ -146,6 +147,8 @@ EOF
 ## http
 
 ```
+pxe-server ~# apt-get install -y nginx
+pxe-server ~# cp -a /etc/nginx/sites-available/default /etc/nginx/sites-available/default.org
 pxe-server ~# cat << 'EOF' > /etc/nginx/sites-available/default
 server {
     listen 80 default_server;
@@ -165,6 +168,10 @@ server {
         root /var/www/;
         autoindex on;
     }
+    location /config {
+        root /var/www/;
+        autoindex on;
+    }
     location /iso {
         root /var/www/;
         autoindex on;
@@ -174,6 +181,9 @@ server {
         autoindex on;
     }
 }
+EOF
+
+pxe-server ~# systemctl restart nginx
 ```
 
 ## OS image
@@ -181,10 +191,10 @@ server {
 ```
 pxe-server ~# wget https://releases.ubuntu.com/jammy/ubuntu-22.04.3-desktop-amd64.iso
 pxe-server ~# mount -o loop ubuntu-22.04.3-desktop-amd64.iso /mnt
-pxe-server ~# mkdir -p /pxeboot/os-images/ubuntu-22.04.3-desktop-amd64
-pxe-server ~# rsync -avz /mnt/casper/* /pxeboot/os-images/ubuntu-22.04-desktop-amd64/casper/
+pxe-server ~# mkdir -p /var/www/os-images/ubuntu-22.04.3-desktop-amd64
+pxe-server ~# rsync -avz /mnt/casper/* /var/www/os-images/ubuntu-22.04.3-desktop-amd64/casper/
 pxe-server ~# umount /mnt
-pxe-server ~# umount mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os-images/
+pxe-server ~# mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os-images/
 ```
 
 ## Test instlling OS from the PXE server
