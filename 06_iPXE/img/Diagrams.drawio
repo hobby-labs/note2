@@ -1,0 +1,37 @@
+<mxfile host="Electron" modified="2023-12-14T15:40:59.500Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.6.8 Chrome/114.0.5735.289 Electron/25.9.4 Safari/537.36" etag="vnMZuiBDm07keMJ6KyVi" version="21.6.8" type="device">
+  <diagram name="Page-1" id="wdLr0WEN9A8wBkXY_0je">
+    <mxGraphModel dx="2468" dy="1248" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-1" value="" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="200" height="870" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-2" value="Client" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="140" y="50" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-3" value="" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="718" y="80" width="200" height="870" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-4" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;DHCP server&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="728" y="100" width="180" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-5" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;PXE on NIC&lt;br&gt;&lt;br&gt;&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="90" y="100" width="180" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-6" value="PXE Firmware" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=4;" vertex="1" parent="1">
+          <mxGeometry x="100" y="130" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-7" value="" style="endArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="260" y="140" as="sourcePoint" />
+            <mxPoint x="730" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="QIQMXvPYZB8eV8oO1X8v-8" value="DHCP request" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="110" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
