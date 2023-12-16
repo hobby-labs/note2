@@ -165,15 +165,10 @@ server {
         # as directory, then fall back to displaying a 404.
         try_files $uri $uri/ =404;
     }
-    location /autoinstall {
-        root /var/www/;
-        autoindex on;
-    }
-    location /config {
-        root /var/www/;
-        autoindex on;
-    }
-    location /os-images {
+    # /os/autoinstall: A location storing cloud-init configurations
+    # /os/config:      iPXE scripts to boot it.
+    # /os/images:      OS images
+    location /os {
         root /var/www/;
         autoindex on;
     }
