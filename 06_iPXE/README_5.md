@@ -48,7 +48,7 @@ pxe-server ~# cd ipxe/src
 pxe-server src# cat << 'EOF' > bootconfig.ipxe
 #!ipxe
 dhcp
-chain http://172.31.0.99/config/boot.ipxe
+chain http://172.31.0.99/os/config/boot.ipxe
 EOF
 ```
 
@@ -127,8 +127,8 @@ pxe-server ~# systemctl restart systemd-resolved.service
 
 * /pxeboot/config/boot.ipxe
 ```
-pxe-server ~# mkdir -p /var/www/config/
-pxe-server ~# cat << 'EOF' > /var/www/config/boot.ipxe
+pxe-server ~# mkdir -p /var/www/os/config/
+pxe-server ~# cat << 'EOF' > /var/www/os/config/boot.ipxe
 #!ipxe
 set server_ip ${next-server}
 set root_path /pxeboot
@@ -137,10 +137,10 @@ item ubuntu-22.04-desktop-amd64         Install Ubuntu Desktop 22.04 LTS
 choose --default exit --timeout 60000 option && goto ${option}
 
 :ubuntu-22.04-desktop-amd64
-set os_root os-images//ubuntu-22.04.3-desktop-amd64
+set os_root os/images/ubuntu-22.04.3-desktop-amd64
 kernel http://${server_ip}/${os_root}/casper/vmlinuz
 initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os-images/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/autoinstall/default/ ---
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/os/autoinstall/default/ ---
 boot
 EOF
 ```
