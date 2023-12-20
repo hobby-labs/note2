@@ -81,7 +81,7 @@ pxe-server ~# mv -v /etc/dnsmasq.conf /etc/dnsmasq.conf.backup
 ```
 pxe-server ~# cat << 'EOF' > /etc/dnsmasq.conf
 # You can change a name of interface depends on your environment.
-interface=eth0
+interface=enp1s0
 bind-interfaces
 domain=linuxhint.local
 ## # * Option 1
@@ -183,10 +183,11 @@ pxe-server ~# systemctl restart nginx
 ```
 pxe-server ~# wget https://releases.ubuntu.com/jammy/ubuntu-22.04.3-desktop-amd64.iso
 pxe-server ~# mount -o loop ubuntu-22.04.3-desktop-amd64.iso /mnt
-pxe-server ~# mkdir -p /var/www/os-images/ubuntu-22.04.3-desktop-amd64
-pxe-server ~# rsync -avz /mnt/casper/* /var/www/os-images/ubuntu-22.04.3-desktop-amd64/casper/
+pxe-server ~# mkdir -p /var/www/os/images/ubuntu-22.04.3-desktop-amd64
+
+pxe-server ~# rsync -avz /mnt/casper/* /var/www/os/images/ubuntu-22.04.3-desktop-amd64/casper/
 pxe-server ~# umount /mnt
-pxe-server ~# mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os-images/
+pxe-server ~# mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os/images/
 ```
 
 ## Test instlling OS from the PXE server
