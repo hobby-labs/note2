@@ -133,16 +133,34 @@ pxe-server ~# cat << 'EOF' > /var/www/os/config/boot.ipxe
 set server_ip ${next-server}
 set root_path /pxeboot
 menu Select an OS to boot
-item ubuntu-22.04-desktop-amd64         Install Ubuntu Desktop 22.04 LTS
+item ubuntu-22.04.3-live-server-amd64         Install Ubuntu 22.04 LTS
 choose --default exit --timeout 60000 option && goto ${option}
 
-:ubuntu-22.04-desktop-amd64
-set os_root os/images/ubuntu-22.04.3-desktop-amd64
+:ubuntu-22.04.3-live-server-amd64
+set os_root os/images/ubuntu-22.04.3-live-server-amd64
 kernel http://${server_ip}/${os_root}/casper/vmlinuz
 initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-desktop-amd64.iso ds=nocloud-net;s=http://172.31.0.99/os/autoinstall/default/ ---
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://172.31.0.99/os/autoinstall/default/ ---
+#imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-live-server-amd64.iso ---
 boot
 EOF
+```
+
+```
+pxe-server ~# cat << 'EOF' > /var/www/os/autoinstall/default/user-data
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu-server
+    username: ubuntu
+    # p@ssw0rd
+    password: "$6$xyz$rfUoxhnScmjOykLAVIhgfxmKgIWmTirRSrIZ9j5EJ1Vf765rQS.dCbXjXBx4PuhbcNNrXx2XpwUywQ96C7EJB/"
+  ssh:
+    install-server: yes
+EOF
+
+pxe-server ~# touch /var/www/os/autoinstall/default/meta-data
 ```
 
 ## http
@@ -181,28 +199,28 @@ pxe-server ~# systemctl restart nginx
 ## OS image
 
 ```
-pxe-server ~# wget https://releases.ubuntu.com/jammy/ubuntu-22.04.3-desktop-amd64.iso
-pxe-server ~# mount -o loop ubuntu-22.04.3-desktop-amd64.iso /mnt
-pxe-server ~# mkdir -p /var/www/os/images/ubuntu-22.04.3-desktop-amd64
+pxe-server ~# wget https://releases.ubuntu.com/jammy/ubuntu-22.04.3-live-server-amd64.iso
+pxe-server ~# mount -o loop ubuntu-22.04.3-live-server-amd64.iso /mnt
+pxe-server ~# mkdir -p /var/www/os/images/ubuntu-22.04.3-live-server-amd64
 
-pxe-server ~# rsync -avz /mnt/casper/* /var/www/os/images/ubuntu-22.04.3-desktop-amd64/casper/
+pxe-server ~# rsync -avz /mnt/casper/* /var/www/os/images/ubuntu-22.04.3-live-server-amd64/casper/
 pxe-server ~# umount /mnt
-pxe-server ~# mv ubuntu-22.04.3-desktop-amd64.iso /var/www/os/images/
+pxe-server ~# mv ubuntu-22.04.3-live-server-amd64.iso /var/www/os/images/
 ```
 
 ## Test instlling OS from the PXE server
 Test it by running KVM instance in same network with the PXE server.
 
 ```
-some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-desktop-22.04/
+some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-22.04.3-live-server-amd64/
 some-kvm-host ~# virt-install \
                      --pxe \
                      --boot uefi \
-                     --name ubuntu-desktop-22.04 \
+                     --name ubuntu-server-22.04 \
                      --connect=qemu:///system \
                      --vcpus=2 \
                      --memory 4096 \
-                     --disk path=/var/kvm/distros/ubuntu-desktop-22.04/disk.img,size=16,format=qcow2 \
+                     --disk path=/var/kvm/distros/ubuntu-server-22.04/disk.img,size=16,format=qcow2 \
                      --os-variant=ubuntu22.04 \
                      --arch x86_64 \
                      --network bridge:br0 \
