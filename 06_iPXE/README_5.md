@@ -45,15 +45,10 @@ pxe-server ~# git clone https://github.com/ipxe/ipxe.git
 pxe-server ~# # A commit 98dd25a is the latest when I was using it.
 pxe-server ~# git -C ipxe checkout -b 98dd25a3bb2d3aafa71f088cbabf89418a783132 98dd25a3bb2d3aafa71f088cbabf89418a783132
 pxe-server ~# cd ipxe/src
-pxe-server src# cat << 'EOF' > bootconfig.ipxe
-#!ipxe
-dhcp
-chain http://172.31.0.99/os/config/boot.ipxe
-EOF
 ```
 
 ```
-pxe-server src# make bin/ipxe.pxe bin/undionly.kpxe bin/undionly.kkpxe bin/undionly.kkkpxe bin-x86_64-efi/ipxe.efi EMBED=bootconfig.ipxe
+pxe-server src# make bin/ipxe.pxe bin/undionly.kpxe bin/undionly.kkpxe bin/undionly.kkkpxe bin-x86_64-efi/ipxe.efi
 ...
 pxe-server src# cp -v bin/{ipxe.pxe,undionly.kpxe,undionly.kkpxe,undionly.kkkpxe} bin-x86_64-efi/ipxe.efi /pxeboot/firmware/
 pxe-server src# cd ~
