@@ -122,7 +122,7 @@ EOF
 ```
 pxe-server ~# dnsmasq
 pxe-server ~# # or
-pxe-server ~# systemctl restart systemd-resolved.service
+pxe-server ~# systemctl restart dnsmasq
 ```
 
 * /pxeboot/config/boot.ipxe
@@ -203,9 +203,8 @@ autoinstall:
     install-server: yes
 EOF
 
-
-
-pxe-server ~# touch /var/www/os/autoinstall/default/meta-data
+pxe-server ~# touch /var/www/os/autoinstall/52:54:ff:00:00:01/meta-data
+pxe-server ~# touch /var/www/os/autoinstall/common/meta-data
 ```
 
 ## http
@@ -258,17 +257,16 @@ Test it by running KVM instance in same network with the PXE server.
 
 ```
 some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-server-22.04/
-some-kvm-host ~# virt-install \
-                     --pxe \
+some-kvm-host ~# virt-install --pxe \
                      --boot uefi \
                      --name ubuntu-server-22.04 \
                      --connect=qemu:///system \
                      --vcpus=2 \
-                     --memory 4096 \
+                     --memory 16384 \
                      --disk path=/var/kvm/distros/ubuntu-server-22.04/disk.img,size=16,format=qcow2 \
                      --os-variant=ubuntu22.04 \
                      --arch x86_64 \
-                     --network bridge:br0 \
+                     --network bridge:br0,mac=52:54:ff:00:00:01 \
                      --graphics vnc,port=15901,listen=127.0.0.1
 ```
 
