@@ -115,7 +115,7 @@ pxe-service=tag:!ipxe,x86PC,"splash",firmware/undionly.kpxe
 # boot config for UEFI systems
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
-dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi
+dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi,172.31.0.99
 EOF
 ```
 
@@ -132,22 +132,51 @@ pxe-server ~# cat << 'EOF' > /var/www/os/config/boot.ipxe
 #!ipxe
 set server_ip ${next-server}
 set root_path /pxeboot
+set mac_addr ${net0/mac}
 menu Select an OS to boot
-item ubuntu-22.04.3-live-server-amd64         Install Ubuntu 22.04 LTS
-choose --default exit --timeout 60000 option && goto ${option}
+item --gap --           -------------------- Choose installations --------------------
+item ubuntu-22.04.3-live-server-amd64         Install Ubuntu 22.04 LTS (MAC: ${mac_addr})
+item ubuntu-22.04.3-live-server-amd64-common  Install Ubuntu 22.04 LTS
+item --gap --           ---------------------- Advanced options ----------------------
+item --key c config     Configure settings
+item shell              Drop to iPXE shell
+item reboot             Reboot Computer
+choose --default exit --timeout 180000 option && goto ${option}
 
 :ubuntu-22.04.3-live-server-amd64
 set os_root os/images/ubuntu-22.04.3-live-server-amd64
 kernel http://${server_ip}/${os_root}/casper/vmlinuz
 initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://172.31.0.99/os/autoinstall/default/ ---
-#imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://172.31.0.99/os/images/ubuntu-22.04.3-live-server-amd64.iso ---
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${server_ip}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${server_ip}/os/autoinstall/${mac_addr}/ ---
 boot
+
+:ubuntu-22.04.3-live-server-amd64-common
+set os_root os/images/ubuntu-22.04.3-live-server-amd64
+kernel http://${server_ip}/${os_root}/casper/vmlinuz
+initrd http://${server_ip}/${os_root}/casper/initrd
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${server_ip}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${server_ip}/os/autoinstall/common/ ---
+boot
+
+:exit
+exit
+
+:cancel
+echo You cancelled the menu, dropping you to a shell
+
+:shell
+echo Type 'exit' to get the back to the menu
+shell
+set menu-timeout 0
+goto start
+
+:reboot
+reboot
 EOF
 ```
 
 ```
-pxe-server ~# cat << 'EOF' > /var/www/os/autoinstall/default/user-data
+pxe-server ~# mkdir -p /var/www/os/autoinstall/52:54:ff:00:00:01
+pxe-server ~# cat << 'EOF' > /var/www/os/autoinstall/52:54:ff:00:00:01/user-data
 #cloud-config
 autoinstall:
   version: 1
@@ -159,6 +188,22 @@ autoinstall:
   ssh:
     install-server: yes
 EOF
+
+pxe-server ~# mkdir -p /var/www/os/autoinstall/common
+pxe-server ~# cat << 'EOF' > /var/www/os/autoinstall/common/user-data
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: common
+    username: ubuntu
+    # p@ssw0rd
+    password: "$6$xyz$rfUoxhnScmjOykLAVIhgfxmKgIWmTirRSrIZ9j5EJ1Vf765rQS.dCbXjXBx4PuhbcNNrXx2XpwUywQ96C7EJB/"
+  ssh:
+    install-server: yes
+EOF
+
+
 
 pxe-server ~# touch /var/www/os/autoinstall/default/meta-data
 ```
@@ -212,7 +257,7 @@ pxe-server ~# mv ubuntu-22.04.3-live-server-amd64.iso /var/www/os/images/
 Test it by running KVM instance in same network with the PXE server.
 
 ```
-some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-22.04.3-live-server-amd64/
+some-kvm-host ~# mkdir -p /var/kvm/distros/ubuntu-server-22.04/
 some-kvm-host ~# virt-install \
                      --pxe \
                      --boot uefi \
