@@ -99,12 +99,16 @@ domain=linuxhint.local
 # Or you can specify these parameters as arguments when running dnsmasq.
 dhcp-range=172.31.0.99,proxy
 
+# TODO: testing
+dhcp-match=set:ipxe,175 # gPXE/iPXE sends a 175 option.
+
 enable-tftp
 tftp-root=/pxeboot
 
 # boot config for BIOS systems
 dhcp-match=set:bios-x86,option:client-arch,0
-dhcp-boot=tag:bios-x86,firmware/ipxe.pxe,172.31.0.99
+dhcp-boot=tag:bios-x86,tag:!ipxe,firmware/ipxe.pxe,172.31.0.99
+dhcp-boot=tag:bios-x86,tag:ipxe,http://172.31.0.99/os/config/boot.ipxe,172.31.0.99
 
 # A variable "next-server" will be passed.
 # If you want to specify a value of it, you can put its value(y.y.y.y) like below.
@@ -115,7 +119,8 @@ pxe-service=tag:!ipxe,x86PC,"splash",firmware/undionly.kpxe
 # boot config for UEFI systems
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
-dhcp-boot=tag:efi-x86_64,firmware/ipxe.efi,172.31.0.99
+dhcp-boot=tag:efi-x86_64,tag:!ipxe,firmware/ipxe.efi,172.31.0.99
+dhcp-boot=tag:efi-x86_64,tag:ipxe,http://172.31.0.99/os/config/boot.ipxe,172.31.0.99
 EOF
 ```
 
