@@ -94,8 +94,8 @@ domain=linuxhint.local
 # Or you can specify these parameters as arguments when running dnsmasq.
 dhcp-range=172.31.0.99,proxy
 
-# TODO: testing
-dhcp-match=set:ipxe,175 # gPXE/iPXE sends a 175 option.
+# gPXE/iPXE sends a 175 option.
+dhcp-match=set:ipxe,175
 
 enable-tftp
 tftp-root=/pxeboot
