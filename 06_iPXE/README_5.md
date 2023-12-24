@@ -101,6 +101,7 @@ enable-tftp
 tftp-root=/pxeboot
 
 # boot config for BIOS systems
+# Set a tag "bios-x86" when client-arch(Option: 93) is 0(Intel x86PC).
 dhcp-match=set:bios-x86,option:client-arch,0
 dhcp-boot=tag:bios-x86,tag:!ipxe,firmware/ipxe.pxe,172.31.0.99
 dhcp-boot=tag:bios-x86,tag:ipxe,http://172.31.0.99/os/config/boot.ipxe,172.31.0.99
@@ -112,6 +113,7 @@ dhcp-boot=tag:bios-x86,tag:ipxe,http://172.31.0.99/os/config/boot.ipxe,172.31.0.
 pxe-service=tag:!ipxe,x86PC,"splash",firmware/undionly.kpxe
 
 # boot config for UEFI systems
+# Set a tag "efi-x86_64" when client-arch(Option: 93) is 7(EFI BC) or 9(EFI x86-64).
 dhcp-match=set:efi-x86_64,option:client-arch,7
 dhcp-match=set:efi-x86_64,option:client-arch,9
 dhcp-boot=tag:efi-x86_64,tag:!ipxe,firmware/ipxe.efi,172.31.0.99
