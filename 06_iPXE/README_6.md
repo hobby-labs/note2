@@ -116,7 +116,6 @@ pxe-server ~# systemctl restart dnsmasq
 pxe-server ~# mkdir -p /var/www/os/config/
 pxe-server ~# cat << 'EOF' > /var/www/os/config/boot.ipxe
 #!ipxe
-set server_ip ${next-server}
 set root_path /pxeboot
 set mac_addr ${net0/mac}
 menu Select an OS to boot
@@ -131,16 +130,16 @@ choose --default exit --timeout 180000 option && goto ${option}
 
 :ubuntu-22.04.3-live-server-amd64
 set os_root os/images/ubuntu-22.04.3-live-server-amd64
-kernel http://${server_ip}/${os_root}/casper/vmlinuz
-initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${server_ip}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${server_ip}/os/autoinstall/${mac_addr}/ ---
+kernel http://${next-server}/${os_root}/casper/vmlinuz
+initrd http://${next-server}/${os_root}/casper/initrd
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${next-server}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${next-server}/os/autoinstall/${mac_addr}/ ---
 boot
 
 :ubuntu-22.04.3-live-server-amd64-common
 set os_root os/images/ubuntu-22.04.3-live-server-amd64
-kernel http://${server_ip}/${os_root}/casper/vmlinuz
-initrd http://${server_ip}/${os_root}/casper/initrd
-imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${server_ip}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${server_ip}/os/autoinstall/common/ ---
+kernel http://${next-server}/${os_root}/casper/vmlinuz
+initrd http://${next-server}/${os_root}/casper/initrd
+imgargs vmlinuz initrd=initrd autoinstall ip=dhcp url=http://${next-server}/os/images/ubuntu-22.04.3-live-server-amd64.iso ds=nocloud-net;s=http://${next-server}/os/autoinstall/common/ ---
 boot
 
 :exit
