@@ -139,14 +139,14 @@ EOF
 
 ```
 blkid ${L_DEV}*
-> /dev/loop4: PTUUID="1e1bffd3-886d-4b56-b727-7d67f02d7713" PTTYPE="gpt"
-> /dev/loop4p1: UUID="6849-3FAE" BLOCK_SIZE="512" TYPE="vfat" PARTLABEL="EFI System" PARTUUID="83f3886c-1143-4b6b-bdd8-59bdd5158254"
-> /dev/loop4p2: UUID="75d5c027-34dc-47f3-a6da-b5022a58b6dd" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="Linux filesystem" PARTUUID="c01f10d4-4fae-4e6b-9527-35130940bc6a"
-> /dev/loop4p3: UUID="qO8w0q-5qNY-2lvn-flY9-Mf6B-Nb6Z-IfEdNk" TYPE="LVM2_member" PARTLABEL="Linux LVM" PARTUUID="758be5e1-230e-4fd2-bc9b-9ddd0dc08549"
+> /dev/loop4: PTUUID="d471d62d-07a6-40b7-a83a-bb36f44fbf22" PTTYPE="gpt"
+> /dev/loop4p1: UUID="7BEB-2EAE" BLOCK_SIZE="512" TYPE="vfat" PARTLABEL="EFI System" PARTUUID="18597a4c-eac5-48be-b549-348a037b45ac"
+> /dev/loop4p2: UUID="0e136ee5-6434-42bf-a564-c873bcdc4603" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="Linux filesystem" PARTUUID="4b55f371-f39a-45a6-8b07-c89214a86d33"
+> /dev/loop4p3: UUID="28OUVO-lK8G-KHGh-sGb1-jbdX-cXgY-7ErR8w" TYPE="LVM2_member" PARTLABEL="Linux LVM" PARTUUID="d9fbc565-5d65-4f50-9c54-a0096fb4682b"
 
 blkid /dev/mapper/lvm--vg01-lvm--vg01*
-> /dev/mapper/lvm--vg01-lvm--vg01--log: UUID="67b006b0-97f7-4d24-ad61-e319c2f73fa5" BLOCK_SIZE="512" TYPE="xfs"
-> /dev/mapper/lvm--vg01-lvm--vg01--root: UUID="1ff36f0d-73a7-4eae-a513-e5fdd9d0e70e" BLOCK_SIZE="512" TYPE="xfs"
+/dev/mapper/lvm--vg01-lvm--vg01--log: UUID="4a9214f8-0fe0-40f4-92bd-c6eaf205ff82" BLOCK_SIZE="512" TYPE="xfs"
+/dev/mapper/lvm--vg01-lvm--vg01--root: UUID="8b874506-97d1-40fa-a15a-5680cf45d441" BLOCK_SIZE="512" TYPE="xfs"
 ```
 
 ```
@@ -159,10 +159,10 @@ cat << EOF > /etc/fstab
 #
 # <file system>         <mount point>   <type>  <options>                       <dump>  <pass>
 
-UUID="1ff36f0d-73a7-4eae-a513-e5fdd9d0e70e" / xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
-UUID="75d5c027-34dc-47f3-a6da-b5022a58b6dd" /boot ext4 rw,relatime     0 2
-UUID="6849-3FAE"       /boot/efi       vfat    rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro   0 2
-UUID="67b006b0-97f7-4d24-ad61-e319c2f73fa5" /var/log xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
+UUID="8b874506-97d1-40fa-a15a-5680cf45d441" / xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
+UUID="0e136ee5-6434-42bf-a564-c873bcdc4603" /boot ext4 rw,relatime     0 2
+UUID="7BEB-2EAE"       /boot/efi       vfat    rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro   0 2
+UUID="4a9214f8-0fe0-40f4-92bd-c6eaf205ff82" /var/log xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
 EOF
 ```
 
@@ -238,8 +238,8 @@ dpkg-reconfigure network-manager -f noninteractive
 ```
 apt-get install -y grub-efi
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --boot-directory=/boot/efi/EFI --recheck
-#grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
-grub-mkconfig && update-grub
+grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
+#grub-mkconfig && update-grub
 #update-initramfs -u
 ```
 
