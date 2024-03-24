@@ -97,17 +97,17 @@ EOF
 
 ```
 blkid ${L_DEV}*
-/dev/loop4: PTUUID="2c94d9c1-d1ad-47ed-86e5-702b3b22558e" PTTYPE="gpt"
-/dev/loop4p1: UUID="4897-AAED" BLOCK_SIZE="512" TYPE="vfat" PARTLABEL="EFI System" PARTUUID="8184f2b8-e2fd-48c5-861b-5a478276246e"
-/dev/loop4p2: UUID="6eb46b60-ad2c-4c1d-9d88-471d92f2df3e" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="Linux filesystem" PARTUUID="2bfd4fb0-7a9f-48a2-a625-b0a6017d0f76"
-/dev/loop4p3: UUID="9d993822-469e-4220-87dc-69f69c982d2c" BLOCK_SIZE="512" TYPE="xfs" PARTLABEL="Linux filesystem" PARTUUID="83015dc0-efb2-4134-b298-a84f5d36f28c"
+> /dev/loop4: PTUUID="84e6f1ee-62c5-4743-80e8-941a4b545868" PTTYPE="gpt"
+> /dev/loop4p1: UUID="AE87-41C0" BLOCK_SIZE="512" TYPE="vfat" PARTLABEL="EFI System" PARTUUID="f8d3820c-fd56-4ab8-915c-25c22f6f33a0"
+> /dev/loop4p2: UUID="be1aa9b1-f9b1-4c0f-a6e4-d2cdc46733d3" BLOCK_SIZE="4096" TYPE="ext4" PARTLABEL="Linux filesystem" PARTUUID="fbb44b48-dddd-465d-b15b-265654ff8280"
+> /dev/loop4p3: UUID="abfe1520-27fb-4d70-9085-8ff43c9a3cdd" BLOCK_SIZE="512" TYPE="xfs" PARTLABEL="Linux filesystem" PARTUUID="09bcfd08-77cf-410e-aef8-510daa22fc27"
 ```
 
 ```
 cat << EOF > /etc/fstab
-UUID="9d993822-469e-4220-87dc-69f69c982d2c" / xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
-UUID="6eb46b60-ad2c-4c1d-9d88-471d92f2df3e" /boot ext4 rw,relatime     0 2
-UUID="4897-AAED"       /boot/efi       vfat    rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro   0 2
+UUID="abfe1520-27fb-4d70-9085-8ff43c9a3cdd" / xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
+UUID="be1aa9b1-f9b1-4c0f-a6e4-d2cdc46733d3" /boot ext4 rw,relatime     0 2
+UUID="AE87-41C0"       /boot/efi       vfat    rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro   0 2
 EOF
 ```
 
@@ -184,7 +184,7 @@ dpkg-reconfigure network-manager -f noninteractive
 # See: https://forums.gentoo.org/viewtopic-t-1118994-start-0.html
 apt-get install -y grub-efi zynaddsubfx
 #####in make.conf
-export GRUB_PLATFORMS="efi-64"
+#export GRUB_PLATFORMS="efi-64"
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --boot-directory=/boot/efi/EFI --recheck
 #update-grub
 grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
@@ -225,6 +225,19 @@ Convert raw to qcow2.
 ```
 qemu-img convert -f raw cloud-ubuntu-image.raw -O qcow2 ubuntu-image.qcow2
 ```
+
+---------------------------------------------------
+# Launch the image.
+mkdir -p /var/kvm/distros/qemu-ubuntu01/
+cp /home/tsutomu/Downloads/ubuntu-image.qcow2 /var/kvm/distros/qemu-ubuntu01/
+virt-install \
+    --name qemu-ubuntu01 --boot uefi --import \
+    --connect=qemu:///system --vcpus=2 --memory 16384 \
+    --disk path=/var/kvm/distros/qemu-ubuntu01/ubuntu-image.qcow2 \
+    --os-variant=ubuntu22.04 --arch x86_64 \
+    --network bridge:br0,mac=52:54:00:00:00:10 \
+    --graphics vnc,port=5902,listen=127.0.0.1,password=changeme
+virsh destroy qemu-ubuntu01; virsh undefine qemu-ubuntu01 --nvram; rm -rf /var/kvm/distros/qemu-ubuntu01/
 
 ---------------------------------------------------
 
