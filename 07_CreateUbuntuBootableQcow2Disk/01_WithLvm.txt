@@ -334,4 +334,3 @@ grub> initrd (hd0,gpt2)/initrd.img-5.15.0-101-generic
 grub> boot
 ```
 
-
