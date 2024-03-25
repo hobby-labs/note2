@@ -249,32 +249,6 @@ usermod -aG sudo ubuntu
 passwd ubuntu
 ```
 
-Is below necessary? -> It did not work.
-
-```
-cat << 'EOF' > /etc/initramfs-tools/scripts/local-top/forcelvm
-#!/bin/sh
-PREREQ=""
-prereqs()
-{
-   echo "$PREREQ"
-}
-case $1 in
-prereqs)
-   prereqs
-   exit 0
-   ;;
-esac
-. /scripts/functions
-# Begin real processing below this line
-
-# This was necessary because ubuntu's LVM autodetect is completely broken. This
-# is the only line they needed in their script. It makes no sense.
-# How was this so hard for you to do, Ubuntu?!?!?
-lvm vgchange -ay
-EOF
-```
-
 Finished to prepare resources for the cloud image.
 Following this instruction, we will create the cloud image(qcow2) from the raw image.
 

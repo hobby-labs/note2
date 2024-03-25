@@ -22,19 +22,18 @@ dd if=/dev/zero of=stg-comstorage.raw bs=1 count=0 seek=$((1024 * 1024 * 1024 * 
 sgdisk -z cloud-ubuntu-image.raw
 timeout 10 dd if=/dev/zero of=cloud-ubuntu-image.raw bs=4M
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" cloud-ubuntu-image.raw
-sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" cloud-ubuntu-image.raw
-sgdisk -n 3:0:+4G -t 3:8300 -c 3:"Linux filesystem" cloud-ubuntu-image.raw      # An area for logging              (5GiB)
-sgdisk -n 4:0:+4G -t 4:8300 -c 4:"Linux filesystem" cloud-ubuntu-image.raw      # An empty area of Swift           (9GiB)
-sgdisk -n 5:0:+4G -t 5:8300 -c 5:"Linux filesystem" cloud-ubuntu-image.raw      # An empty area of LVM for ceph 01 (13GiB)
-sgdisk -n 6:0:+4G -t 6:8300 -c 6:"Linux filesystem" cloud-ubuntu-image.raw      # An empty area of LVM for ceph 02 (17GiB)
-sgdisk -n 7:0:+8G -t 7:8300 -c 7:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (25GiB)
-sgdisk -n 8:0:+8G -t 8:8300 -c 8:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (33GiB)
-sgdisk -n 9:0:+8G -t 9:8300 -c 9:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (41GiB)
-sgdisk -n 10:0:+8G -t 10:8300 -c 10:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (49GiB)
-sgdisk -n 11:0:+8G -t 11:8300 -c 11:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (57GiB)
-sgdisk -n 12:0:+8G -t 12:8300 -c 12:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (65GiB)
-sgdisk -n 13:0:+8G -t 13:8300 -c 13:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (73GiB)
-sgdisk -n 14:0: -t 14:8300 -c 14:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (81GiB)
+sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Filesystem for /boot" cloud-ubuntu-image.raw
+sgdisk -n 3:0:+4G -t 3:8300 -c 3:"Partition for Swift" cloud-ubuntu-image.raw      # An empty area of Swift           (5GiB)
+sgdisk -n 4:0:+4G -t 4:8300 -c 4:"LVM for Ceph" cloud-ubuntu-image.raw      # An empty area of LVM for ceph 01 (9GiB)
+sgdisk -n 5:0:+4G -t 5:8300 -c 5:"LVM for Ceph" cloud-ubuntu-image.raw      # An empty area of LVM for ceph 02 (13GiB)
+sgdisk -n 6:0:+8G -t 6:8300 -c 6:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (21GiB)
+sgdisk -n 7:0:+8G -t 7:8300 -c 7:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (29GiB)
+sgdisk -n 8:0:+8G -t 8:8300 -c 8:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (37GiB)
+sgdisk -n 9:0:+8G -t 9:8300 -c 9:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (45GiB)
+sgdisk -n 10:0:+8G -t 10:8300 -c 10:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (53GiB)
+sgdisk -n 11:0:+8G -t 11:8300 -c 11:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (61GiB)
+sgdisk -n 12:0:+8G -t 12:8300 -c 12:"Linux LVM" cloud-ubuntu-image.raw          # An area for storing VMs          (69GiB)
+sgdisk -n 13:0: -t 13:8300 -c 13:"Linux LVM" cloud-ubuntu-image.raw             # An area for storing VMs          (80GiB)
 ```
 
 ```
@@ -56,10 +55,13 @@ ls -l ${L_DEV}*
 ```
 mkfs.vfat -F32 ${L_DEV}p1
 mkfs.ext4 ${L_DEV}p2
-pvcreate ${L_DEV}p3
-vgcreate lvm-vg01 ${L_DEV}p3
-lvcreate -L 4G -n lvm-vg01-log lvm-vg01
-lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01
+# ${L_DEV}p3                                      # An empty area of Swift           (5GiB)
+# ${L_DEV}p4                                      # An empty area of LVM for ceph 01 (9GiB)
+# ${L_DEV}p5                                      # An empty area of LVM for ceph 02 (13GiB)
+pvcreate ${L_DEV}p6 ${L_DEV}p7 ${L_DEV}p8 ${L_DEV}p9 ${L_DEV}p10 ${L_DEV}p11 ${L_DEV}p12 ${L_DEV}p13
+vgcreate lvm-vg01 ${L_DEV}p6 ${L_DEV}p7 ${L_DEV}p8 ${L_DEV}p9 ${L_DEV}p10 ${L_DEV}p11 ${L_DEV}p12 ${L_DEV}p13
+lvcreate -L 4G -n lvm-vg01-log lvm-vg01           # An logging area of VMs           (4GiB)
+lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01    # An area for storing VMs          (76GiB)
 mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
 mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
 ```
@@ -80,5 +82,137 @@ sudo mount --rbind /dev $HOME/cloud-image-ubuntu-from-scratch/chroot/dev
 sudo mount --rbind /run $HOME/cloud-image-ubuntu-from-scratch/chroot/run
 sudo mount --rbind /sys $HOME/cloud-image-ubuntu-from-scratch/chroot/sys
 sudo mount --rbind /proc $HOME/cloud-image-ubuntu-from-scratch/chroot/proc
+
+sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot /usr/bin/env L_DEV=${L_DEV} /bin/bash --login
+```
+
+```
+export HOME=/root
+export LC_ALL=C
+```
+
+```
+echo "anonymous" > /etc/hostname
+```
+
+```
+cat << EOF > /etc/apt/sources.list
+deb http://jp.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+
+deb http://jp.archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
+
+deb http://jp.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+EOF
+```
+
+```
+blkid ${L_DEV}*
+...
+blkid /dev/mapper/lvm--vg01-lvm--vg01*
+...
+
+cat << EOF > /etc/fstab
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system>         <mount point>   <type>  <options>                       <dump>  <pass>
+
+UUID="8b874506-97d1-40fa-a15a-5680cf45d441" / xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
+UUID="0e136ee5-6434-42bf-a564-c873bcdc4603" /boot ext4 rw,relatime     0 2
+UUID="7BEB-2EAE"       /boot/efi       vfat    rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro   0 2
+UUID="4a9214f8-0fe0-40f4-92bd-c6eaf205ff82" /var/log xfs rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota        0 1
+EOF
+```
+
+```
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y systemd-sysv
+dbus-uuidgen > /etc/machine-id
+ln -fs /etc/machine-id /var/lib/dbus/machine-id
+dpkg-divert --local --rename --add /sbin/initctl
+ln -s /bin/true /sbin/initctl
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    xfsprogs os-prober ifupdown \
+    network-manager resolvconf locales \
+    build-essential module-assistant cloud-init \
+    grub2 grub-pc linux-generic
+```
+
+```
+cat <<EOF > /etc/network/interfaces
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+EOF
+```
+
+```
+# https://serverfault.com/a/689947
+echo "Asia/Tokyo" > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+sed -i -e 's/# ja_JP.UTF-8 UTF-8/ja_JP.UTF-8 UTF-8/' /etc/locale.gen
+dpkg-reconfigure --frontend=noninteractive locales
+update-locale LANG=en_US.UTF-8
+```
+
+```
+dpkg-reconfigure resolvconf -f noninteractive
+```
+
+```
+cat <<EOF > /etc/NetworkManager/NetworkManager.conf
+[main]
+rc-manager=resolvconf
+plugins=ifupdown,keyfile
+dns=default
+
+[ifupdown]
+managed=false
+EOF
+```
+
+```
+dpkg-reconfigure network-manager -f noninteractive
+```
+
+```
+apt-get install -y grub-efi
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --boot-directory=/boot/efi/EFI --recheck
+grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
+#grub-mkconfig && update-grub
+#update-initramfs -u
+```
+
+```
+useradd ubuntu
+usermod -aG sudo ubuntu
+passwd ubuntu
+```
+
+Finished to prepare resources for the cloud image.
+Following this instruction, we will create the cloud image(qcow2) from the raw image.
+
+```
+truncate -s 0 /etc/machine-id
+rm /sbin/initctl
+dpkg-divert --rename --remove /sbin/initctl
+
+apt-get clean
+rm -rf /tmp/* ~/.bash_history
+export HISTSIZE=0
+exit
 ```
 
