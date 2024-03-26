@@ -19,7 +19,6 @@ dd if=/dev/zero of=cloud-ubuntu-image.raw bs=1 count=0 seek=32212254720 status=p
 
 ```
 sgdisk -z cloud-ubuntu-image.raw
-timeout 10 dd if=/dev/zero of=cloud-ubuntu-image.raw bs=4M
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" cloud-ubuntu-image.raw
 sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" cloud-ubuntu-image.raw
 sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" cloud-ubuntu-image.raw
