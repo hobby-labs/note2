@@ -78,6 +78,15 @@ Admin ロールで、Placement にユーザを作成します。
 openstack-controller-node01 ~# openstack role add --project service --user placement admin
 </syntaxhighlight>
 
+<syntaxhighlight lang="console">
+openstack-controller-node01 ~# openstack role assignment list --user placement --project service --names
++-------+-------------------+-------+-----------------+--------+--------+-----------+
+| Role  | User              | Group | Project         | Domain | System | Inherited |
++-------+-------------------+-------+-----------------+--------+--------+-----------+
+| admin | placement@Default |       | service@Default |        |        | False     |
++-------+-------------------+-------+-----------------+--------+--------+-----------+
+</syntaxhighlight>
+
 Placement API エントリをService カタログに作成します。
 
 <syntaxhighlight lang="console">
