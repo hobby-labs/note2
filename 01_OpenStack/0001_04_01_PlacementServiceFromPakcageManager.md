@@ -6,8 +6,14 @@ Placement を以下のドメイン、プロジェクトに構築していきま�
 
 = Installation =
 
+; Placement
+: https://docs.openstack.org/placement/latest/
+
 ; Installation (Placement)
-: https://docs.openstack.org/placement/wallaby/install/
+: https://docs.openstack.org/placement/latest/install/index.html
+
+; Installation - Ubuntu (Placement)
+: https://docs.openstack.org/placement/latest/install/install-ubuntu.html
 
 Placement は、Apache 環境下で動く<code>placement-api</code> WSGI スクリプトのためのもので、nginx 等の他のWSGI 可能なWeb サーバでも利用可能です。
 インストールしたパッケージ管理システムに依存しますが、たいていは<code>/usr/bin</code>, <code>/usr/local/bin</code> にスクリプトはあります。
@@ -162,7 +168,7 @@ auth_strategy = keystone
 
 [keystone_authtoken]
 ......
-www_authenticate_uri = http://openstack-controller-node01:5000/
+#www_authenticate_uri = http://openstack-controller-node01:5000/
 auth_url = http://openstack-controller-node01:5000/v3
 memcached_servers = openstack-controller-node01:11211
 auth_type = password
@@ -176,7 +182,7 @@ password = p@ssw0rd
 
 <code>placement</code> DB を作成します。
 
-<syntaxhighlight lang="console"
+<syntaxhighlight lang="console">
 openstack-controller-node01 ~# su -s /bin/sh -c "placement-manage db sync" placement
 /usr/lib/python3/dist-packages/pymysql/cursors.py:170: Warning: (1280, "Name 'alembic_version_pkc' ignored for PRIMARY key.")
   result = self._query(query)
@@ -227,7 +233,7 @@ Placement API へコマンドを実行していきます。
 Python のパッケージマネージャとして、ディストリビューションで用意されたものを使用する場合、Python3 に対応するために、<code>pip3</code> を使用するもしくは<code>python3-osc-placement</code> をインストールするように指定するなど、適切な対応をするようにしてください。
 
 <syntaxhighlight lang="console">
-@openstack-controller-node01 ~# pip3 install osc-placement
+@openstack-controller-node01 ~# apt-get install python3-osc-placement
 </syntaxhighlight>
 
 利用可能なクラス、特性リソースとその情報を確認します。
