@@ -7,6 +7,21 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get -y install \
    qemu-system \
    genisoimage
 ```
+
+```
+# Ubuntu 22.04 LTS (Jammy Jellyfish)
+#
+# Mountpoint: Size,   Filesystem, LVM,           Description
+# /boot/efi:  512MiB, vfat,       ,              -
+# /boot:      512MiB, ext4,       -,             -
+# -:          31GiB,   xfs,        -,             An empty area of Swift
+```
+
+```
+ORIGIN_NAME="stg-controller"
+CODE_NAME="jammy"
+```
+
 ```
 mkdir $HOME/cloud-image-ubuntu-from-scratch
 ```
@@ -14,20 +29,20 @@ mkdir $HOME/cloud-image-ubuntu-from-scratch
 cd $HOME/cloud-image-ubuntu-from-scratch
 ```
 ```
-dd if=/dev/zero of=cloud-ubuntu-image.raw bs=1 count=0 seek=32212254720 status=progress
+dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=32212254720 status=progress
 ```
 
 ```
-sgdisk -z cloud-ubuntu-image.raw
-sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" cloud-ubuntu-image.raw
-sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" cloud-ubuntu-image.raw
-sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" cloud-ubuntu-image.raw
+sgdisk -z ${ORIGIN_NAME}.raw
+sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" ${ORIGIN_NAME}.raw
+sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" ${ORIGIN_NAME}.raw
+sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
 ```
 
 ```
-sudo losetup -fP cloud-ubuntu-image.raw
-sudo losetup -a | grep cloud-ubuntu-image.raw
-> /dev/loop3: [64769]:201335002 (/root/cloud-image-ubuntu-from-scratch/cloud-ubuntu-image.raw)
+sudo losetup -fP ${ORIGIN_NAME}.raw
+sudo losetup -a | grep ${ORIGIN_NAME}.raw
+> /dev/loop3: [64769]:201335002 (/root/cloud-image-ubuntu-from-scratch/${ORIGIN_NAME}.raw)
 ```
 
 In this example, the loop device was created as /dev/loop3.
@@ -81,7 +96,7 @@ sudo mount ${L_DEV}p1 chroot/boot/efi
 ##   --variant=minbase \
 ##   --components "main,universe" \
 ##   --include "ca-certificates,cron,iptables,isc-dhcp-client,libnss-myhostname,ntp,ntpdate,rsyslog,ssh,sudo,dialog,whiptail,man-db,curl,dosfstools,e2fsck-static" \
-##   jammy \
+##   ${CODE_NAME} \
 ##   $HOME/cloud-image-ubuntu-from-scratch/chroot \
 ##   http://jp.archive.ubuntu.com/ubuntu/
 
@@ -90,7 +105,7 @@ sudo debootstrap \
    --variant=minbase \
    --components "main,universe" \
    --include "ca-certificates,cron,iptables,isc-dhcp-client,libnss-myhostname,ntp,ntpdate,rsyslog,ssh,sudo,dialog,whiptail,man-db,curl,dosfstools,e2fsck-static,lvm2" \
-   jammy \
+   ${CODE_NAME} \
    $HOME/cloud-image-ubuntu-from-scratch/chroot \
    http://jp.archive.ubuntu.com/ubuntu/
 ```
@@ -125,14 +140,14 @@ echo "anonymous" > /etc/hostname
 
 ```
 cat << EOF > /etc/apt/sources.list
-deb http://jp.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
-deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+deb http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME} main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME} main restricted universe multiverse
 
-deb http://jp.archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
-deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
+deb http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME}-security main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME}-security main restricted universe multiverse
 
-deb http://jp.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
-deb-src http://jp.archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME}-updates main restricted universe multiverse
+deb-src http://jp.archive.ubuntu.com/ubuntu/ ${CODE_NAME}-updates main restricted universe multiverse
 EOF
 ```
 
