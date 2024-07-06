@@ -252,6 +252,7 @@ Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
 Acquire::HTTPS::Proxy "false";
 EOF
 
+cat /etc/apt/apt.conf.d/01proxy
 apt-get update
 ```
 
@@ -383,9 +384,10 @@ update-initramfs -u
 ```
 
 ```
-useradd ubuntu
-usermod -aG sudo ubuntu
-passwd ubuntu
+## # This user for testing
+## useradd ubuntu
+## usermod -aG sudo ubuntu
+## passwd ubuntu
 ```
 
 Finished to prepare resources for the cloud image.
@@ -418,18 +420,21 @@ qemu-img convert -f raw ${ORIGIN_NAME}.raw -O qcow2 ${ORIGIN_NAME}.qcow2
 ```
 
 # Testing
+```
 ---------------------------------------------------
-mkdir -p /var/kvm/distros/stg-controller01 && cd /var/kvm/distros/stg-controller01
-scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/stg-controller.qcow2 /tmp/ && sudo mv /tmp/stg-controller.qcow2 .
-sudo virt-install \
-  --name stg-controller01 \
-  --boot uefi \
-  --ram 16384 \
+# controller
+CATEGORY="controller"
+#CATEGORY="compute"
+#CATEGORY="storage"
+mkdir -p /var/kvm/distros/stg-${CATEGORY}01 && cd /var/kvm/distros/stg-${CATEGORY}01
+scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/vm-${CATEGORY}.qcow2 /tmp/ && sudo mv /tmp/vm-${CATEGORY}.qcow2 /var/kvm/iso/
+sudo virt-install --name stg-${CATEGORY}01 --boot uefi --ram 16384 \
   --os-variant=ubuntu22.04 \
-  --disk /var/kvm/iso/stg-controller.qcow2,size=32,bus=virtio,format=qcow2 \
-  --network bridge=br0 \
-  --import
+  --disk /var/kvm/iso/vm-${CATEGORY}.qcow2,size=32,bus=virtio,format=qcow2 \
+  --network bridge=br0 --import
+virsh destroy stg-${CATEGORY}01 && virsh undefine stg-${CATEGORY}01 --nvram && rm -rf /var/kvm/distros/stg-${CATEGORY}01
 ---------------------------------------------------
+```
 
 ```
 grub> ls
