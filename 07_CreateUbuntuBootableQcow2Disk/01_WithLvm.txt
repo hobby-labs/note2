@@ -1,3 +1,29 @@
+# Prepareing ubuntu for building cloud image.
+
+## Run ipxe-boot
+
+```
+git clone https://github.com/TsutomuNakamura/ipxe-boot.git
+cd ipxe-boot
+docker-compose up
+
+# It will take several minutes to run the containers.
+```
+
+```
+mkdir -p /var/kvm/distros/ubuntu2204
+virt-install \
+  --name ubuntu2204 \
+  --boot uefi \
+  --pxe \
+  --ram 32768 \
+  --os-variant=ubuntu22.04 \
+  --disk /var/kvm/distros/ubuntu2204/disk.img,size=128,bus=virtio,format=qcow2 \
+  --network bridge=br0
+```
+
+
+
 [cloud-image-ubuntu-from-scratch](https://github.com/mvallim/cloud-image-ubuntu-from-scratch)
 ```
 DEBIAN_FRONTEND=noninteractive sudo apt-get -y update
@@ -29,7 +55,7 @@ mkdir $HOME/cloud-image-ubuntu-from-scratch
 cd $HOME/cloud-image-ubuntu-from-scratch
 ```
 ```
-dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=32212254720 status=progress
+dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=68719476736 status=progress
 ```
 
 ```
@@ -42,7 +68,7 @@ sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
 ```
 sudo losetup -fP ${ORIGIN_NAME}.raw
 sudo losetup -a | grep ${ORIGIN_NAME}.raw
-> /dev/loop3: [64769]:201335002 (/root/cloud-image-ubuntu-from-scratch/${ORIGIN_NAME}.raw)
+> /dev/loop3: [64769]:201335002 (/root/cloud-image-ubuntu-from-scratch/stg-controller.raw)
 ```
 
 In this example, the loop device was created as /dev/loop3.
@@ -123,7 +149,7 @@ sudo mount --rbind /proc $HOME/cloud-image-ubuntu-from-scratch/chroot/proc
 ```
 
 ```
-sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot /usr/bin/env L_DEV=${L_DEV} /bin/bash --login
+sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot /usr/bin/env L_DEV=${L_DEV} ORIGIN_NAME=${ORIGIN_NAME} CODE_NAME=${CODE_NAME} /bin/bash --login
 ```
 
 ```
@@ -255,6 +281,7 @@ grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubunt
 grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
 #grub-mkconfig && update-grub
 #update-initramfs -u
+update-initramfs -u     ### Mey needed
 ```
 
 ```
@@ -299,7 +326,7 @@ sudo losetup -D
 Convert raw to qcow2.
 
 ```
-qemu-img convert -f raw cloud-ubuntu-image.raw -O qcow2 ubuntu-image.qcow2
+qemu-img convert -f raw ${ORIGIN_NAME}.raw -O qcow2 ${ORIGIN_NAME}.qcow2
 ```
 
 ---------------------------------------------------
