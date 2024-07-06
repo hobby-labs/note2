@@ -43,23 +43,26 @@ network:
 ```
 APT_CACHE_SERVER="172.31.0.11"
 ORIGIN_NAME="vm-controller"
-ORIGIN_NAME="vm-compute"
-ORIGIN_NAME="vm-storage"
+#ORIGIN_NAME="vm-compute"
+#ORIGIN_NAME="vm-storage"
 CODE_NAME="jammy"
 if [ "${ORIGIN_NAME}" = "vm-controller" -o "${ORIGIN_NAME}" = "vm-storage" ]; then
     SEEK_SIZE="34359738368"
 elif [ "${ORIGIN_NAME}" = "vm-compute" ]; then
     SEEK_SIZE="68719476736"
 fi
+
+echo "APT_CACHE_SERVER=${APT_CACHE_SERVER}, ORIGIN_NAME=${ORIGIN_NAME}, CODE_NAME=${CODE_NAME}, SEEK_SIZE=${SEEK_SIZE}"
 ```
 
 # Prepare to use apt cache proxy
 ```
-cat << 'EOF' > /etc/apt/apt.conf.d/01proxy
+cat << EOF > /etc/apt/apt.conf.d/01proxy
 Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
 Acquire::HTTPS::Proxy "false";
 EOF
 
+cat /etc/apt/apt.conf.d/01proxy
 apt-get update
 ```
 
@@ -93,12 +96,6 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get -y install \
 # /:            -GiB, xfs,        lvm-vg01-root, An area for storing VMs. Over 64GiB is recommended. Finally, Over about 80GiB [(64 + 4 + 4 + 4 + 4 + (512 + 512)MiB)GiB] is recommended.
 ```
 
-```
-ORIGIN_NAME="vm-compute"
-CODE_NAME="jammy"
-SEEK_SIZE="68719476736"
-```
-
 ### vm-storage
 ```
 # Mountpoint: Size,   Filesystem, LVM,           Description
@@ -109,12 +106,6 @@ SEEK_SIZE="68719476736"
 # -:          4GiB,   xfs,        -,             An empty area of Ceph 02
 # /var/log:   4GiB,   xfs,        lvm-vg01-log,  -
 # /:         19GiB,   xfs,        lvm-vg01-root  -
-```
-
-```
-ORIGIN_NAME="vm-compute"
-CODE_NAME="jammy"
-SEEK_SIZE="34359738368"
 ```
 
 ## Create empty raw disk image
@@ -160,7 +151,7 @@ fi
 sudo losetup -fP ${ORIGIN_NAME}.raw
 sudo losetup -a | grep ${ORIGIN_NAME}.raw
 
-L_DEV=$(losetup -a | grep -F "/stg-comstorage.raw" | cut -d ':' -f 1)
+L_DEV=$(losetup -a | grep -P "/vm-.*\.raw" | cut -d ':' -f 1)
 [ -z "${L_DEV}" ] && {
     echo "Failed to get loop device"
     exit 1
@@ -253,7 +244,7 @@ sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot \
 ```
 
 ```
-cat << 'EOF' > /etc/apt/apt.conf.d/01proxy
+cat << "EOF" > /etc/apt/apt.conf.d/01proxy
 Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
 Acquire::HTTPS::Proxy "false";
 EOF
