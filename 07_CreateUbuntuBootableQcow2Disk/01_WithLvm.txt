@@ -42,9 +42,9 @@ network:
 # Prepare variables
 ```
 APT_CACHE_SERVER="172.31.0.11"
-ORIGIN_NAME="vm-controller"
+#ORIGIN_NAME="vm-controller"
 #ORIGIN_NAME="vm-compute"
-#ORIGIN_NAME="vm-storage"
+ORIGIN_NAME="vm-storage"
 CODE_NAME="jammy"
 if [ "${ORIGIN_NAME}" = "vm-controller" -o "${ORIGIN_NAME}" = "vm-storage" ]; then
     SEEK_SIZE="34359738368"
@@ -81,31 +81,35 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get -y install \
 ## Disk Layout and declaring variables
 ### vm-controller
 ```
-# Mountpoint: Size,   Filesystem, LVM,           Description
-# /boot/efi:  512MiB, vfat,       ,              -
-# /boot:      512MiB, ext4,       -,             -
-# -:          31GiB,   xfs,       -,             An empty area of Swift
+# Device,                                Mountpoint, Size,    Filesystem, Description
+# /dev/vda1                              /boot/efi:  512MiB,  vfat,       -
+# /dev/vda2                              /boot:      512MiB,  ext4,       -
+# /dev/vda3                              lvm-vg01:   (31GiB), (LVM),      LVM Group for 
+# /dev/mapper/lvm--vg01-lvm--vg01--log,  /var/log:   4GiB,    xfs,        An area to stor logs
+# /dev/mapper/lvm--vg01-lvm--vg01--root, /:          27GiB,   xfs,        An area to stor logs
 ```
 
 ### vm-compute
 ```
-# Mountpoint: Size,   Filesystem, LVM,           Description
-# /boot/efi:  512MiB, vfat,       ,              -
-# /boot:      512MiB, ext4,       ,              -
-# /var/log:     4GiB, xfs,        lvm-vg01-log,  -
-# /:            -GiB, xfs,        lvm-vg01-root, An area for storing VMs. Over 64GiB is recommended. Finally, Over about 80GiB [(64 + 4 + 4 + 4 + 4 + (512 + 512)MiB)GiB] is recommended.
+# Device,                                Mountpoint, Size,    Filesystem, Description
+# /dev/vda1                              /boot/efi:  512MiB,  vfat,       -
+# /dev/vda2                              /boot:      512MiB,  ext4,       -
+# /dev/vda3,4...                         lvm-vg01:   (63GiB), (LVM),      This area consists of multiple devices.
+# /dev/mapper/lvm--vg01-lvm--vg01--log,  /var/log:   4GiB,    xfs,        -
+# /dev/mapper/lvm--vg01-lvm--vg01--root, /:          59GiB,   xfs,        -
 ```
 
 ### vm-storage
 ```
-# Mountpoint: Size,   Filesystem, LVM,           Description
-# /boot/efi:  512MiB, vfat,       ,              -
-# /boot:      512MiB, ext4,       -,             -
-# -:          4GiB,   xfs,        -,             An empty area of Swift
-# -:          4GiB,   xfs,        -,             An empty area of Ceph 01
-# -:          4GiB,   xfs,        -,             An empty area of Ceph 02
-# /var/log:   4GiB,   xfs,        lvm-vg01-log,  -
-# /:         19GiB,   xfs,        lvm-vg01-root  -
+# Device,                                Mountpoint, Size,    Filesystem, Description
+# /dev/vda1,                             /boot/efi,  512MiB,  vfat,       -
+# /dev/vda2,                             /boot,      512MiB,  ext4,       -
+# /dev/vda3,                             -,          4GiB,    (LVM),      An empty area of Swift
+# /dev/vda4,                             -,          4GiB,    (LVM),      An empty area of Ceph
+# /dev/vda5,                             -,          4GiB,    (LVM),      An empty area of Ceph
+# /dev/vda6,7...                         lvm-vg01:   (18GiB), (LVM),      -
+# /dev/mapper/lvm--vg01-lvm--vg01--log,  /var/log:   4GiB,    xfs,        -
+# /dev/mapper/lvm--vg01-lvm--vg01--root, /:          14GiB,   xfs,        -
 ```
 
 ## Create empty raw disk image
@@ -120,20 +124,8 @@ dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=${SEEK_SIZE} status=prog
 sgdisk -z ${ORIGIN_NAME}.raw
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" ${ORIGIN_NAME}.raw
 sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" ${ORIGIN_NAME}.raw
-if [ "${ORIGIN_NAME}" = "vm-controller" ]; then
-    sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
-elif [ "${ORIGIN_NAME}" = "vm-compute" ]; then
-    # LVM (17GiB)
-    sgdisk -n 3:0:+16G -t 3:8300 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
-    # LVM (25GiB)
-    sgdisk -n 4:0:+16G -t 4:8300 -c 4:"Linux LVM" ${ORIGIN_NAME}.raw
-    # LVM (41GiB)
-    sgdisk -n 5:0:+16G -t 5:8300 -c 5:"Linux LVM" ${ORIGIN_NAME}.raw
-    # LVM (57GiB)
-    sgdisk -n 6:0:+16G -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
-    # LVM (64GiB)
-    sgdisk -n 7:0:     -t 7:8300 -c 7:"Linux LVM" ${ORIGIN_NAME}.raw
-elif [ "${ORIGIN_NAME}" = "vm-storage" ]; then
+
+if [ "${ORIGIN_NAME}" = "vm-storage" ]; then
     # Swift (5GiB)
     sgdisk -n 3:0:+4G  -t 3:8300 -c 3:"LVM for Swift" ${ORIGIN_NAME}.raw
     # Ceph (9GiB)
@@ -141,9 +133,9 @@ elif [ "${ORIGIN_NAME}" = "vm-storage" ]; then
     # Ceph (13GiB)
     sgdisk -n 5:0:+4G  -t 5:8300 -c 5:"LVM for Ceph" ${ORIGIN_NAME}.raw
     # LVM (25GiB)
-    sgdisk -n 6:0:+16G -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
-    # LVM (32GiB)
-    sgdisk -n 7:0:     -t 7:8300 -c 7:"Linux LVM" ${ORIGIN_NAME}.raw
+    sgdisk -n 6:0:     -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
+else
+    sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
 fi
 ```
 
@@ -180,26 +172,21 @@ ls -l ${L_DEV}*
 ```
 mkfs.vfat -F32 ${L_DEV}p1
 mkfs.ext4 ${L_DEV}p2
-if [ "${ORIGIN_NAME}" "vm-controller" ]; then
-    lvcreate -L 4G -n lvm-vg01-log lvm-vg01
-    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01
-    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
-    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
-elif [ "${ORIGIN_NAME}" = "vm-compute" ]
-    pvcreate          ${L_DEV}p3 ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
-    vgcreate lvm-vg01 ${L_DEV}p3 ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
-    lvcreate -L 4G -n lvm-vg01-log lvm-vg01                # An logging area of VMs           (4GiB)
-    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01         # An area for storing VMs          (59GiB)
-    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
-    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
-elif [ "${ORIGIN_NAME}" = "vm-storage" ]
+if [ "${ORIGIN_NAME}" = "vm-storage" ]; then
     # ${L_DEV}p3: Swift (+4GiB)
     # ${L_DEV}p4: Ceph 01 (+4GiB)
     # ${L_DEV}p5: Ceph 02 (+4GiB)
-    pvcreate          ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
-    vgcreate lvm-vg01 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
+    pvcreate          ${L_DEV}p6
+    vgcreate lvm-vg01 ${L_DEV}p6
     lvcreate -L 4G -n lvm-vg01-log lvm-vg01                # An logging area of VMs           (4GiB)
     lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01         # An area for storing VMs          (59GiB)
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
+else
+    pvcreate          ${L_DEV}p3
+    vgcreate lvm-vg01 ${L_DEV}p3
+    lvcreate -L 4G -n lvm-vg01-log lvm-vg01
+    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01
     mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
     mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
 fi
@@ -244,7 +231,7 @@ sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot \
 ```
 
 ```
-cat << "EOF" > /etc/apt/apt.conf.d/01proxy
+cat << EOF > /etc/apt/apt.conf.d/01proxy
 Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
 Acquire::HTTPS::Proxy "false";
 EOF
@@ -377,14 +364,15 @@ dpkg-reconfigure network-manager -f noninteractive
 apt-get install -y grub-efi
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --boot-directory=/boot/efi/EFI --recheck
 grub-mkconfig -o /boot/efi/EFI/grub/grub.cfg
-update-initramfs -u
+##update-initramfs -u
+sync
 ```
 
 ```
-## # This user for testing
-## useradd ubuntu
-## usermod -aG sudo ubuntu
-## passwd ubuntu
+### # This user for testing
+#useradd ubuntu
+#usermod -aG sudo ubuntu
+#passwd ubuntu
 ```
 
 Finished to prepare resources for the cloud image.
@@ -420,14 +408,15 @@ qemu-img convert -f raw ${ORIGIN_NAME}.raw -O qcow2 ${ORIGIN_NAME}.qcow2
 ```
 ---------------------------------------------------
 # controller
-CATEGORY="controller"
+#CATEGORY="controller"
 #CATEGORY="compute"
-#CATEGORY="storage"
-mkdir -p /var/kvm/distros/stg-${CATEGORY}01 && cd /var/kvm/distros/stg-${CATEGORY}01
-scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/vm-${CATEGORY}.qcow2 /tmp/ && sudo mv /tmp/vm-${CATEGORY}.qcow2 /var/kvm/iso/
+CATEGORY="storage"
+sudo mkdir -p /var/kvm/distros/stg-${CATEGORY}01 && cd /var/kvm/distros/stg-${CATEGORY}01
+scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/vm-${CATEGORY}.qcow2 /tmp/ && sudo mv /tmp/vm-${CATEGORY}.qcow2 /var/kvm/distros/stg-${CATEGORY}01/
 sudo virt-install --name stg-${CATEGORY}01 --boot uefi --ram 16384 \
   --os-variant=ubuntu22.04 \
-  --disk /var/kvm/iso/vm-${CATEGORY}.qcow2,size=32,bus=virtio,format=qcow2 \
+  --disk /var/kvm/distros/stg-${CATEGORY}01/vm-${CATEGORY}.qcow2,size=32,bus=virtio,format=qcow2 \
+  --graphics vnc,port=5901,listen=127.0.0.1,password=changeme \
   --network bridge=br0 --import
 virsh destroy stg-${CATEGORY}01 && virsh undefine stg-${CATEGORY}01 --nvram && rm -rf /var/kvm/distros/stg-${CATEGORY}01
 ---------------------------------------------------
@@ -446,6 +435,7 @@ grub> ls -l (hd0,gpt2)/
 grub> insmod lvm
 grub> ##set root=(lvm/lvm--vg01-lvm--vg01--root)
 grub> ##linux (hd0,gpt2)/vmlinuz-5.15.0-101-generic root=/dev/mapper/lvm--vg01-lvm--vg01--root
+grub> ## probe --fs-uuid lvm/lvm--vg01-lvm--vg01--root
 grub> linux (hd0,gpt2)/vmlinuz-5.15.0-101-generic root=UUID=05d7611d-e724-44d1-8ea7-bc64babadbcb
 grub> initrd (hd0,gpt2)/initrd.img-5.15.0-101-generic
 grub> boot
