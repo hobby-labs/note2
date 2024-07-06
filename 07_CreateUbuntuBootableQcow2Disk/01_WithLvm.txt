@@ -39,7 +39,23 @@ network:
   version: 2
 ```
 
+# Prepare variables
+```
+APT_CACHE_SERVER="172.31.0.11"
+ORIGIN_NAME="vm-controller"
+CODE_NAME="jammy"
+SEEK_SIZE="34359738368"
+```
 
+# Prepare to use apt cache proxy
+```
+cat << 'EOF' > /etc/apt/apt.conf.d/01proxy
+Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
+Acquire::HTTPS::Proxy "false";
+EOF
+
+apt-get update
+```
 
 # Installing necessary packages to build cloud image
 
@@ -60,12 +76,6 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get -y install \
 # /boot/efi:  512MiB, vfat,       ,              -
 # /boot:      512MiB, ext4,       -,             -
 # -:          31GiB,   xfs,       -,             An empty area of Swift
-```
-
-```
-ORIGIN_NAME="vm-controller"
-CODE_NAME="jammy"
-SEEK_SIZE="34359738368"
 ```
 
 ### vm-compute
@@ -224,11 +234,6 @@ sudo debootstrap \
 ```
 
 ```
-# sudo mount --bind /dev $HOME/cloud-image-ubuntu-from-scratch/chroot/dev
-# sudo mount --bind /run $HOME/cloud-image-ubuntu-from-scratch/chroot/run
-# #sudo mount --bind /sys $HOME/cloud-image-ubuntu-from-scratch/chroot/sys
-# #sudo mount --bind /proc $HOME/cloud-image-ubuntu-from-scratch/chroot/proc
-
 sudo mount --rbind /dev $HOME/cloud-image-ubuntu-from-scratch/chroot/dev
 sudo mount --rbind /run $HOME/cloud-image-ubuntu-from-scratch/chroot/run
 sudo mount --rbind /sys $HOME/cloud-image-ubuntu-from-scratch/chroot/sys
@@ -236,13 +241,21 @@ sudo mount --rbind /proc $HOME/cloud-image-ubuntu-from-scratch/chroot/proc
 ```
 
 ```
-sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot /usr/bin/env L_DEV=${L_DEV} ORIGIN_NAME=${ORIGIN_NAME} CODE_NAME=${CODE_NAME} /bin/bash --login
+sudo chroot $HOME/cloud-image-ubuntu-from-scratch/chroot \
+    /usr/bin/env L_DEV=${L_DEV} ORIGIN_NAME=${ORIGIN_NAME} CODE_NAME=${CODE_NAME} APT_CACHE_SERVER="${APT_CACHE_SERVER}" \
+    /bin/bash --login
 ```
 
 ```
-# mount none -t proc /proc
-# mount none -t sysfs /sys
-# mount none -t devpts /dev/pts
+cat << 'EOF' > /etc/apt/apt.conf.d/01proxy
+Acquire::HTTP::Proxy "http://${APT_CACHE_SERVER}:3142";
+Acquire::HTTPS::Proxy "false";
+EOF
+
+apt-get update
+```
+
+```
 export HOME=/root
 export LC_ALL=C
 ```
@@ -379,6 +392,7 @@ Finished to prepare resources for the cloud image.
 Following this instruction, we will create the cloud image(qcow2) from the raw image.
 
 ```
+rm -f /etc/apt/apt.conf.d/01proxy && apt-get update
 truncate -s 0 /etc/machine-id
 rm /sbin/initctl
 dpkg-divert --rename --remove /sbin/initctl
@@ -392,19 +406,8 @@ exit
 Chroot environment was finished.
 
 ```
-#cd $HOME/cloud-image-ubuntu-from-scratch
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/boot/efi
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/boot
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/var/log
-#
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/dev
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/run
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/sys
-#sudo umount $HOME/cloud-image-ubuntu-from-scratch/chroot/proc
-
 sudo mount --make-rslave $HOME/cloud-image-ubuntu-from-scratch/chroot/
 sudo umount -R $HOME/cloud-image-ubuntu-from-scratch/chroot/
-
 sudo losetup -D
 ```
 
