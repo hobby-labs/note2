@@ -22,7 +22,26 @@ virt-install \
   --network bridge=br0
 ```
 
+* /etc/netplan/00-installer-config.yaml
+```
+network:
+  ethernets:
+    enp1s0:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+      - 172.31.99.2/16
+      routes:
+      - to: default
+        via: 172.31.0.1
+      nameservers:
+        addresses: [172.31.0.1, 8.8.8.8, 8.8.4.4]
+  version: 2
+```
 
+
+
+# Installing necessary packages to build cloud image
 
 [cloud-image-ubuntu-from-scratch](https://github.com/mvallim/cloud-image-ubuntu-from-scratch)
 ```
@@ -34,49 +53,107 @@ DEBIAN_FRONTEND=noninteractive sudo apt-get -y install \
    genisoimage
 ```
 
+## Disk Layout and declaring variables
+### vm-controller
 ```
-# Ubuntu 22.04 LTS (Jammy Jellyfish)
-#
 # Mountpoint: Size,   Filesystem, LVM,           Description
 # /boot/efi:  512MiB, vfat,       ,              -
 # /boot:      512MiB, ext4,       -,             -
-# -:          31GiB,   xfs,        -,             An empty area of Swift
+# -:          31GiB,   xfs,       -,             An empty area of Swift
 ```
 
 ```
-ORIGIN_NAME="stg-controller"
+ORIGIN_NAME="vm-controller"
 CODE_NAME="jammy"
+SEEK_SIZE="34359738368"
+```
+
+### vm-compute
+```
+# Mountpoint: Size,   Filesystem, LVM,           Description
+# /boot/efi:  512MiB, vfat,       ,              -
+# /boot:      512MiB, ext4,       ,              -
+# /var/log:     4GiB, xfs,        lvm-vg01-log,  -
+# /:            -GiB, xfs,        lvm-vg01-root, An area for storing VMs. Over 64GiB is recommended. Finally, Over about 80GiB [(64 + 4 + 4 + 4 + 4 + (512 + 512)MiB)GiB] is recommended.
 ```
 
 ```
-mkdir $HOME/cloud-image-ubuntu-from-scratch
+ORIGIN_NAME="vm-compute"
+CODE_NAME="jammy"
+SEEK_SIZE="68719476736"
 ```
+
+### vm-storage
 ```
+# Mountpoint: Size,   Filesystem, LVM,           Description
+# /boot/efi:  512MiB, vfat,       ,              -
+# /boot:      512MiB, ext4,       -,             -
+# -:          4GiB,   xfs,        -,             An empty area of Swift
+# -:          4GiB,   xfs,        -,             An empty area of Ceph 01
+# -:          4GiB,   xfs,        -,             An empty area of Ceph 02
+# /var/log:   4GiB,   xfs,        lvm-vg01-log,  -
+# /:         19GiB,   xfs,        lvm-vg01-root  -
+```
+
+```
+ORIGIN_NAME="vm-compute"
+CODE_NAME="jammy"
+SEEK_SIZE="34359738368"
+```
+
+## Create empty raw disk image
+
+```
+rm -rf $HOME/cloud-image-ubuntu-from-scratch && mkdir $HOME/cloud-image-ubuntu-from-scratch
 cd $HOME/cloud-image-ubuntu-from-scratch
-```
-```
-dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=68719476736 status=progress
+dd if=/dev/zero of=${ORIGIN_NAME}.raw bs=1 count=0 seek=${SEEK_SIZE} status=progress
 ```
 
 ```
 sgdisk -z ${ORIGIN_NAME}.raw
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" ${ORIGIN_NAME}.raw
 sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" ${ORIGIN_NAME}.raw
-sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
+if [ "${ORIGIN_NAME}" = "vm-controller" ]; then
+    sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
+elif [ "${ORIGIN_NAME}" = "vm-compute" ]; then
+    # LVM (17GiB)
+    sgdisk -n 3:0:+16G -t 3:8300 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
+    # LVM (25GiB)
+    sgdisk -n 4:0:+16G -t 4:8300 -c 4:"Linux LVM" ${ORIGIN_NAME}.raw
+    # LVM (41GiB)
+    sgdisk -n 5:0:+16G -t 5:8300 -c 5:"Linux LVM" ${ORIGIN_NAME}.raw
+    # LVM (57GiB)
+    sgdisk -n 6:0:+16G -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
+    # LVM (64GiB)
+    sgdisk -n 7:0:     -t 7:8300 -c 7:"Linux LVM" ${ORIGIN_NAME}.raw
+elif [ "${ORIGIN_NAME}" = "vm-storage" ]; then
+    # Swift (5GiB)
+    sgdisk -n 3:0:+4G  -t 3:8300 -c 3:"LVM for Swift" ${ORIGIN_NAME}.raw
+    # Ceph (9GiB)
+    sgdisk -n 4:0:+4G  -t 4:8300 -c 4:"LVM for Ceph" ${ORIGIN_NAME}.raw
+    # Ceph (13GiB)
+    sgdisk -n 5:0:+4G  -t 5:8300 -c 5:"LVM for Ceph" ${ORIGIN_NAME}.raw
+    # LVM (25GiB)
+    sgdisk -n 6:0:+16G -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
+    # LVM (32GiB)
+    sgdisk -n 7:0:     -t 7:8300 -c 7:"Linux LVM" ${ORIGIN_NAME}.raw
+fi
 ```
 
 ```
 sudo losetup -fP ${ORIGIN_NAME}.raw
 sudo losetup -a | grep ${ORIGIN_NAME}.raw
-> /dev/loop3: [64769]:201335002 (/root/cloud-image-ubuntu-from-scratch/stg-controller.raw)
+
+L_DEV=$(losetup -a | grep -F "/stg-comstorage.raw" | cut -d ':' -f 1)
+[ -z "${L_DEV}" ] && {
+    echo "Failed to get loop device"
+    exit 1
+}
+echo "Obtained name of device is \"${L_DEV}\""
 ```
 
 In this example, the loop device was created as /dev/loop3.
 Set the variable L_DEV=/dev/loop3.
-
-```
-L_DEV=/dev/loop3
-```
 
 ```
 sudo gdisk -l ${L_DEV}
@@ -96,12 +173,29 @@ ls -l ${L_DEV}*
 ```
 mkfs.vfat -F32 ${L_DEV}p1
 mkfs.ext4 ${L_DEV}p2
-pvcreate ${L_DEV}p3
-vgcreate lvm-vg01 ${L_DEV}p3
-lvcreate -L 4G -n lvm-vg01-log lvm-vg01
-lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01
-mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
-mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
+if [ "${ORIGIN_NAME}" "vm-controller" ]; then
+    lvcreate -L 4G -n lvm-vg01-log lvm-vg01
+    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
+elif [ "${ORIGIN_NAME}" = "vm-compute" ]
+    pvcreate          ${L_DEV}p3 ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
+    vgcreate lvm-vg01 ${L_DEV}p3 ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
+    lvcreate -L 4G -n lvm-vg01-log lvm-vg01                # An logging area of VMs           (4GiB)
+    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01         # An area for storing VMs          (59GiB)
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
+elif [ "${ORIGIN_NAME}" = "vm-storage" ]
+    # ${L_DEV}p3: Swift (+4GiB)
+    # ${L_DEV}p4: Ceph 01 (+4GiB)
+    # ${L_DEV}p5: Ceph 02 (+4GiB)
+    pvcreate          ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
+    vgcreate lvm-vg01 ${L_DEV}p5 ${L_DEV}p6 ${L_DEV}p7
+    lvcreate -L 4G -n lvm-vg01-log lvm-vg01                # An logging area of VMs           (4GiB)
+    lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01         # An area for storing VMs          (59GiB)
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
+    mkfs.xfs /dev/lvm-vg01/lvm-vg01-root
+fi
 ```
 
 ```
@@ -117,23 +211,16 @@ sudo mount ${L_DEV}p1 chroot/boot/efi
 ```
 
 ```
-##sudo debootstrap \
-##   --arch=amd64 \
-##   --variant=minbase \
-##   --components "main,universe" \
-##   --include "ca-certificates,cron,iptables,isc-dhcp-client,libnss-myhostname,ntp,ntpdate,rsyslog,ssh,sudo,dialog,whiptail,man-db,curl,dosfstools,e2fsck-static" \
-##   ${CODE_NAME} \
-##   $HOME/cloud-image-ubuntu-from-scratch/chroot \
-##   http://jp.archive.ubuntu.com/ubuntu/
-
+mkdir -p /var/debootstrap-cache
 sudo debootstrap \
-   --arch=amd64 \
-   --variant=minbase \
-   --components "main,universe" \
-   --include "ca-certificates,cron,iptables,isc-dhcp-client,libnss-myhostname,ntp,ntpdate,rsyslog,ssh,sudo,dialog,whiptail,man-db,curl,dosfstools,e2fsck-static,lvm2" \
-   ${CODE_NAME} \
-   $HOME/cloud-image-ubuntu-from-scratch/chroot \
-   http://jp.archive.ubuntu.com/ubuntu/
+    --cache-dir=/var/debootstrap-cache \
+    --arch=amd64 \
+    --variant=minbase \
+    --components "main,universe" \
+    --include "ca-certificates,cron,iptables,isc-dhcp-client,libnss-myhostname,ntp,ntpdate,rsyslog,ssh,sudo,dialog,whiptail,man-db,curl,dosfstools,e2fsck-static,lvm2" \
+    ${CODE_NAME} \
+    $HOME/cloud-image-ubuntu-from-scratch/chroot \
+    http://jp.archive.ubuntu.com/ubuntu/
 ```
 
 ```
@@ -278,10 +365,8 @@ dpkg-reconfigure network-manager -f noninteractive
 ```
 apt-get install -y grub-efi
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --boot-directory=/boot/efi/EFI --recheck
-grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg
-#grub-mkconfig && update-grub
-#update-initramfs -u
-update-initramfs -u     ### Mey needed
+grub-mkconfig -o /boot/efi/EFI/grub/grub.cfg
+update-initramfs -u
 ```
 
 ```
@@ -329,6 +414,18 @@ Convert raw to qcow2.
 qemu-img convert -f raw ${ORIGIN_NAME}.raw -O qcow2 ${ORIGIN_NAME}.qcow2
 ```
 
+# Testing
+---------------------------------------------------
+mkdir -p /var/kvm/distros/stg-controller01 && cd /var/kvm/distros/stg-controller01
+scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/stg-controller.qcow2 /tmp/ && sudo mv /tmp/stg-controller.qcow2 .
+sudo virt-install \
+  --name stg-controller01 \
+  --boot uefi \
+  --ram 16384 \
+  --os-variant=ubuntu22.04 \
+  --disk /var/kvm/iso/stg-controller.qcow2,size=32,bus=virtio,format=qcow2 \
+  --network bridge=br0 \
+  --import
 ---------------------------------------------------
 
 ```
