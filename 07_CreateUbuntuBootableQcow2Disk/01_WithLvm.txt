@@ -126,14 +126,12 @@ sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI System" ${ORIGIN_NAME}.raw
 sgdisk -n 2:0:+512M -t 2:8300 -c 2:"Linux filesystem" ${ORIGIN_NAME}.raw
 
 if [ "${ORIGIN_NAME}" = "vm-storage" ]; then
-    # Swift (5GiB)
-    sgdisk -n 3:0:+4G  -t 3:8300 -c 3:"LVM for Swift" ${ORIGIN_NAME}.raw
-    # Ceph (9GiB)
-    sgdisk -n 4:0:+4G  -t 4:8300 -c 4:"LVM for Ceph" ${ORIGIN_NAME}.raw
-    # Ceph (13GiB)
-    sgdisk -n 5:0:+4G  -t 5:8300 -c 5:"LVM for Ceph" ${ORIGIN_NAME}.raw
-    # LVM (25GiB)
-    sgdisk -n 6:0:     -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
+    # Ceph01 (5GiB)
+    sgdisk -n 3:0:+4G  -t 3:8300 -c 3:"LVM for Ceph01" ${ORIGIN_NAME}.raw
+    # Ceph02 (9GiB)
+    sgdisk -n 4:0:+4G  -t 4:8300 -c 4:"LVM for Ceph02" ${ORIGIN_NAME}.raw
+    # Swift01 (32GiB). Contains LVM swift01, swift02
+    sgdisk -n 5:0:     -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
 else
     sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
 fi
@@ -173,11 +171,12 @@ ls -l ${L_DEV}*
 mkfs.vfat -F32 ${L_DEV}p1
 mkfs.ext4 ${L_DEV}p2
 if [ "${ORIGIN_NAME}" = "vm-storage" ]; then
-    # ${L_DEV}p3: Swift (+4GiB)
-    # ${L_DEV}p4: Ceph 01 (+4GiB)
-    # ${L_DEV}p5: Ceph 02 (+4GiB)
-    pvcreate          ${L_DEV}p6
-    vgcreate lvm-vg01 ${L_DEV}p6
+    # ${L_DEV}p3: Ceph (+4GiB)
+    # ${L_DEV}p4: Ceph (+4GiB)
+    pvcreate          ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6
+    vgcreate lvm-vg01 ${L_DEV}p4 ${L_DEV}p5 ${L_DEV}p6
+    lvcreate -L 4G -n lvm-vg01-swift01 lvm-vg01            # An area of Swift01               (4GiB)
+    lvcreate -L 4G -n lvm-vg01-swift02 lvm-vg01            # An area of Swift02               (4GiB)
     lvcreate -L 4G -n lvm-vg01-log lvm-vg01                # An logging area of VMs           (4GiB)
     lvcreate -l 100%FREE -n lvm-vg01-root lvm-vg01         # An area for storing VMs          (59GiB)
     mkfs.xfs /dev/lvm-vg01/lvm-vg01-log
