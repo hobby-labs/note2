@@ -1,5 +1,7 @@
 # Create AWS IAM user
 
+[Build infrastructure](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
+
 ```
 docker run -it --rm -v ${PWD}:/root --entrypoint /bin/bash tsutomu/terraform-runner
 cd /root
@@ -52,14 +54,40 @@ You can find any images of Ubuntu at the [Amazon EC2 AMI Locator](https://cloud-
 ```
 terraform init
 
+> Initializing the backend...
+> Initializing provider plugins...
+> - Finding hashicorp/aws versions matching "~> 4.16"...
+> - Installing hashicorp/aws v4.67.0...
+> - Installed hashicorp/aws v4.67.0 (signed by HashiCorp)
+> Terraform has created a lock file .terraform.lock.hcl to record the provider
+> selections it made above. Include this file in your version control repository
+> so that Terraform can guarantee to make the same selections by default when
+> you run "terraform init" in the future.
+> 
+> Terraform has been successfully initialized!
+> 
+> You may now begin working with Terraform. Try running "terraform plan" to see
+> any changes that are required for your infrastructure. All Terraform commands
+> should now work.
+> 
+> If you ever set or change modules or backend configuration for Terraform,
+> rerun this command to reinitialize your working directory. If you forget, other
+> commands will detect it and remind you to do so if necessary.
 ```
 
+* Format and validate the configuration
+```
+terraform fmt
+> main.tf
+
+terraform validate
+> Success! The configuration is valid.
+```
 
 
 ```
 $ aws ec2 describe-security-groups --profile developer | jq -r '.["SecurityGroups"][] | [.["GroupName"],.["Description"]] | @csv'
 ```
-
 
 ```
 $ aws ec2 describe-vpcs --profile developer | jq -r '.["Vpcs"][] | [.["CidrBlock"],.["VpcId"],.["Tags"][]["Value"]] | @csv'
