@@ -1,0 +1,105 @@
+# Install SOPS
+
+```
+docker run -ti --rm ubuntu:24.04 bash
+```
+
+```
+apt-get update
+apt-get install -y curl gpg
+```
+
+
+
+```
+# binary
+curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
+mv cosign-linux-amd64 /usr/local/bin/cosign
+chmod +x /usr/local/bin/cosign
+
+# dkpg
+LATEST_VERSION=$(curl https://api.github.com/repos/sigstore/cosign/releases/latest | grep tag_name | cut -d : -f2 | tr -d "v\", ")
+curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign_${LATEST_VERSION}_amd64.deb"
+dpkg -i cosign_${LATEST_VERSION}_amd64.deb
+```
+
+```
+# Download the binary
+curl -LO https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.linux.amd64
+
+# Move the binary in to your PATH
+mv sops-v3.9.0.linux.amd64 /usr/local/bin/sops
+
+# Make the binary executable
+chmod +x /usr/local/bin/sops
+```
+
+## Verify the checksums file of SOPS
+
+```
+# Download the checksums file, certificate and signature
+curl -LO https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.checksums.txt
+curl -LO https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.checksums.pem
+curl -LO https://github.com/getsops/sops/releases/download/v3.9.0/sops-v3.9.0.checksums.sig
+
+# Verify the checksums file
+cosign verify-blob sops-v3.9.0.checksums.txt \
+  --certificate sops-v3.9.0.checksums.pem \
+  --signature sops-v3.9.0.checksums.sig \
+  --certificate-identity-regexp=https://github.com/getsops \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+> Verified OK
+```
+
+## Example of encrypting a yaml file
+
+```
+gpg --batch --generate-key << 'EOF'
+%no-protection
+Key-Type: RSA
+Key-Length: 3072
+Key-Usage: sign,cert,encrypt
+Subkey-Type: RSA
+Subkey-Length: 3072
+Subkey-Usage: encrypt
+Name-Real: Alice
+Name-Email: alice@example.com
+Expire-Date: 0
+EOF
+```
+
+(4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]  
+
+```
+gpg --batch --generate-key << 'EOF'
+%no-protection
+Key-Type: RSA
+Key-Length: 3072
+Key-Usage: sign,cert,encrypt
+Subkey-Type: RSA
+Subkey-Length: 3072
+Subkey-Usage: sign,cert,encrypt
+Name-Real: Alice
+Name-Email: alice@example.com
+Expire-Date: 0
+EOF
+
+gpg --batch --generate-key << 'EOF'
+%no-protection
+Key-Type: EdDSA
+Key-Usage: sign,cert
+Key-Curve: Ed25519
+Subkey-Type: EdDSA
+Subkey-Usage: sign,cert
+Subkey-Curve: Ed25519
+Name-Real: Alice
+Name-Email: alice@example.com
+Expire-Date: 0
+EOF
+```
+
+
+(Installation cosign)[https://docs.sigstore.dev/system_config/installation/]  
+(How to encrypt secrets in config files with sops)[https://poweruser.blog/how-to-encrypt-secrets-in-config-files-1dbb794f7352]  
+(4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]
+(GnuPG チートシート（鍵作成から失効まで）)[https://text.baldanders.info/openpgp/gnupg-cheat-sheet/]
