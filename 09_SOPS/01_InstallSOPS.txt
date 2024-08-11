@@ -144,6 +144,17 @@ cat test.yaml
 
 ## Decrypt a yaml file
 
+```
+sops --decrypt test.yaml
+> name: jonathan.archer
+> password: some_password
+> child:
+>     name: future.archer
+>     password: some_password
+> pin: 1234
+> description: my login to LCARS
+```
+
 * (How to encrypt secrets in config files with sops)[https://poweruser.blog/how-to-encrypt-secrets-in-config-files-1dbb794f7352]
 * (Installation cosign)[https://docs.sigstore.dev/system_config/installation/]
 * (4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]
