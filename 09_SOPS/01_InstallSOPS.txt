@@ -1,15 +1,8 @@
 # Install SOPS
 
 ```
-docker run -ti --rm ubuntu:24.04 bash
+docker run -ti --rm tsutomu/terraform-runner
 ```
-
-```
-apt-get update
-apt-get install -y curl gpg
-```
-
-
 
 ```
 # binary
@@ -50,6 +43,8 @@ cosign verify-blob sops-v3.9.0.checksums.txt \
   --certificate-oidc-issuer=https://token.actions.githubusercontent.com
 > Verified OK
 ```
+
+# Using GPG
 
 ## Example of encrypting a yaml file
 
@@ -153,6 +148,71 @@ sops --decrypt test.yaml
 >     password: some_password
 > pin: 1234
 > description: my login to LCARS
+```
+
+
+
+# Using AWS Key Management Service (KMS)
+
+## Create a KMS key
+
+* Open your AWS Management Console
+* Go to the KMS service
+* Click on "Create key"
+* Choose "Symmetric key" as the key type, "Enrypt and decrypt" as the key usage, then click "Next"
+* Write down "sops" in the alias field, write down "Encrypt and decrypt key for SOPS" in the description field, then click "Next"
+* In "Define key administrative permissions" page, choose the IAM users or roles that will have access to the key(*1), then click "Next"
+* In "Define key usage permissions" page, choose the IAM users or roles that will have access to the key(*1), then click "Next"
+* In "Review" page, confirm and verify the key settings, then click "Finish"
+
+(*1) You can create IAM users or roles to grant access to the key. Let me skip how to create them.
+
+## Confirm the key from aws cli
+
+Confirm the key from aws cli.
+A command below requires you to configure aws cli before running it.
+In this section, I will skip how to configure aws cli.
+
+```
+TARGET_KEY_ID=$(aws kms list-aliases --profile developer | jq -r '.Aliases.[] | select(.AliasName == "alias/sops") | .TargetKeyId')
+echo ${TARGET_KEY_ID}
+> xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+SOPS_KMS_ARN=$(aws kms list-keys --profile developer | jq -r '.Keys[] | select(.KeyId == "'${TARGET_KEY_ID}'") | .KeyArn')
+echo ${SOPS_KMS_ARN}
+> arn:aws:kms:ap-northeast-1:000000000000:key/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+export SOPS_KMS_ARN
+export AWS_PROFILE=developer
+```
+
+* (AWS CLI Command Reference - aws kms list-aliases)[https://docs.aws.amazon.com/cli/latest/reference/kms/list-aliases.html]
+* (AWS CLI Command Reference - aws kms list-keys)[https://docs.aws.amazon.com/cli/latest/reference/kms/list-keys.html]
+
+## Example of encrypting a yaml file
+
+Create a test yaml file.
+
+```
+cat << 'EOF' > test.yaml
+name: jonathan.archer
+password: some_password
+child:
+  name: future.archer
+  password: some_password
+pin: 1234
+description: my login to LCARS
+EOF
+```
+
+If you wan to use KMS when encrypting a file, set the environment variable `SOPS_KMS_ARN` or use the `--kms` option.
+
+```
+sops --encrypt --in-place --encrypted-regex 'password|pin' test.yaml
+```
+
+```
+sops --decrypt test.yaml
 ```
 
 * (How to encrypt secrets in config files with sops)[https://poweruser.blog/how-to-encrypt-secrets-in-config-files-1dbb794f7352]
