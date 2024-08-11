@@ -71,35 +71,80 @@ EOF
 (4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]  
 
 ```
-gpg --batch --generate-key << 'EOF'
-%no-protection
-Key-Type: RSA
-Key-Length: 3072
-Key-Usage: sign,cert,encrypt
-Subkey-Type: RSA
-Subkey-Length: 3072
-Subkey-Usage: sign,cert,encrypt
-Name-Real: Alice
-Name-Email: alice@example.com
-Expire-Date: 0
-EOF
+# # Another example but only for sign and cert
+# gpg --batch --generate-key << 'EOF'
+# %no-protection
+# Key-Type: EdDSA
+# Key-Usage: sign,cert
+# Key-Curve: Ed25519
+# Subkey-Type: EdDSA
+# Subkey-Usage: sign,cert
+# Subkey-Curve: Ed25519
+# Name-Real: Alice
+# Name-Email: alice@example.com
+# Expire-Date: 0
+# EOF
+```
 
-gpg --batch --generate-key << 'EOF'
-%no-protection
-Key-Type: EdDSA
-Key-Usage: sign,cert
-Key-Curve: Ed25519
-Subkey-Type: EdDSA
-Subkey-Usage: sign,cert
-Subkey-Curve: Ed25519
-Name-Real: Alice
-Name-Email: alice@example.com
-Expire-Date: 0
+## Encrypt a yaml file
+
+Create a test yaml file.
+
+```
+cat << 'EOF' > test.yaml
+name: jonathan.archer
+password: some_password
+child:
+  name: future.archer
+  password: some_password
+pin: 1234
+description: my login to LCARS
 EOF
 ```
 
+```
+gpg --list-secret-keys | grep -P '^uid '
+>uid           [ultimate] Alice <alice@example.com>
+gpg --list-keys "alice@example.com" | grep pub -A 1 | grep -v pub
+>       6772D0FB16A6024A77E768A7074F9E2F10DF284A
 
-(Installation cosign)[https://docs.sigstore.dev/system_config/installation/]  
-(How to encrypt secrets in config files with sops)[https://poweruser.blog/how-to-encrypt-secrets-in-config-files-1dbb794f7352]  
-(4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]
-(GnuPG チートシート（鍵作成から失効まで）)[https://text.baldanders.info/openpgp/gnupg-cheat-sheet/]
+sops --encrypt --in-place --encrypted-regex 'password|pin' --pgp 6772D0FB16A6024A77E768A7074F9E2F10DF284A test.yaml
+```
+
+Show encrypted file.
+
+```
+cat test.yaml
+> name: jonathan.archer
+> password: ENC[AES256_GCM,data:um/Q0oMUX7K+gFIj6w==,iv:j1xmlnK9oDaGGqGACRsORh8uZ7izre2IovbJKFPftsc=,tag:MQPE0MYZbqxGWdRQPZLIQw==,type:str]
+> child:
+>     name: future.archer
+>     password: ENC[AES256_GCM,data:kL+u/fuRfDqGiWDvHA==,iv:YJINYtDyEFdP+YYgcQrmrf1d6cm+fWaB8gGtKl6D+aQ=,tag:E/8Dp25P/wXAjNAGPjru8w==,type:str]
+> pin: ENC[AES256_GCM,data:kFG/4Q==,iv:eCbkGJGlZ52Rd4aeeYxVBJ/6B7RJuVdxymIQgcx8dvY=,tag:t7+sNh/HplIncTZWxaYFeg==,type:int]
+> description: my login to LCARS
+> sops:
+>     kms: []
+>     gcp_kms: []
+>     azure_kv: []
+>     hc_vault: []
+>     age: []
+>     lastmodified: "2024-08-11T03:57:53Z"
+>     mac: ENC[AES256_GCM,data:mJIlE8h9CUtZtVNM8tdHPmrzh9huZrztkQhAbM7yLyE5lIFiZx6NpsjFH3iSdBCFwg295Crgbt31kDdknnjLKdE0FqGyrpEJbqxfUUAU6/bM/gZOfAt4POxctiNU7Q/oV3E/170RVzHfNXCD1Vv0q9nfv3txIgnXs33TN6UvHww=,iv:1sWtexMdDVcLZ5SMftZT3sTphGKXrd82EMY173j5OJY=,tag:PWTYgTVLR6sMOlbv1Mjp5A==,type:str]
+>     pgp:
+>         - created_at: "2024-08-11T03:57:53Z"
+>           enc: |-
+>             -----BEGIN PGP MESSAGE-----
+> 
+>             hQGMA5Oc7Pnj......
+>             -----END PGP MESSAGE-----
+>           fp: 6772D0FB16A6024A77E768A7074F9E2F10DF284A
+>     encrypted_regex: password|pin
+>     version: 3.9.0
+```
+
+## Decrypt a yaml file
+
+* (How to encrypt secrets in config files with sops)[https://poweruser.blog/how-to-encrypt-secrets-in-config-files-1dbb794f7352]
+* (Installation cosign)[https://docs.sigstore.dev/system_config/installation/]
+* (4.5.4 Unattended key generation)[https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html]
+* (GnuPG チートシート（鍵作成から失効まで）)[https://text.baldanders.info/openpgp/gnupg-cheat-sheet/]
