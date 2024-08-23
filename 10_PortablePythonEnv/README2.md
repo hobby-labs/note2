@@ -2,6 +2,7 @@
 
 ```
 host$ docker run --rm --name pyenv --hostname pyenv -ti ubuntu:24.04 bash
+host$ docker run --rm --name pyenv --hostname pyenv --volume ${PWD}/rootfs/root:/root -ti ubuntu:24.04 bash
 ```
 
 ```
@@ -32,7 +33,7 @@ pyenv$ pyenv install -l | grep -P ' +([0-9]+\.){2}[0-9]+$'
 ```
 
 ```
-pyenv$ export LDFLAGS="-L/opt/local/lib" 
+pyenv$ export LDFLAGS="-L/opt/local/lib"
 pyenv$ export CPPFLAGS="-I/opt/local/include"
 pyenv$ pyenv install 3.12.5
 pyenv$ pyenv global 3.12.5
@@ -132,6 +133,64 @@ target-pyenv$ pyenv activate pyvenv-3.12.5
 > pip             24.2
 > python-dateutil 2.9.0.post0
 > six             1.16.0
+```
+
+# (Another consideration) transfer pyenv-virtualenv to another server
+CPU architectures are different between the server-from and server-to, previous method will no be able to realize transfering pyenv-virtualenv.
+To avoid this, we should transfer only the virtualenv directory in pyenv.  
+
+* [How can I create a copy of a virtualenv in pyenv?](https://stackoverflow.com/a/74330803)
+
+```
+pyenv$ cd ~
+pyenv$ tar -C ./.pyenv/versions/ -zcf pyenv-virtualenv.tar.gz 3.12.5
+```
+
+```
+host$ docker run --rm --name pyenv-target2 --hostname pyenv-target2 -ti ubuntu:24.04 bash
+```
+
+```
+host$ docker cp pyenv:/root/pyenv-virtualenv.tar.gz .
+host$ docker cp pyenv-virtualenv.tar.gz pyenv-target2:/root/
+```
+
+```
+pyenv-target2$ cd ~
+pyenv-target2$ apt-get update
+pyenv-target2$ apt-get -y install curl git build-essential zlib1g-dev libssl-dev liblzma-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev
+pyenv-target2$ ln -s /usr/lib/apt/methods/gzip /usr/lib/apt/methods/bzip2
+
+pyenv-target2$ curl https://pyenv.run | bash
+```
+
+```
+pyenv-target2$ cat << 'EOF' > .bashrc
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+EOF
+```
+
+```
+pyenv-target2$ bash
+```
+
+```
+pyenv-target2$ export LDFLAGS="-L/opt/local/lib"
+pyenv-target2$ export CPPFLAGS="-I/opt/local/include"
+pyenv-target2$ pyenv install 3.12.5
+pyenv-target2$ pyenv global 3.12.5
+
+pyenv-target2$ python --version
+> Python 3.12.5
+
+pyenv-target2$ tar -C $(pyenv root)/versions/ -zxf pyenv-virtualenv.tar.gz
+pyenv-target2$ pyenv virtualenvs
+>  3.12.5/envs/pyvenv-3.12.5 (created from /root/.pyenv/versions/3.12.5)
+
+pyenv-target2$ pyenv activate 3.12.5
+...
 ```
 
 * [pyenv/pyenv(GitHub)](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation)
