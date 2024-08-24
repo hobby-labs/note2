@@ -15,7 +15,7 @@ pyenv$ curl https://pyenv.run | bash
 ```
 
 ```
-pyenv$ cat << 'EOF' > .bashrc
+pyenv$ cat << 'EOF' >> .bashrc
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
