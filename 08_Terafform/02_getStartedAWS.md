@@ -20,6 +20,29 @@ mkdir learn-terraform-aws-instance
 cd learn-terraform-aws-instance
 ```
 
+Search an image id of Ubuntu 24.04 LTS.
+
+```
+aws ec2 describe-images --profile developer --owners amazon --region ap-northeast-1
+>        {
+>            "Architecture": "x86_64",
+>            "CreationDate": "2024-07-04T22:57:03.000Z",
+>            "ImageId": "ami-02e4eeb4aab5f1a4d",
+>            "ImageLocation": "amazon/ubuntu-minimal/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-minimal-20240704",
+>            ......
+>            "Description": "Canonical, Ubuntu Minimal, 24.04 LTS, amd64 noble image build on 2024-07-04",
+>            ......
+>            "Name": "ubuntu-minimal/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-minimal-20240704",
+>            "RootDeviceName": "/dev/sda1",
+>            "RootDeviceType": "ebs",
+>            "SriovNetSupport": "simple",
+>            "VirtualizationType": "hvm",
+>            "BootMode": "uefi-preferred",
+>            "DeprecationTime": "2026-07-04T22:57:03.000Z",
+>            "ImdsSupport": "v2.0"
+>        },
+```
+
 ```
 cat << 'EOF' > main.tf
 terraform {
@@ -38,7 +61,7 @@ provider "aws" {
 }
 
 resource "aws_instance" "app_server" {
-  ami           = "ami-0cab37bd176bb80d3"
+  ami           = "ami-02e4eeb4aab5f1a4d"
   instance_type = "t2.micro"
 
   tags = {
@@ -84,17 +107,21 @@ terraform validate
 > Success! The configuration is valid.
 ```
 
-
 ```
-$ aws ec2 describe-security-groups --profile developer | jq -r '.["SecurityGroups"][] | [.["GroupName"],.["Description"]] | @csv'
-```
-
-```
-$ aws ec2 describe-vpcs --profile developer | jq -r '.["Vpcs"][] | [.["CidrBlock"],.["VpcId"],.["Tags"][]["Value"]] | @csv'
+export AWS_PROFILE=developer
+terraform apply
 ```
 
+
 ```
-$ aws ec2 describe-subnets --profile developer | jq -r '.["Subnets"][] | [.["CidrBlock"],.["VpcId"],.["SubnetId"]] | @csv'
+aws ec2 describe-security-groups --profile developer | jq -r '.["SecurityGroups"][] | [.["GroupName"],.["Description"]] | @csv'
+> "default","default VPC security group"
+aws ec2 describe-vpcs --profile developer | jq -r '.["Vpcs"][] | [.["CidrBlock"], .["VpcId"]] | @csv'
+> "172.31.0.0/16","vpc-aaaaaaaaaaaaaaaaa"
+aws ec2 describe-subnets --profile developer | jq -r '.["Subnets"][] | [.["CidrBlock"],.["VpcId"],.["SubnetId"]] | @csv'
+> "172.31.32.0/20","vpc-aaaaaaaaaaaaaaaaa","subnet-aaaaaaaaaaaaaaaaa"
+> "172.31.0.0/20","vpc-bbbbbbbbbbbbbbbbb","subnet-bbbbbbbbbbbbbbbbb"
+> "172.31.16.0/20","vpc-ccccccccccccccccc","subnet-ccccccccccccccccc"
 ```
 
 ```

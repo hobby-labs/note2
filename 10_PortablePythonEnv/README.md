@@ -59,6 +59,12 @@ tar -zxf portable_python.tar.gz
 python: error while loading shared libraries: libpython3.12.so.1.0: cannot open shared object file: No such file or directory
 ```
 
+https://github.com/python/cpython/issues/87500
+
+Can I create a venv by using tarball
+
 * (Is there a single line way to run a command in a Python venv?)[https://stackoverflow.com/questions/48174599/is-there-a-single-line-way-to-run-a-command-in-a-python-venv]
 * (How to make venv completely portable?)[https://stackoverflow.com/a/69076225]
+
+ https://www.python.org/ftp/python/3.12.0
 
