@@ -15,25 +15,41 @@ aws configure --profile developer
 
 ## Create VPC
 
+* eks01_vpc.tf
 ```
-resource "aws_vpc" "main" {
+cat << 'EOF' > eks01_vpc.tf
+resource "aws_vpc" "eks01" {
   cidr_block = "172.30.0.0/16"
+  tags = {
+    Name = "eks01_vpc"
+  }
 }
+EOF
 ```
 
+* subnet_172_30_0_0_24_eks01_vpc.tf
 ```
-resource "aws_subnet" "main" {
-  vpc_id     = aws_vpc.main.id
+cat << 'EOF' > subnet_172_30_0_0_24_eks01_vpc.tf
+resource "aws_subnet" "subnet01_eks01" {
+  vpc_id     = aws_vpc.eks01.id
   cidr_block = "172.30.0.0/24"
 
   tags = {
-    Name = "Main"
+    Name = "seg_172_30_0_0_24_eks01_vpc"
   }
 }
+EOF
+```
+
+```
+terraform init
+terraform fmt
+terraform validate
+export AWS_PROFILE=developer
+terraform apply
 ```
 
 ## Create EKS
-
 
 ```
 cat << 'EOF' > main.tf
@@ -53,9 +69,11 @@ module "eks" {
     vpc-cni                = {}
   }
 
-  vpc_id                   = "vpc-1234556abcdef"
-  subnet_ids               = ["subnet-abcde012", "subnet-bcde012a", "subnet-fghi345a"]
-  control_plane_subnet_ids = ["subnet-xyzde987", "subnet-slkjf456", "subnet-qeiru789"]
+  #vpc_id                   = "vpc-1234556abcdef"
+  vpc_id                   = aws_vpc.eks01.id
+  #subnet_ids               = ["subnet-abcde012", "subnet-bcde012a", "subnet-fghi345a"]
+  subnet_ids               = [aws_subnet.subnet01_eks01.id]
+  #control_plane_subnet_ids = ["subnet-xyzde987", "subnet-slkjf456", "subnet-qeiru789"]
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
