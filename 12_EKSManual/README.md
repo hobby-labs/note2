@@ -227,17 +227,56 @@ After that, you can proceed next steps.
 ** Click `Next`
 * Click `Create` in the Review and create page
 
+You have to remove an op from CoreDNS but you might not be able to currently.
+We will remove it after an instruction "Add permissions to the IAM role for the Cluster" in the next section.
+
+## Add permissions to the IAM role for the Cluster
+Add permissions to the IAM user `developer` to be able to use kubectl.
+
+* Open `https://console.aws.amazon.com/eks/home#/clusters`
+* Click `my-cluster-0001`
+* Click `Access` tab
+* Click `Create access entry` in `IAM access entries`
+* In `Configure IAM access entry` page
+** Type `developer` in `IAM principal ARN` in `IAM principal`
+** Choose `arn:aws:iam::xxxxxxxxxxxx:user/developer` from the list
+** Click `Next`
+* In `Add access policy` page
+** `AmazonEKSClusterAdminPolicy` in `Policy name`
+** Click `Add policy`
+** Click `Next`
+* In `Review and create` page
+** Click `Create`
+
+After do these instructions, you can get kubeconfig and run kubectl.
+
 ```
-eks-operator$ # TODO: Get kubeconfig
 eks-operator$ aws eks update-kubeconfig --name my-cluster-0001
-eks-operator$ kubectl patch deployment coredns \
-                  -n kube-system \
-                  --type json \
+> Updated context arn:aws:eks:ap-northeast-1:xxxxxxxxxxxx:cluster/my-cluster-0001 in /root/.kube/config
+
+eks-operator$ kubectl get services
+> NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+> kubernetes   ClusterIP   x.x.x.x      <none>        443/TCP   4h
+```
+
+## Remove an op from CoreDNS
+
+* [Patch CoreDNS command is giving error](https://repost.aws/questions/QU6WizKiheRguK_lk43cPCSg/patch-coredns-command-is-giving-error)
+
+```
+eks-operator$ kubectl describe deployment coredns -n kube-system
+> ...
+> Pod Template:
+>   Labels:           eks.amazonaws.com/component=coredns
+>                     k8s-app=kube-dns
+>   Annotations:      eks.amazonaws.com/compute-type: ec2
+>    Service Account:  coredns
+> ...
+
+eks-operator$ # Remove `Annotations` if you could see it
+eks-operator$ kubectl patch deployment coredns -n kube-system --type json \
                   -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
 ```
-
-
-
 
 # Deletion
 If you want to delete role and policy, you can use the following commands.
