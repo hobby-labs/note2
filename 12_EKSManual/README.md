@@ -1,13 +1,12 @@
-# Creating subnets
+# Creating VPC
+
 * [Example: VPC with servers in private subnets and NAT](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-example-private-subnets-nat.html)  
+  
 
-Creating VPC for EKS.  
-
-* Open `https://console.aws.amazon.com/vpc/`.
+* Open ` https://console.aws.amazon.com/vpc/`
 * Click `Create VPC`
-* Click `VPC and more` in `Resources to create`
-* Configure the VPC
-** Enter name of your VPC `vpc-eks` in `Name tag auto-generation`
+** On the `Create VPC` page, click `VPC and more` in `Resources to create` section
+** Enter `eks-vpc-0001` as `Name tag auto-generation`
 ** Enter `172.30.0.0/16` as `IPv4 CIDR block`.
 ** Choose `2` for `Number of Availability Zones`
 ** Choose `2` for `Number of public subnets`
@@ -15,8 +14,26 @@ Creating VPC for EKS.
 ** Choose `1 per AZ` for `NAT gateways`
 ** Choose `S3 Gateway` for `VPC endpoints`
 ** Unchoose `Enable DNS hostnames` for `DNS options`
+* Click `Create VPC`
 
-# 
+After a few minutes, the VPC and subnets will be created.  
+
+* VPC
+
+| VPC              | CIDR          |
+|------------------|---------------|
+| eks-vpc-0001-vpc | 172.30.0.0/16 |
+
+* Subnets
+
+| Subnet<br />[(VPC)-subnet-(pub/prv)-(AZ)]    | CIDR            | IP range                      |
+|----------------------------------------------|-----------------|-------------------------------|
+| eks-vpc-0001-subnet-public1-ap-northeast-1a  | 172.30.0.0/20   | 172.30.0.0   - 172.30.15.255  |
+| eks-vpc-0001-subnet-public2-ap-northeast-1c  | 172.30.16.0/20  | 172.30.16.0  - 172.30.31.255  |
+| eks-vpc-0001-subnet-private1-ap-northeast-1a | 172.30.128.0/20 | 172.30.128.0 - 172.30.143.255 |
+| eks-vpc-0001-subnet-private2-ap-northeast-1c | 172.30.144.0/20 | 172.30.144.0 - 172.30.159.255 |
+
+# Create an EKS cluster
 
 * [Get started with Amazon EKS – AWS Management Console and AWS CLI](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html)
 
@@ -166,9 +183,4 @@ eks-operator$ aws iam attach-role-policy \
 * Click `my-cluster0001`
 * On the `my-cluster0001` page, click `Compute` tab, Click `Add Fargate Profile` under `Fargate Profiles`
 * On the `Configure Fargate Profile` page, fill `Name` with `my-cluster0001`, choose `AmazonEKSFargatePodExecutionRole` in `Pod execution role`, deselect any `Public` subnets(only supports private), click `Next`
-
-
-
-
-# 
 
