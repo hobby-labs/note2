@@ -152,9 +152,11 @@ We will create nodes with Fargate's profile.
 
 * pod-execution-role-trust-policy.json
 ```
+eks-operator$ REGION_CODE="ap-northeast-1"
 eks-operator$ ACCOUNT_ID="$(jq -r '.Account' < <(aws sts get-caller-identity))"
 eks-operator$ CLUSTER_NAME="my-cluster-0001"
-eks-operator$ echo "ACCOUNT_ID=$ACCOUNT_ID, CLUSTER_NAME=${CLUSTER_NAME}"
+eks-operator$ echo "REGION_CODE=${REGION_CODE}, ACCOUNT_ID=${ACCOUNT_ID}, CLUSTER_NAME=${CLUSTER_NAME}"
+> REGION_CODE=ap-northeast-1, ACCOUNT_ID=xxxxxxxxxxxx, CLUSTER_NAME=my-cluster-0001
 
 eks-operator$ cat << EOF > pod-execution-role-trust-policy.json
 {
@@ -164,7 +166,7 @@ eks-operator$ cat << EOF > pod-execution-role-trust-policy.json
       "Effect": "Allow",
       "Condition": {
          "ArnLike": {
-            "aws:SourceArn": "arn:aws:eks:region-code:${ACCOUNT_ID}:fargateprofile/${CLUSTER_NAME}/*"
+            "aws:SourceArn": "arn:aws:eks:${REGION_CODE}:${ACCOUNT_ID}:fargateprofile/${CLUSTER_NAME}/*"
          }
       },
       "Principal": {
@@ -196,5 +198,52 @@ eks-operator$ aws iam attach-role-policy \
 * Open `https://console.aws.amazon.com/eks/home#/clusters`
 * Click `my-cluster-0001`
 * On the `my-cluster-0001` page, click `Compute` tab, Click `Add Fargate Profile` under `Fargate Profiles`
-* On the `Configure Fargate Profile` page, fill `Name` with `my-cluster-0001`, choose `AmazonEKSFargatePodExecutionRole` in `Pod execution role`, deselect any `Public` subnets(only supports private), click `Next`
+* On the `Configure Fargate Profile` page
+** Type `my-fargate-0001` in `Name`
+** Select `AmazonEKSFargatePodExecutionRole` in `Pod execution role`,
+** Select private subnets `eks-vpc-0001-subnet-(private1|private2)-ap-northeast-1[ac]` in `Subnets`
+** Ckick `Next`
+* On the `Configure pod selection` page
+** Type `default` in `Namespace`
+** Click `Next`
+* Click `Create` on the `Review and create` page
+
+After a few minutes, status of `Fargate profile` will be `Active`.
+After that, you can proceed next steps.
+
+## Deploy Fargate
+
+* Choose `my-fargate-0001` in the `Fargate Profile` in `Compute` tag
+* Click `Add Fargate Profile`
+* On the `Configure Fargate Profile` page
+** Type `CoreDNS` in `Name`
+** Select `AmazonEKSFargatePodExecutionRole` 
+** Select private subnets `eks-vpc-0001-subnet-(private1|private2)-ap-northeast-1[ac]` in `Subnets`
+** Click `Next`
+* On the `Configure pod selection` page
+** `kube-system` in `Namespace`
+** Click `Add label` in `Match labels`
+** Type `k8s-app` as key, `kube-dns` as value
+** Click `Next`
+* Click `Create` in the Review and create page
+
+```
+eks-operator$ # TODO: Get kubeconfig
+eks-operator$ aws eks update-kubeconfig --name my-cluster-0001
+eks-operator$ kubectl patch deployment coredns \
+                  -n kube-system \
+                  --type json \
+                  -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
+```
+
+
+
+
+# Deletion
+If you want to delete role and policy, you can use the following commands.
+
+```
+eks-operator$ aws iam detach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy --role-name AmazonEKSFargatePodExecutionRole
+eks-operator$ aws iam delete-role --role-name AmazonEKSFargatePodExecutionRole
+```
 
