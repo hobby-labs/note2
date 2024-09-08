@@ -137,7 +137,8 @@ Open your web browser and navigate to the Amazon EKS console at the following UR
 * Cluster Name `my-cluster-0001`. The name must be unique within your AWS account.
 * Choose `myAmazonEKSClusterRole` for `Cluster Service Role`
 * `Next`
-* In the next page, choose the VPC and subnets that located in different availability zones
+* In the next page, choose the VPC that previously created(`eks-vpc-0001-vpc`) as `VPC`
+* Choose subnets `eks-vpc-0001-subnet-(public1|public2|private1|private2)-ap-northeast-1[ac]` (4 subnets).
 * Click `Next`.
 * Click `Next` on the `Configure Observability` page.
 * Click `Next` on the `Select add-ons` page
@@ -193,7 +194,7 @@ eks-operator$ aws iam attach-role-policy \
 ```
 
 * Open `https://console.aws.amazon.com/eks/home#/clusters`
-* Click `my-cluster0001`
-* On the `my-cluster0001` page, click `Compute` tab, Click `Add Fargate Profile` under `Fargate Profiles`
-* On the `Configure Fargate Profile` page, fill `Name` with `my-cluster0001`, choose `AmazonEKSFargatePodExecutionRole` in `Pod execution role`, deselect any `Public` subnets(only supports private), click `Next`
+* Click `my-cluster-0001`
+* On the `my-cluster-0001` page, click `Compute` tab, Click `Add Fargate Profile` under `Fargate Profiles`
+* On the `Configure Fargate Profile` page, fill `Name` with `my-cluster-0001`, choose `AmazonEKSFargatePodExecutionRole` in `Pod execution role`, deselect any `Public` subnets(only supports private), click `Next`
 
