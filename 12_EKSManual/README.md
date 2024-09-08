@@ -286,3 +286,8 @@ eks-operator$ aws iam detach-role-policy --policy-arn arn:aws:iam::aws:policy/Am
 eks-operator$ aws iam delete-role --role-name AmazonEKSFargatePodExecutionRole
 ```
 
+# Deploy a sample application
+
+* [Deploy a sample application](https://docs.aws.amazon.com/eks/latest/userguide/sample-deployment.html)
+
+
