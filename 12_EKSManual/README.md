@@ -33,6 +33,19 @@ After a few minutes, the VPC and subnets will be created.
 | eks-vpc-0001-subnet-private1-ap-northeast-1a | 172.30.128.0/20 | 172.30.128.0 - 172.30.143.255 |
 | eks-vpc-0001-subnet-private2-ap-northeast-1c | 172.30.144.0/20 | 172.30.144.0 - 172.30.159.255 |
 
+* Nat Gateways
+
+| Nat Gateway<br />[(VPC)-nat-(pub)-(AZ)]  | Private IP    | Public IP |
+|------------------------------------------|---------------|-----------|
+| eks-vpc-0001-nat-public1-ap-northeast-1a | 172.30.5.3    | a.a.a.a   |
+| eks-vpc-0001-nat-public1-ap-northeast-1a | 172.30.24.201 | b.b.b.b   |
+
+* Internet Gateways
+
+| Internet Gateway<br /> [(VPC)-igw] |
+|------------------------------------|
+| eks-vpc-0001-igw                   |
+
 # Create an EKS cluster
 
 * [Get started with Amazon EKS – AWS Management Console and AWS CLI](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html)
