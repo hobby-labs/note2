@@ -3,7 +3,7 @@
 [Build infrastructure](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-build)
 
 ```
-docker run -it --rm -v ${PWD}:/root --entrypoint /bin/bash tsutomu/terraform-runner
+docker run -it --rm -v ${PWD}:/root/work --entrypoint /bin/bash tsutomu/terraform-runner
 cd /root
 ```
 
