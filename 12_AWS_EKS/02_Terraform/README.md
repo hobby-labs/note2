@@ -285,5 +285,10 @@ tf$ kubectl get pod -n default
 > NAME                                      READY   STATUS    RESTARTS   AGE
 > scalable-nginx-example-6fb96bf75d-bsg9h   1/1     Running   0          34s
 > scalable-nginx-example-6fb96bf75d-j5ksw   1/1     Running   0          34s
+
+tf$ kubectl get services
+> NAME            TYPE           CLUSTER-IP      EXTERNAL-IP                                                                   PORT(S)        AGE
+> kubernetes      ClusterIP      a.a.a.a         <none>                                                                        443/TCP        XXm
+> nginx-example   LoadBalancer   b.b.b.b         xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-000000000.ap-northeast-1.elb.amazonaws.com   80:xxxxx/TCP   XXm
 ```
 
