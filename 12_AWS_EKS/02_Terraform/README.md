@@ -292,3 +292,110 @@ tf$ kubectl get services
 > nginx-example   LoadBalancer   b.b.b.b         xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-000000000.ap-northeast-1.elb.amazonaws.com   80:xxxxx/TCP   XXm
 ```
 
+# Managing Custom Resources Definitions (CRDs)
+
+* crontab_crd.tf
+```
+resource "kubernetes_manifest" "crontab_crd" {
+  manifest = {
+    "apiVersion" = "apiextensions.k8s.io/v1"
+    "kind"       = "CustomResourceDefinition"
+    "metadata" = {
+      "name" = "crontabs.stable.example.com"
+    }
+    "spec" = {
+      "group" = "stable.example.com"
+      "names" = {
+        "kind"   = "CronTab"
+        "plural" = "crontabs"
+        "shortNames" = [
+          "ct",
+        ]
+        "singular" = "crontab"
+      }
+      "scope" = "Namespaced"
+      "versions" = [
+        {
+          "name" = "v1"
+          "schema" = {
+            "openAPIV3Schema" = {
+              "properties" = {
+                "spec" = {
+                  "properties" = {
+                    "cronSpec" = {
+                      "type" = "string"
+                    }
+                    "image" = {
+                      "type" = "string"
+                    }
+                  }
+                  "type" = "object"
+                }
+              }
+              "type" = "object"
+            }
+          }
+          "served"  = true
+          "storage" = true
+        },
+      ]
+    }
+  }
+}
+```
+
+Apply CRD.
+
+```
+tf$ kubectl get crds crontabs.stable.example.com
+> NAME                          CREATED AT
+> crontabs.stable.example.com   2024-09-16T02:35:05Z
+```
+
+## Create a custom resource
+
+* my_new_crontab.tf
+```
+resource "kubernetes_manifest" "my_new_crontab" {
+  manifest = {
+    "apiVersion" = "stable.example.com/v1"
+    "kind"       = "CronTab"
+    "metadata" = {
+      "name"      = "my-new-cron-object"
+      "namespace" = "default"
+    }
+    "spec" = {
+      "cronSpec" = "* * * * */5"
+      "image"    = "my-awesome-cron-image"
+    }
+  }
+}
+```
+
+```
+tf$ terraform init
+tf$ terraform plan
+tf$ terraform apply
+
+tf$ kubectl get crontabs
+> NAME                 AGE
+> my-new-cron-object   7s
+
+tf$ kubectl describe crontab my-new-cron-object
+> Name:         my-new-cron-object
+> Namespace:    default
+> Labels:       <none>
+> Annotations:  <none>
+> API Version:  stable.example.com/v1
+> Kind:         CronTab
+> Metadata:
+>   Creation Timestamp:  2024-09-16T02:42:44Z
+>   Generation:          2
+>   Resource Version:    47831
+>   UID:                 90b6fcb9-4490-4e24-908e-a70d650921e0
+> Spec:
+>   Cron Spec:  * * * * */5
+>   Image:      my-awesome-cron-image
+> Events:       <none>
+```
+
