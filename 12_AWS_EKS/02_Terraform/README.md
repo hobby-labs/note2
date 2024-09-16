@@ -399,3 +399,13 @@ tf$ kubectl describe crontab my-new-cron-object
 > Events:       <none>
 ```
 
+# Clean up
+
+```
+tf$ terraform destroy
+> ...
+tf$ cd ../learn-terraform-provision-eks-cluster
+tf$ terraform destroy
+> ...
+```
+
