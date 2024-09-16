@@ -10,9 +10,9 @@ tf$ cd /root/work
 ```
 
 ```
-tf$ rm -rf learn-terraform-provision-eks-cluster
-tf$ git clone https://github.com/hashicorp/learn-terraform-provision-eks-cluster.git
-tf$ cd learn-terraform-provision-eks-cluster
+tf$ rm -rf 01-learn-terraform-provision-eks-cluster
+tf$ git clone https://github.com/hashicorp/01-learn-terraform-provision-eks-cluster.git
+tf$ cd 01-learn-terraform-provision-eks-cluster
 tf$ git checkout -b c5c4d54 c5c4d54
 ```
 
@@ -139,7 +139,8 @@ tf$ aws eks --region $(terraform output -raw region) update-kubeconfig --name $(
 
 ```
 tf$ cd /root/work
-tf$ mkdir learn-terraform-deploy-nginx-kubernetes
+tf$ mkdir 02-learn-terraform-deploy-nginx-kubernetes
+tf$ cd 02-learn-terraform-deploy-nginx-kubernetes
 ```
 
 Create `kubernetes.tf`.
@@ -164,7 +165,7 @@ data "terraform_remote_state" "eks" {
   backend = "local"
 
   config = {
-    path = "../learn-terraform-provision-eks-cluster/terraform.tfstate"
+    path = "../01-learn-terraform-provision-eks-cluster/terraform.tfstate"
   }
 }
 
@@ -404,7 +405,7 @@ tf$ kubectl describe crontab my-new-cron-object
 ```
 tf$ terraform destroy
 > ...
-tf$ cd ../learn-terraform-provision-eks-cluster
+tf$ cd ../01-learn-terraform-provision-eks-cluster
 tf$ terraform destroy
 > ...
 ```
