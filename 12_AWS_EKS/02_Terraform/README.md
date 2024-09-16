@@ -237,6 +237,29 @@ resource "kubernetes_deployment" "nginx" {
     }
   }
 }
+
+# Load balancer service
+resource "kubernetes_service" "nginx" {
+  metadata {
+    name = "nginx-example"
+  }
+  spec {
+    selector = {
+      App = kubernetes_deployment.nginx.spec.0.template.0.metadata[0].labels.App
+    }
+    port {
+      port        = 80
+      target_port = 80
+    }
+
+    type = "LoadBalancer"
+  }
+}
+
+# Output the Load Balancer IP
+output "lb_ip" {
+  value = kubernetes_service.nginx.status.0.load_balancer.0.ingress.0.hostname
+}
 ```
 
 Data `terraform_remote_state` will refer to the state file of the EKS cluster that was created in the previous step.
@@ -244,7 +267,12 @@ Data `terraform_remote_state` will refer to the state file of the EKS cluster th
 ```
 tf$ terraform init
 tf$ terraform plan
+
 tf$ terraform apply
+> ...
+> Outputs:
+> 
+> lb_ip = ...
 
 tf$ kubectl get namespaces
 > NAME              STATUS   AGE
