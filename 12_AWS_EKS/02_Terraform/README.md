@@ -1,7 +1,6 @@
 # By using Terraform
 
 * [Provision an EKS cluster (AWS)](https://developer.hashicorp.com/terraform/tutorials/kubernetes/eks)
-* [Manage Kubernetes resources via Terraform](https://developer.hashicorp.com/terraform/tutorials/kubernetes/kubernetes-provider?variants=kubernetes%3Aeks)
 * [eks module](https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest)
 
 ```bash
@@ -102,11 +101,41 @@ tf$ terraform apply
 ```
 
 # Configure kubectl
+Get kube-config by using parameters in outputs.tf.
+
+* outputs.tf
+```
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+output "cluster_endpoint" {
+  description = "Endpoint for EKS control plane"
+  value       = module.eks.cluster_endpoint
+}
+
+output "cluster_security_group_id" {
+  description = "Security group ids attached to the cluster control plane"
+  value       = module.eks.cluster_security_group_id
+}
+
+output "region" {
+  description = "AWS region"
+  value       = var.region
+}
+
+output "cluster_name" {
+  description = "Kubernetes Cluster Name"
+  value       = module.eks.cluster_name
+}
+```
 
 ```
+tf$ aws eks --region $(terraform output -raw region) update-kubeconfig --name $(terraform output -raw cluster_name)
 ```
 
 # Manage Kubernetes resources
+
+* [Manage Kubernetes resources via Terraform](https://developer.hashicorp.com/terraform/tutorials/kubernetes/kubernetes-provider?variants=kubernetes%3Aeks)
 
 ```
 tf$ cd /root/work
@@ -162,5 +191,71 @@ provider "kubernetes" {
     ]
   }
 }
+
+resource "kubernetes_deployment" "nginx" {
+  metadata {
+    name = "scalable-nginx-example"
+    labels = {
+      App = "ScalableNginxExample"
+    }
+  }
+
+  spec {
+    replicas = 2
+    selector {
+      match_labels = {
+        App = "ScalableNginxExample"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          App = "ScalableNginxExample"
+        }
+      }
+      spec {
+        container {
+          image = "nginx:1.7.8"
+          name  = "example"
+
+          port {
+            container_port = 80
+          }
+
+          resources {
+            limits = {
+              cpu    = "0.5"
+              memory = "512Mi"
+            }
+            requests = {
+              cpu    = "250m"
+              memory = "50Mi"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Data `terraform_remote_state` will refer to the state file of the EKS cluster that was created in the previous step.
+
+```
+tf$ terraform init
+tf$ terraform plan
+tf$ terraform apply
+
+tf$ kubectl get namespaces
+> NAME              STATUS   AGE
+> default           Active   71m
+> kube-node-lease   Active   71m
+> kube-public       Active   71m
+> kube-system       Active   71m
+
+tf$ kubectl get pod -n default
+> NAME                                      READY   STATUS    RESTARTS   AGE
+> scalable-nginx-example-6fb96bf75d-bsg9h   1/1     Running   0          34s
+> scalable-nginx-example-6fb96bf75d-j5ksw   1/1     Running   0          34s
 ```
 
