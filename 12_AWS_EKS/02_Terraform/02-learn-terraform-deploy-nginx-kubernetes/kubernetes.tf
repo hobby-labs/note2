@@ -16,7 +16,7 @@ data "terraform_remote_state" "eks" {
   backend = "local"
 
   config = {
-    path = "../learn-terraform-provision-eks-cluster/terraform.tfstate"
+    path = "../01-learn-terraform-provision-eks-cluster/terraform.tfstate"
   }
 }
 
@@ -110,7 +110,7 @@ resource "kubernetes_service" "nginx" {
 }
 
 # Output the Load Balancer IP
-output "lb_ip" {
-  value = kubernetes_service.nginx.status.0.load_balancer.0.ingress.0.hostname
-}
+##output "lb_ip" {
+##  value = kubernetes_service.nginx.status.0.load_balancer.0.ingress.0.hostname
+##}
 
