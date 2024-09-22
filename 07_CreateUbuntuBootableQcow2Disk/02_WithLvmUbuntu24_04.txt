@@ -11,14 +11,14 @@ docker-compose up
 ```
 
 ```
-mkdir -p /var/kvm/distros/ubuntu2204
+mkdir -p /var/kvm/distros/ubuntu2404
 virt-install \
-  --name ubuntu2204 \
+  --name ubuntu2404 \
   --boot uefi \
   --pxe \
   --ram 32768 \
-  --os-variant=ubuntu22.04 \
-  --disk /var/kvm/distros/ubuntu2204/disk.img,size=128,bus=virtio,format=qcow2 \
+  --os-variant=ubuntu24.04 \
+  --disk /var/kvm/distros/ubuntu2404/disk.img,size=128,bus=virtio,format=qcow2 \
   --network bridge=br0
 ```
 
@@ -45,7 +45,7 @@ APT_CACHE_SERVER="172.31.0.11"
 #ORIGIN_NAME="vm-controller"
 #ORIGIN_NAME="vm-compute"
 ORIGIN_NAME="vm-storage"
-CODE_NAME="jammy"
+CODE_NAME="noble"
 if [ "${ORIGIN_NAME}" = "vm-controller" -o "${ORIGIN_NAME}" = "vm-storage" ]; then
     SEEK_SIZE="34359738368"
 elif [ "${ORIGIN_NAME}" = "vm-compute" ]; then
@@ -131,6 +131,7 @@ if [ "${ORIGIN_NAME}" = "vm-storage" ]; then
     # Ceph02 (9GiB)
     sgdisk -n 4:0:+4G  -t 4:8300 -c 4:"LVM for Ceph02" ${ORIGIN_NAME}.raw
     # Swift01 (32GiB). Contains LVM swift01, swift02
+    ####sgdisk -n 5:0:     -t 6:8300 -c 6:"Linux LVM" ${ORIGIN_NAME}.raw
     sgdisk -n 5:0:     -t 5:8300 -c 5:"Linux LVM" ${ORIGIN_NAME}.raw
 else
     sgdisk -n 3:0: -t 3:8e00 -c 3:"Linux LVM" ${ORIGIN_NAME}.raw
@@ -339,25 +340,25 @@ dpkg-reconfigure --frontend=noninteractive locales
 update-locale LANG=en_US.UTF-8
 ```
 
-```
-dpkg-reconfigure resolvconf -f noninteractive
-```
-
-```
-cat <<EOF > /etc/NetworkManager/NetworkManager.conf
-[main]
-rc-manager=resolvconf
-plugins=ifupdown,keyfile
-dns=default
-
-[ifupdown]
-managed=false
-EOF
-```
-
-```
-dpkg-reconfigure network-manager -f noninteractive
-```
+## ```
+## dpkg-reconfigure resolvconf -f noninteractive
+## ```
+## 
+## ```
+## cat <<EOF > /etc/NetworkManager/NetworkManager.conf
+## [main]
+## rc-manager=resolvconf
+## plugins=ifupdown,keyfile
+## dns=default
+## 
+## [ifupdown]
+## managed=false
+## EOF
+## ```
+## 
+## ```
+## dpkg-reconfigure network-manager -f noninteractive
+## ```
 
 ```
 apt-get install -y grub-efi
@@ -407,13 +408,13 @@ qemu-img convert -f raw ${ORIGIN_NAME}.raw -O qcow2 ${ORIGIN_NAME}.qcow2
 ```
 ---------------------------------------------------
 # controller
-#CATEGORY="controller"
+CATEGORY="controller"
 #CATEGORY="compute"
-CATEGORY="storage"
+#CATEGORY="storage"
 sudo mkdir -p /var/kvm/distros/stg-${CATEGORY}01 && cd /var/kvm/distros/stg-${CATEGORY}01
 scp ubuntu-server:/root/cloud-image-ubuntu-from-scratch/vm-${CATEGORY}.qcow2 /tmp/ && sudo mv /tmp/vm-${CATEGORY}.qcow2 /var/kvm/distros/stg-${CATEGORY}01/
 sudo virt-install --name stg-${CATEGORY}01 --boot uefi --ram 16384 \
-  --os-variant=ubuntu22.04 \
+  --os-variant=ubuntu24.04 \
   --disk /var/kvm/distros/stg-${CATEGORY}01/vm-${CATEGORY}.qcow2,size=32,bus=virtio,format=qcow2 \
   --graphics vnc,port=5901,listen=127.0.0.1,password=changeme \
   --network bridge=br0 --import
