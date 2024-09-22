@@ -42,9 +42,9 @@ network:
 # Prepare variables
 ```
 APT_CACHE_SERVER="172.31.0.11"
-#ORIGIN_NAME="vm-controller"
+ORIGIN_NAME="vm-controller"
 #ORIGIN_NAME="vm-compute"
-ORIGIN_NAME="vm-storage"
+#ORIGIN_NAME="vm-storage"
 CODE_NAME="noble"
 if [ "${ORIGIN_NAME}" = "vm-controller" -o "${ORIGIN_NAME}" = "vm-storage" ]; then
     SEEK_SIZE="34359738368"
