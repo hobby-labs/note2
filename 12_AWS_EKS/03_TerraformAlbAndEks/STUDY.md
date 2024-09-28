@@ -38,15 +38,15 @@ tf$ terraform apply
 
 Create IAM role to allow AWS Load Balancer Controller to manage AWS resources with its API.
 
-```bash
-tf$ curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
-```
+# ```bash
+# tf$ curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
+# ```
 
 1. Install AWS Load Balancer Controller
 
 ```bash
 tf$ aws eks update-kubeconfig --name eks-01
-tf$ helm 
+tf$ helm
 ```
 
 ## Prepare jq function
@@ -247,9 +247,6 @@ RoleName: node-group-2-eks-node-group-20240927000000000000000000
 ## List new IAM policies
 
 ```bash
-tf$ EPOCH_YESTERDAY=$(date --utc -d '360 mins ago' '+%s')
-tf$ echo $EPOCH_YESTERDAY
-> ...
 tf$ jq ".Policies[] | select(parseDate(.CreateDate) > ${EPOCH_YESTERDAY}) | select(.PolicyName | contains(\"-cluster-ClusterEncryption\"))" < <(aws iam list-policies) | tee result_iam_policies.json
 >{
 >  "PolicyName": "eks-01-cluster-ClusterEncryption20240927000000000000000000",
@@ -264,7 +261,7 @@ tf$ jq ".Policies[] | select(parseDate(.CreateDate) > ${EPOCH_YESTERDAY}) | sele
 >  "UpdateDate": "2024-09-27T23:43:20+00:00"
 >}
 
-tf$ ARN="$(jq -r '.Arn' < jresult_iam_policies.json)"
+tf$ ARN="$(jq -r '.Arn' < result_iam_policies.json)"
 tf$ echo $ARN
 > ...
 tf$ aws iam get-policy --policy-arn "${ARN}"
@@ -284,5 +281,261 @@ tf$ aws iam get-policy --policy-arn "${ARN}"
 >        "Tags": []
 >    }
 >}
+```
+
+## Create IAM role using aws cli
+* [How to Set Up AWS Load Balancer Controller in EKS Cluster](https://aws.plainenglish.io/how-to-setup-aws-load-balancer-controller-in-eks-cluster-682a81c4e5ca)
+
+Create `load-balancer-role-trust-policy.json`.  
+  
+Get oidc issuer.
+```bash
+tf$ OIDC_ISSUER="$(aws eks describe-cluster --name eks-01 | jq -r '.cluster.identity.oidc.issuer')"
+tf$ OIDC_ISSUER="${OIDC_ISSUER##https://}"
+tf$ echo $OIDC_ISSUER
+> oidc.eks.ap-northeast-1.amazonaws.com/id/00000000000000000000000000000000
+```
+
+```bash
+tf$ ACCOUNT="$(aws sts get-caller-identity | jq -r '.Account')"
+tf$ echo $ACCOUNT
+> 000000000000
+```
+
+* 
+``` bash
+tf$ cat << EOF > load-balancer-role-trust-policy.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::${ACCOUNT}:oidc-provider/${OIDC_ISSUER}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "${OIDC_ISSUER}:aud": "sts.amazonaws.com",
+                    "${OIDC_ISSUER}:sub": "system:serviceaccount:kube-system:aws-load-balancer-controller"
+                }
+            }
+        }
+    ]
+}
+EOF
+```
+
+Create IAM role `AmazonEKSLoadBalancerControllerRole`.
+
+```bash
+tf$ aws iam create-role \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --assume-role-policy-document file://"load-balancer-role-trust-policy.json"
+```
+
+Create `AWSLoadBalancerControllerIAMPolicy`.  
+* [Install AWS Load Balancer Controller with Helm](https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html)  
+
+```bash
+tf$ curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
+tf$ aws iam create-policy \
+    --policy-name AWSLoadBalancerControllerIAMPolicy \
+    --policy-document file://iam_policy.json
+
+```
+
+Attach IAM policies to the role `AmazonEKSLoadBalancerControllerRole` that required Amazon EKS-manage.
+
+```bash
+tf$ aws iam attach-role-policy \
+  --policy-arn arn:aws:iam::${ACCOUNT}:policy/AWSLoadBalancerControllerIAMPolicy \
+  --role-name AmazonEKSLoadBalancerControllerRole
+```
+
+After attached the policy, check the role from the AWS console.
+
+### Install AWS Load Balancer Controller add-on
+
+```bash
+cat << EOF > aws-load-balancer-controller-service-account.yaml
+# Create a service account "aws-load-balancer-controller" annotated with the IAM role "AmazonEKSLoadBalancerControllerRole"
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::${ACCOUNT}:role/AmazonEKSLoadBalancerControllerRole
+EOF
+```
+
+Apply the service account.
+
+```bash
+tf$ kubectl apply -f aws-load-balancer-controller-service-account.yaml
+```
+
+Add `eks-charts` repository and update.
+
+```bash
+tf$ helm repo add eks https://aws.github.io/eks-charts
+tf$ helm repo update
+```
+
+```bash
+tf$ helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+    -n kube-system \
+    --set clusterName=eks-01 \
+    --set serviceAccount.create=false \
+    --set serviceAccount.name=aws-load-balancer-controller
+```
+
+```bash
+tf$ kubectl get deployment -n kube-system aws-load-balancer-controller
+```
+
+### Configuration of ingress routes
+Deploy sample application.
+
+* nginx_deploy.yml
+```yaml
+cat << EOF > nginx_deploy.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+##SVC Exposing as clusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    app: nginx
+EOF
+```
+
+Deploy it.
+
+```bash
+tf$ kubectl apply -f nginx_deploy.yml
+tf$ kubectl get deployment nginx
+```
+
+### Create ingress route
+
+```bash
+tf$ # You must change directory that you had built the EKS cluster with terraform.
+tf$ # The directory has a file terraform.tfstate.
+tf$ ls -l terraform.tfstate
+> -rw-r--r-- 1 root root xxxx  terraform.tfstate
+
+tf$ PUBLIC_SUBNET_0="$(jq -r '.outputs.public_subnet_ids.value[0]' terraform.tfstate)"
+tf$ PUBLIC_SUBNET_1="$(jq -r '.outputs.public_subnet_ids.value[1]' terraform.tfstate)"
+```
+
+```bash
+tf$ FQDN_EKS_NGINX="nginx-app.example.com"
+tf$ #SERVICE_NAME="${FQDN_EKS_NGINX%%.*}"
+tf$ SERVICE_NAME="nginx"
+```
+
+Create SSL/TLS certificate from `AWS Certificate Manager`.  
+* [AWS Certificate Manager(ACM) - Top](https://aws.amazon.com/jp/certificate-manager/)  
+
+Then you obtain the ARN of the certificate and set it to a variable.
+
+```bash
+tf$ ACM_SSL_ARN="arn:aws:acm:ap-northeast-1:012345678901:certificate/00000000-0000-0000-0000-000000000000"
+```
+
+```bash
+tf$ echo "FQDN_EKS_NGINX=${FQDN_EKS_NGINX}, SERVICE_NAME=${SERVICE_NAME},PUBLIC_SUBNET_0=${PUBLIC_SUBNET_0}, PUBLIC_SUBNET_1=${PUBLIC_SUBNET_1},ACM_SSL_ARN=${ACM_SSL_ARN}"
+> FQDN_EKS_NGINX=test.example.com, SERVICE_NAME=nginx,PUBLIC_SUBNET_0=subnet-00000000000000000, PUBLIC_SUBNET_1=subnet-00000000000000001,ACM_SSL_ARN=arn:aws:acm:ap-northeast-1:012345678901:certificate/00000000-0000-0000-0000-000000000000
+
+```
+
+```bash
+cat << EOF > ingress.yml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: ${PUBLIC_SUBNET_0},${PUBLIC_SUBNET_1}
+    alb.ingress.kubernetes.io/certificate-arn: ${ACM_SSL_ARN}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/group.name: app
+    alb.ingress.kubernetes.io/actions.ssl-redirect: >-
+        {
+            "Type": "redirect",
+            "RedirectConfig": {
+                "Protocol": "HTTPS",
+                "Port": "443",
+                "Host": "#{host}",
+                "Path": "/#{path}",
+                "Query": "#{query}",
+                "StatusCode": "HTTP_301"
+            }
+        }
+spec:
+  rules:
+     - host: ${FQDN_EKS_NGINX}
+       http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+             service:
+              name: ssl-redirect
+              port:
+               name: use-annotation
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${SERVICE_NAME}
+                port:
+                  number: 80
+EOF
+```
+
+Apply the ingress route.
+
+```bash
+tf$ kubectl apply -f ingress.yml
 ```
 
