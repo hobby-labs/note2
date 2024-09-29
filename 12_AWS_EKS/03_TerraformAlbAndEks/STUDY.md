@@ -51,11 +51,11 @@ tf$ helm
 
 ## Prepare jq function
 
-[function parseDate](https://github.com/jqlang/jq/issues/1053#issuecomment-580100213)
-
 ~/.jq
 ```
 cat << 'EOF' > ~/.jq
+# Parse date with timezone to epoch. e.g. "2024-09-27T23:52:16+00:00" -> 1730000000
+# https://github.com/jqlang/jq/issues/1053#issuecomment-580100213
 def parseDate(date):
   date |
   capture("(?<no_tz>.*)(?<tz_sgn>[-+])(?<tz_hr>\\d{2}):(?<tz_min>\\d{2})$") |
@@ -537,5 +537,16 @@ Apply the ingress route.
 
 ```bash
 tf$ kubectl apply -f ingress.yml
+```
+
+# Destroy environments
+
+```bash
+tf$ kubectl delete ingress ingress
+tf$ POLICY_ARN=$(jq -r '.Policies[] | select(.PolicyName == "AWSLoadBalancerControllerIAMPolicy") | .Arn' < <(aws iam list-policies))
+tf$ echo ${POLICY_ARN}
+tf$ aws iam detach-role-policy --policy-arn ${POLICY_ARN} --role-name AmazonEKSLoadBalancerControllerRole
+tf$ aws iam delete-policy --policy-arn ${POLICY_ARN}
+tf$ aws iam delete-role --role-name AmazonEKSLoadBalancerControllerRole
 ```
 
