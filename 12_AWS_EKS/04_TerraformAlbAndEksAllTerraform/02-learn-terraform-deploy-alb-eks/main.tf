@@ -26,8 +26,9 @@ provider "aws" {
 }
 
 data "aws_eks_cluster" "cluster" {
-  name        = data.terraform_remote_state.eks.outputs.cluster_name
-  account_id  = data.terraform_remote_state.eks.outputs.account_id
+  name              = data.terraform_remote_state.eks.outputs.cluster_name
+  account_id        = data.terraform_remote_state.eks.outputs.account_id
+  oidc_provider_url = data.terraform_remote_state.eks.outputs.oidc_provider_url
 }
 
 #data "aws_subnet" "public_subnet_ids" {
@@ -166,8 +167,8 @@ resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${OIDC_ISSUER}:aud" = "sts.amazonaws.com"
-            "${OIDC_ISSUER}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            "${data.aws_eks_cluster.cluster.oidc_provider_url}:aud" = "sts.amazonaws.com"
+            "${data.aws_eks_cluster.cluster.oidc_provider_url}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       },
