@@ -258,3 +258,19 @@ resource "aws_iam_role_policy_attachment" "attach_iam_role_policy_amazon_eks_loa
   policy_arn  = aws_iam_policy.aws_load_balancer_controller_iam_policy.arn
 }
 
+
+resource "kubectl_manifest" "aws_load_balancer_controller_service_account" {
+  yaml_body = <<YAML
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
+YAML
+}
+
