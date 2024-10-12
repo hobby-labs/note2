@@ -130,3 +130,116 @@ provider "kubernetes" {
     ]
   }
 }
+
+resource "aws_security_group" "permit_http_https_all" {
+  name = "permit_http_https_all"
+  vpc_id = module.vpc.vpc_id
+
+  tags = {
+    Name = "permit_http_https_all"
+  }
+}
+
+resource "aws_security_group_rule" "http_ingress" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  security_group_id = aws_security_group.permit_http_https_all.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "https_ingress" {
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  security_group_id = aws_security_group.permit_http_https_all.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "all_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "all"
+  security_group_id = aws_security_group.permit_http_https_all.id
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_lb" "global_alb" {
+  name               = "global-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.permit_http_https_all.id]
+  #subnets            = data.terraform_remote_state.eks.outputs.public_subnet_ids
+  subnets            = module.vpc.public_subnets
+
+  tags = {
+    Name = "global-alb"
+  }
+}
+
+output "global_alb" {
+  description = "Global Application Load Balancer"
+  value       = aws_lb.global_alb.dns_name
+}
+
+resource "aws_lb_target_group" "global_alb_target_group" {
+  #name             = "global-alb-target-group"
+  name             = "nginx"
+  # Supported target_type values are (instance | ip | lambda | alb).
+  target_type      = "ip"
+  protocol_version = "HTTP1"
+  #port             = 80
+  port             = 30007
+  protocol         = "HTTP"
+
+  vpc_id = module.vpc.vpc_id
+
+  tags = {
+    Name = "nginx"
+  }
+
+  health_check {
+    interval            = 30
+    path                = "/"
+    port                = "30007"
+    protocol            = "HTTP"
+    timeout             = 5
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+    matcher             = "200,301"
+  }
+}
+
+resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
+  name = "AmazonEKSLoadBalancerControllerRole"
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${module.eks.oidc_provider}"
+        },
+
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${module.eks.oidc_provider}:aud" = "sts.amazonaws.com"
+            "${module.eks.oidc_provider}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      },
+    ]
+  })
+
+  tags = {
+    tag-key = "tag-value"
+  }
+}
+
