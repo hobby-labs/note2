@@ -213,7 +213,7 @@ resource "aws_lb_target_group" "global_alb_target_group" {
   }
 }
 
-resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
+resource "aws_iam_role" "amazon_eks_load_balancer_controller_role" {
   name = "AmazonEKSLoadBalancerControllerRole"
 
   # Terraform's "jsonencode" function converts a
@@ -243,15 +243,18 @@ resource "aws_iam_role" "AmazonEKSLoadBalancerControllerRole" {
   }
 }
 
-data "http" "aws_load_balancer_controller_iam_policy_json" {
+data "http" "amazon_eks_load_balancer_controller_iam_policy_json" {
   url = "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json"
 }
 
 resource "aws_iam_policy" "aws_load_balancer_controller_iam_policy" {
-  name        = "AWSEKSLoadBalancerControllerIAMPolicy"
-  description = "IAM policy for the AWS Load Balancer Controller on EKS"
-  policy      = data.http.aws_load_balancer_controller_iam_policy_json.body
+  name        = "AmazonEKSLoadBalancerControllerIAMPolicy"
+  description = "IAM policy for the Amazon Load Balancer Controller on EKS"
+  policy      = data.http.amazon_eks_load_balancer_controller_iam_policy_json.response_body
 }
 
-
+resource "aws_iam_role_policy_attachment" "attach_iam_role_policy_amazon_eks_load_balancer_controller_iam_policy_to_amazon_eks_load_balancer_controller_role" {
+  role        = aws_iam_role.amazon_eks_load_balancer_controller_role.name
+  policy_arn  = aws_iam_policy.aws_load_balancer_controller_iam_policy.arn
+}
 
