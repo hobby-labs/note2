@@ -131,6 +131,43 @@ provider "kubernetes" {
   }
 }
 
+provider "kubectl" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  load_config_file       = false
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args = [
+      "eks",
+      "get-token",
+      "--cluster-name",
+      module.eks.cluster_name
+    ]
+  }
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args = [
+        "eks",
+        "get-token",
+        "--cluster-name",
+        module.eks.cluster_name
+      ]
+    }
+  }
+
+  #registry {
+  #  url = "https://aws.github.io/eks-charts"
+  #}
+}
+
 resource "aws_security_group" "permit_http_https_all" {
   name = "permit_http_https_all"
   vpc_id = module.vpc.vpc_id
@@ -272,5 +309,27 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
 YAML
+}
+
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name = "aws-load-balancer-controller"
+  chart = "aws-load-balancer-controller"
+  namespace = "kube-system"
+
+  repository = "https://aws.github.io/eks-charts"
+
+  set {
+    name = "clusterName"
+    value = "eks-01"
+  }
+  set {
+    name = "serviceAccount.create"
+    value = "false"
+  }
+  set {
+    name = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
 }
 
