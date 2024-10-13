@@ -18,7 +18,7 @@ data "aws_availability_zones" "available" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  cluster_name = "eks-01"
+  cluster_name = var.cluster_name
 }
 
 resource "random_string" "suffix" {
@@ -30,13 +30,13 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.8.1"
 
-  name = "eks01-vpc"
+  name = var.vpc_name
 
-  cidr = "172.30.0.0/16"
+  cidr = var.vpc_ip_cidr
   azs  = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  private_subnets = ["172.30.0.0/24", "172.30.1.0/24"]
-  public_subnets  = ["172.30.2.0/24", "172.30.3.0/24"]
+  private_subnets = var.private_subnets
+  public_subnets  = var.public_subnets
 
   enable_nat_gateway   = true
   single_nat_gateway   = true
@@ -321,7 +321,7 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   set {
     name = "clusterName"
-    value = "eks-01"
+    value = var.cluster_name
   }
   set {
     name = "serviceAccount.create"
