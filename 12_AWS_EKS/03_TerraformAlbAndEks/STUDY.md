@@ -302,7 +302,7 @@ tf$ echo $ACCOUNT
 > 000000000000
 ```
 
-* 
+* load-balancer-role-trust-policy.json
 ``` bash
 tf$ cat << EOF > load-balancer-role-trust-policy.json
 {
@@ -337,12 +337,13 @@ tf$ aws iam create-role \
 Create `AWSLoadBalancerControllerIAMPolicy`.  
 * [Install AWS Load Balancer Controller with Helm](https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html)  
 
+Check the latest version of the AWS Load Balancer Controller [here(kubernetes-sigs/aws-load-balancer-controller)](https://github.com/kubernetes-sigs/aws-load-balancer-controller/) .
+
 ```bash
 tf$ curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
 tf$ aws iam create-policy \
     --policy-name AWSLoadBalancerControllerIAMPolicy \
     --policy-document file://iam_policy.json
-
 ```
 
 Attach IAM policies to the role `AmazonEKSLoadBalancerControllerRole` that required Amazon EKS-manage.
