@@ -143,4 +143,8 @@ EOF
 sudo chown -R tsutomu:tsutomu my-flink-project
 ```
 
+## IntelliJ 実行時のエラー
+```
+Run -> (Open Run/Debug Configurations window) -> Modify options -> Turn on "Add dependencies with "provided"" scope to classpath
+```
 
