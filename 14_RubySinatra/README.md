@@ -47,3 +47,33 @@ use Rack::JSONBodyParser
 run ApplicationController
 ```
 
+* Rakefile
+```
+require_relative './config/environment'
+require 'sinatra/activerecord/rake'
+
+desc "Runs a Pry console"
+task :console do
+    ActiveRecord::Base.logger = Logger.new(STDOUT)
+    Pry.start
+end
+
+task :server do
+    exec "rerun -b 'rackup config.ru -p 8000'"
+end
+```
+
+* config/environment.rb
+```
+# This is an _environment variable_ that is used by some of the Rake tasks to determine
+# if our application is running locally in development, in a test environment, or in production
+ENV['RACK_ENV'] ||= 'development'
+
+# Require in Gems
+require 'bundler/setup'
+Bundler.require(:default, ENV['RACK_ENV'])
+
+# Require in all files in 'app' directory
+require_all 'app'
+```
+
