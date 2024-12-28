@@ -15,12 +15,12 @@ $ rvm install 3.3.6
 $ rvm use 3.3.6 --default
 ```
 
-
 ```
 $ mkdir sinatra_app
 $ cd sinatra_app
 $ bundle init
-$ bundle add sinatra rake rerun puma rackup require_all sinatra-activerecord rack-contrib pry
+$ bundle add sinatra rake puma rackup require_all sinatra-activerecord rack-contrib
+$ bundle add rerun pry --group development
 $ cat Gemfile
 > # frozen_string_literal: true
 > 
@@ -92,6 +92,19 @@ $ bundle exec rake server
 > * Listening on http://127.0.0.1:8000
 > * Listening on http://[::1]:8000
 > Use Ctrl-C to stop
+```
+
+# Test suite
+* [BUNDLE-ADD/ArchLinux](https://man.archlinux.org/man/bundle-add.1.en)
+
+```
+$ bundle add rspec rack-test --group test
+```
+
+```
+$ bundle exec rspec --init
+>  create   .rspec
+>  create   spec/spec_helper.rb
 ```
 
 
