@@ -77,3 +77,22 @@ Bundler.require(:default, ENV['RACK_ENV'])
 require_all 'app'
 ```
 
+Server を起動する。
+
+```
+$ bundle exec rake server
+> ...
+> Puma starting in single mode...
+> * Puma version: 6.5.0 ("Sky's Version")
+> * Ruby version: ruby 3.3.6 (2024-11-05 revision 75015d4c1f) [x86_64-linux]
+> *  Min threads: 0
+> *  Max threads: 5
+> *  Environment: development
+> *          PID: 12828
+> * Listening on http://127.0.0.1:8000
+> * Listening on http://[::1]:8000
+> Use Ctrl-C to stop
+```
+
+
+
