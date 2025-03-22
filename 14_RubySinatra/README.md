@@ -51,7 +51,6 @@ run MainController
 
 * Rakefile
 ```
-tsutomu@arch terasv_app$ cat Rakefile
 require_relative './config/environment'
 require 'sinatra/activerecord/rake'
 require 'rspec/core/rake_task'
@@ -86,6 +85,24 @@ Bundler.require(:default, ENV['RACK_ENV'])
 require_all 'app'
 ```
 
+```
+$ mkdir -p app/controllers
+$ vim app/controllers/main_controller.rb
+```
+
+Controller を作成し、GET メソッドのエンドポイントを追加します。
+
+* app/controllers/main_controller.rb
+```
+# Main controller of the application.
+class MainController < Sinatra::Base
+    get '/user' do
+        uid = params[:uid]
+        return {:uid => uid}.to_json
+    end
+end
+```
+
 Server を起動する。
 
 ```
@@ -101,6 +118,13 @@ $ bundle exec rake server
 > * Listening on http://127.0.0.1:8000
 > * Listening on http://[::1]:8000
 > Use Ctrl-C to stop
+```
+
+サーバを起動したら、エンドポイントにアクセスし、想定通りの結果が帰ってくることを確認します。
+
+```
+$ curl 'http://localhost:8000/user?uid=taro'
+> {"uid":"taro"}
 ```
 
 # Test suite
@@ -119,4 +143,47 @@ $ bundle exec rspec --init
 >  create   spec/spec_helper.rb
 ```
 
+# RSpec
+RSpec を使ってテストを追加します。
+
+まずはhelper を編集します。
+
+```bash
+$ mkdir spec/
+$ vim spec/spec_helper.rb
+```
+
+* spec/spec_helper.rb
+```ruby
+ENV['APP_ENV'] = 'test'
+
+require 'sinatra'
+require 'rspec'
+require 'rack/test'
+# A line below is required to call static method 'Command::exec' from the test codes.
+# https://stackoverflow.com/a/32271976/4307818
+require File.expand_path("../../config/environment", __FILE__)
+
+RSpec.configure do |config|
+    config.expect_with :rspec do |expectations|
+        expectations.include_chain_clauses_in_custom_matcher_descriptions = true
+        expectations.max_formatted_output_length = nil
+    end
+
+    config.mock_with :rspec do |mocks|
+        mocks.verify_partial_doubles = true
+    end
+    config.shared_context_metadata_behavior = :apply_to_host_groups
+
+    config.include Rack::Test::Methods
+    def app
+        MainController
+    end
+end
+```
+
+```
+$ mkdir -p spec/controllers
+$ vim spec/controllers/main_controller_spec.rb
+```
 
