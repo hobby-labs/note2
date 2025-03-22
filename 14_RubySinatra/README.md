@@ -107,5 +107,3 @@ $ bundle exec rspec --init
 >  create   spec/spec_helper.rb
 ```
 
-
-
