@@ -125,22 +125,26 @@ Kafka を使うサンプルアプリ。
 * [redpand-data/flink-kafka-examples](https://github.com/redpanda-data/flink-kafka-examples)
 
 ```
-sudo rm -rf my-flink-project
-docker run --rm --name maven --hostname maven -v ${PWD}:/opt -i debian:bookworm-slim bash << 'EOF'
-cd /opt
-apt-get update
-apt-get install -y openjdk-17-jdk maven
-mvn archetype:generate \
-    -DarchetypeGroupId=org.apache.flink \
-    -DarchetypeArtifactId=flink-quickstart-java \
-    -DarchetypeVersion=1.20.0 \
-    -DgroupId=my-flink-project \
-    -DartifactId=my-flink-project \
-    -Dversion=0.1 \
-    -Dpackage=myflink \
-    -DinteractiveMode=false
-EOF
-sudo chown -R tsutomu:tsutomu my-flink-project
+##sudo rm -rf my-flink-project
+##docker run --rm --name maven --hostname maven -v ${PWD}:/opt -i debian:bookworm-slim bash << 'EOF'
+##cd /opt
+##apt-get update
+##apt-get install -y openjdk-17-jdk maven
+##mvn archetype:generate \
+##    -DarchetypeGroupId=org.apache.flink \
+##    -DarchetypeArtifactId=flink-quickstart-java \
+##    -DarchetypeVersion=1.20.0 \
+##    -DgroupId=my-flink-project \
+##    -DartifactId=my-flink-project \
+##    -Dversion=0.1 \
+##    -Dpackage=myflink \
+##    -DinteractiveMode=false
+##EOF
+##sudo chown -R tsutomu:tsutomu my-flink-project
+```
+
+```
+https://github.com/hobby-labs/my-flink-project.git
 ```
 
 ## IntelliJ 実行時のエラー
