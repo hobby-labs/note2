@@ -41,16 +41,20 @@ $ bundle install --path .bundle
 require 'sinatra'
 require_relative "./config/environment"
 
+# To use request.body.read in a controller
+use Rack::RewindableInput::Middleware
 # Parse JSON from the request body into the params hash
 use Rack::JSONBodyParser
 # Starts the server
-run ApplicationController
+run MainController
 ```
 
 * Rakefile
 ```
+tsutomu@arch terasv_app$ cat Rakefile
 require_relative './config/environment'
 require 'sinatra/activerecord/rake'
+require 'rspec/core/rake_task'
 
 desc "Runs a Pry console"
 task :console do
@@ -60,6 +64,11 @@ end
 
 task :server do
     exec "rerun -b 'rackup config.ru -p 8000'"
+end
+
+task :spec do
+    ENV['RACK_ENV'] = 'test'
+    RSpec::Core::RakeTask.new(:spec)
 end
 ```
 
@@ -97,6 +106,9 @@ $ bundle exec rake server
 # Test suite
 * [BUNDLE-ADD/ArchLinux](https://man.archlinux.org/man/bundle-add.1.en)
 
+テストライブラリを追加します。
+group を指定することで、test 時のみに適用されるようになります。
+
 ```
 $ bundle add rspec rack-test --group test
 ```
@@ -106,4 +118,5 @@ $ bundle exec rspec --init
 >  create   .rspec
 >  create   spec/spec_helper.rb
 ```
+
 
