@@ -1,0 +1,46 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/load-balancer-name: alb-eks-01
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/subnets: subnet-07b0cf3da8548af5f,subnet-003c36bc92b2d0beb
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-1:008971668354:certificate/11b4bdbf-34dc-4baf-914f-c32cf37ca28b
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/group.name: app
+    alb.ingress.kubernetes.io/actions.ssl-redirect: >-
+        {
+            "Type": "redirect",
+            "RedirectConfig": {
+                "Protocol": "HTTPS",
+                "Port": "443",
+                "Host": "#{host}",
+                "Path": "/#{path}",
+                "Query": "#{query}",
+                "StatusCode": "HTTP_301"
+            }
+        }
+spec:
+  rules:
+     - host: test.dev.teratech.co.jp
+       http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+             service:
+              name: ssl-redirect
+              port:
+               name: use-annotation
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx
+                port:
+                  number: 80
