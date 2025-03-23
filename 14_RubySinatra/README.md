@@ -3,19 +3,19 @@
 * [RVM](https://wiki.archlinux.org/title/RVM)
 * [Andrew-Ochieng/ruby-sinatra-application-structure](https://github.com/Andrew-Ochieng/ruby-sinatra-application-structure)
 
-```
+```bash
 $ curl -L get.rvm.io > rvm-install
 $ bash < ./rvm-install
 $ # For zsh
 $ source ~/.zshrc
 ```
 
-```
+```bash
 $ rvm install 3.3.6
 $ rvm use 3.3.6 --default
 ```
 
-```
+```bash
 $ mkdir sinatra_app
 $ cd sinatra_app
 $ bundle init
@@ -50,7 +50,7 @@ run MainController
 ```
 
 * Rakefile
-```
+```bash
 require_relative './config/environment'
 require 'sinatra/activerecord/rake'
 require 'rspec/core/rake_task'
@@ -72,7 +72,7 @@ end
 ```
 
 * config/environment.rb
-```
+```ruby
 # This is an _environment variable_ that is used by some of the Rake tasks to determine
 # if our application is running locally in development, in a test environment, or in production
 ENV['RACK_ENV'] ||= 'development'
@@ -85,7 +85,7 @@ Bundler.require(:default, ENV['RACK_ENV'])
 require_all 'app'
 ```
 
-```
+```bash
 $ mkdir -p app/controllers
 $ vim app/controllers/main_controller.rb
 ```
@@ -93,7 +93,7 @@ $ vim app/controllers/main_controller.rb
 Controller を作成し、GET メソッドのエンドポイントを追加します。
 
 * app/controllers/main_controller.rb
-```
+```ruby
 # Main controller of the application.
 class MainController < Sinatra::Base
     get '/user' do
@@ -105,7 +105,7 @@ end
 
 Server を起動する。
 
-```
+```bash
 $ bundle exec rake server
 > ...
 > Puma starting in single mode...
@@ -122,7 +122,7 @@ $ bundle exec rake server
 
 サーバを起動したら、エンドポイントにアクセスし、想定通りの結果が帰ってくることを確認します。
 
-```
+```bash
 $ curl 'http://localhost:8000/user?uid=taro'
 > {"uid":"taro"}
 ```
@@ -133,11 +133,11 @@ $ curl 'http://localhost:8000/user?uid=taro'
 テストライブラリを追加します。
 group を指定することで、test 時のみに適用されるようになります。
 
-```
+```bash
 $ bundle add rspec rack-test --group test
 ```
 
-```
+```bash
 $ bundle exec rspec --init
 >  create   .rspec
 >  create   spec/spec_helper.rb
@@ -182,7 +182,7 @@ RSpec.configure do |config|
 end
 ```
 
-```
+```bash
 $ mkdir -p spec/controllers
 $ vim spec/controllers/main_controller_spec.rb
 ```
