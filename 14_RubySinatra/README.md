@@ -187,3 +187,9 @@ $ mkdir -p spec/controllers
 $ vim spec/controllers/main_controller_spec.rb
 ```
 
+# Create model and its test cases
+```bash
+$ mkdir -p app/models
+$ vim app/models/user.rb
+
+```
