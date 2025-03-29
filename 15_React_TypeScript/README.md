@@ -136,6 +136,46 @@ Install `html-webpack-plugin`.
 +  };
 ```
 
+`html-webpack-plugin` は、JavaScript が組み込まれたHTML を`dist` ディレクトリに作成します。
+複数のJavaScript ファイルを組み込み、HTML ファイルとして提供することを自動化します。
+
+# TypeScript React Component  の例
+
+* src/index.tsx
+```typescript
+import React from 'react';
+import ReactDOM from 'react-com/client'
+
+const App: React.FC = () => {
+  return (
+    <div>
+      <h1>Hello, React!</h1>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+```
+
+# プロジェクトの起動
+
+```json
+{
+  "scripts": {
+    "start": "webpack serve --open",
+    "build": "webpack --mode production"
+  }
+}
+```
+
+`production` オプションで、production モードでビルドします。
+これは、資材の縮小化や無駄なコードの削除を行い、商用環境へ向けた最適化されたビルドを生成します。
+
+```bash
+$ npm start
+## visit http://localhost:8080
+```
 
 
 # Reference
