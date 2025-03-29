@@ -107,6 +107,7 @@ Install `html-webpack-plugin`.
 * webpack.config.js
 ```javascript
  const path = require('path');
++const HtmlWebpackPlugin = require('html-webpack-plugin');
  
  module.exports = {
    entry: './src/index.tsx',
@@ -128,7 +129,7 @@ Install `html-webpack-plugin`.
    }
 -  };
 +  },
-+    plugins: [
++  plugins: [
 +      new HtmlWebpackPlugin({
 +        template: './src/index.html'
 +      })
@@ -144,7 +145,7 @@ Install `html-webpack-plugin`.
 * src/index.tsx
 ```typescript
 import React from 'react';
-import ReactDOM from 'react-com/client'
+import ReactDOM from 'react-dom/client'
 
 const App: React.FC = () => {
   return (
@@ -160,10 +161,11 @@ root.render(<App />);
 
 # プロジェクトの起動
 
+* package.json(一部抜粋)
 ```json
 {
   "scripts": {
-    "start": "webpack serve --open",
+    "start": "webpack serve --open --mode development",
     "build": "webpack --mode production"
   }
 }
@@ -183,3 +185,5 @@ $ npm start
 - [Webpackを一歩一歩確実に理解してReact + TypeScript環境を作る](https://qiita.com/Mr_ozin/items/b6749e60b185a26b97f0)
 - [Creating a React App - React](https://react.dev/learn/creating-a-react-app#production-grade-react-frameworks)
 - [Using TypeScript - React](https://react.dev/learn/typescript)
+
+
