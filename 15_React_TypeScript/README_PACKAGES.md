@@ -5,5 +5,6 @@
 
 # React, TypeScript, Tailwind CSS
 * [tailwindcss](https://tailwindcss.com/)
+* [Lucide](https://lucide.dev/)
 * [Tailwind CSSの環境構築](https://zenn.dev/stray/books/e3dbdf3f7aeac6/viewer/chapter2)
 
