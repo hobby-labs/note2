@@ -8,3 +8,10 @@
 * [Lucide](https://lucide.dev/)
 * [Tailwind CSSの環境構築](https://zenn.dev/stray/books/e3dbdf3f7aeac6/viewer/chapter2)
 
+# React, TypeScript, Redux
+* [React Redux TypeScript Quick Start](https://react-redux.js.org/tutorials/typescript-quick-start)
+* [Usage with TypeScript](https://react-redux.js.org/using-react-redux/usage-with-typescript)
+* [Redux Toolkit TypeScript Quick Start](https://redux-toolkit.js.org/tutorials/typescript)
+* [React TypeScript Cheatsheet](https://github.com/typescript-cheatsheets/react)
+* [React & Redux in TypeScript - Complete Guide](https://github.com/piotrwitek/react-redux-typescript-guide)
+
