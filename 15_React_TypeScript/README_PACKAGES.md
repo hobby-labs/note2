@@ -15,3 +15,6 @@
 * [React TypeScript Cheatsheet](https://github.com/typescript-cheatsheets/react)
 * [React & Redux in TypeScript - Complete Guide](https://github.com/piotrwitek/react-redux-typescript-guide)
 
+* [react,ts,redux,eslint,prettier,webpackな環境を一から作る](https://qiita.com/pokotyan/items/0521f6ea54ee801e53ad)
+* [piotrwitekreact-redux-typescript-webpack-starter](https://github.com/piotrwitek/react-redux-typescript-webpack-starter)
+
