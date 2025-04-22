@@ -147,8 +147,7 @@ Install `html-webpack-plugin`.
 import React from 'react';
 import ReactDOM from 'react-dom/client'
 
-const App: React.FC = () => {
-  return (
+const App: React.FC = () => {h
     <div>
       <h1>Hello, React!</h1>
     </div>
