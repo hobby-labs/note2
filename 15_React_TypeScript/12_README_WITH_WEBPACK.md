@@ -43,3 +43,29 @@ module.exports = {
 };
 ```
 
+ここで、動作確認を行います。
+
+```
+$ npm start
+...
+```
+
+# typesync
+
+```
+$ npm i -D typesync
+```
+
+* package.json
+```
+{
+  ...
+  "scripts": {
+    "preinstall": "typesync || :",
+    ...
+  }
+  ...
+}
+```
+
+
