@@ -1,0 +1,51 @@
+{
+  "name": "react-ts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --open --mode development",
+    "build": "webpack --mode production",
+    "preinstall": "typesync || :",
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "html-webpack-plugin": "^5.6.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "save": "^2.9.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.27.0",
+    "@reduxjs/toolkit": "^2.7.0",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "babel-loader": "^10.0.0",
+    "eslint": "^9.25.1",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-react": "^7.37.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
+    "prettier": "^3.5.3",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.5.3",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.2",
+    "typesync": "^0.14.3",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
+  },
+  "lint-staged": {
+    "*.js": "eslint --cache --fix",
+    "*.{js,css,md}": "prettier --write"
+  }
+}
