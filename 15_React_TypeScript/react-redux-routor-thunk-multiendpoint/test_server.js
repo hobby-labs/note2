@@ -23,7 +23,16 @@ app.get('/', (req, res) => {
 app.get('/userList', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
   numCount = Math.floor(Math.random() * 100 + 1);
-  delayedResponse(res, [{id: 1, name: "Taro Suzuki"}, {id: 2, name: "Hanako Tanaka"}]);
+  delayedResponse(
+    res,
+    [
+      {id: 1, name: "Taro Suzuki"},
+      {id: 2, name: "Hanako Tanaka"},
+      {id: 3, name: "Jiro Sato"},
+      {id: 4, name: "Saburo Yamada"},
+      {id: 5, name: "Shiro Watanabe"}
+    ]
+  );
 });
 
 // Start the server
