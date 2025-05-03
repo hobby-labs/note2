@@ -35,10 +35,6 @@ module.exports = {
 
 Setup babel.
 
-```
-$ npm install --save-dev @babel/core babel-loader @babel/preset-env @babel/preset-react @babel/preset-typescript
-```
-
 Create `.babelrc` file.
 
 * .babelrc
