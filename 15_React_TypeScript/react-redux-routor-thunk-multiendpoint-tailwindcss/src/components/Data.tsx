@@ -8,7 +8,7 @@ import UserList from './UserList.tsx';
 const Data: React.FC = () => {
 
     return (
-        <div>
+        <div className="grid grid-cols-1 mx-auto max-w-7xl justify-between lg:px-8">
             <Count />
             <UserList />
         </div>

@@ -18,12 +18,17 @@ const Count: React.FC = () => {
     console.log(loading);
 
     if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error loading users</div>;
+    if (error) return (
+        <div>
+            <h1>Error loading countes</h1>
+            <button className="btn btn-gray" onClick={() => dispatch(fetchCount())}>Increment</button>
+        </div>
+    );
 
     return (
         <div>
             <h1>Count: {GLOBAL_COUNTER} (Fetched count: {count})</h1>
-            <button onClick={() => dispatch(fetchCount())}>Increment</button>
+            <button className="btn btn-blue" onClick={() => dispatch(fetchCount())}>Increment</button>
         </div>
     );
 }

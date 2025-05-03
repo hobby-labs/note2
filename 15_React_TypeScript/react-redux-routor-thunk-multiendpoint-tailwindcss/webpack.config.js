@@ -6,7 +6,8 @@ module.exports = {
   entry: './src/index.tsx',
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist'),
+    assetModuleFilename: 'images/[name][ext]',
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js']
@@ -23,7 +24,10 @@ module.exports = {
         include: path.resolve(__dirname, 'src'),
         use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
       },
-
+      {
+        test: /\.(png|jpe?g|gif|webp)$/i, // Match image files
+        type: 'asset/resource', // Use Webpack 5's asset/resource for images
+      }
     ]
   },
   plugins: [
@@ -36,4 +40,4 @@ module.exports = {
   ]
 };
 // Is needed style-loader when I use MiniCssExtractPlugin?
-// npm i -D tailwindcss style-loader css-loader postcss postcss-loader postcss-preset-env @tailwindcss/postcss mini-css-extract-plugin
+// npm i -D tailwindcss style-loader css-loader postcss postcss-loader postcss-preset-env @tailwindcss/postcss mini-css-extract-plugin @headlessui/react
