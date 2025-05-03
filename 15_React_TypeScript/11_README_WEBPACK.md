@@ -100,6 +100,10 @@ Create `./src/index.html`.
 
 Install `html-webpack-plugin`.
 
+```bash
+$ npm install --save-dev html-webpack-plugin
+```
+
 * webpack.config.js
 ```javascript
  const path = require('path');
