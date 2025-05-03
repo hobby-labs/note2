@@ -25,7 +25,7 @@ module.exports = {
         use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
       },
       {
-        test: /\.(png|jpe?g|gif|webp)$/i, // Match image files
+        test: /\.(png|jpe?g|gif|webp|svg)$/i, // Match image files
         type: 'asset/resource', // Use Webpack 5's asset/resource for images
       }
     ]
