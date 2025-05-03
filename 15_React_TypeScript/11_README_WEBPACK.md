@@ -126,15 +126,15 @@ $ npm install --save-dev html-webpack-plugin
          use: 'babel-loader'
        }
      ]
-   }
--  };
+-  }
 +  },
 +  plugins: [
 +      new HtmlWebpackPlugin({
 +        template: './src/index.html'
 +      })
 +    ]
-+  };
++  }
+ };
 ```
 
 `html-webpack-plugin` は、JavaScript が組み込まれたHTML を`dist` ディレクトリに作成します。

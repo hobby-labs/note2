@@ -3,15 +3,9 @@
 * [Error in creating new React app using create-react-app appname](https://stackoverflow.com/a/79273240/4307818#)
 
 ```
-$ npm i -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
+$ npm i -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-react
 $ npm i -D prettier eslint-config-prettier
 $ npx mrm lint-staged
-```
-
-ここでは、react, react-dom, @types/react, @types/react-dom は既にインストールされているため、ここでは行いません。
-
-```
-$ npm i -D eslint-plugin-react
 ```
 
 * .eslintrc.js
