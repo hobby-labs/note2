@@ -53,7 +53,8 @@ ESLint を導入します。
 $ npm install --save-dev eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
 $ npm install --save-dev prettier eslint-config-prettier eslint-plugin-react eslint-plugin-prettier
 $ git init --initial-branch=main
-$ echo "node_modules" > .gitignore
+$ echo "node_modules" >  .gitignore
+$ echo ".eslintcache" >> .gitignore
 $ git add .
 $ git commit -m "init"
 $ npx mrm lint-staged
@@ -362,7 +363,7 @@ const App: React.FC = () => {
     return (
         <div>
             <h1>Hello, React!</h1>
-            <Home />
+            <Home name="My Home" />
             <Data />
         </div>
     );
