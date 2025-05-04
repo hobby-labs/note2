@@ -324,6 +324,9 @@ export default App;
  );
 ```
 
+```bash
+$ npm start
+```
 
 
 # props を渡す
