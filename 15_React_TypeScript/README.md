@@ -334,22 +334,54 @@ $ npm start
 
 * src/components/Home.tsx
 ```typescript
-import React from 'react';
+ import React from 'react';
 
-type HomeProps = {
-  name: string;
-}
+-const Home: React.FC = () => {
++type HomeProps = {
++  name: string;
++}
++
++const Home: React.FC<HomeProps> = ({ name }) => {
+     return (
+         <div>
+-            <h2>Home component.</h2>
++            <h1>{name} in component.</h1>
++            This is a test page.
+         </div>
+     );
+-};
++}
+ 
+ export default Home;
+```
 
-const Home: React.FC<HomeProps> = ({ name }) => {
-    return (
-        <div>
-            <h1>{name} in component.</h1>
-            This is a test page.
-        </div>
-    );
-}
+* src/App.tsx
+```typescript
+ import React from 'react';
+ 
+ import Home from './components/Home';
+ import Data from './components/Data';
+ 
+ const App: React.FC = () => {
+     return (
+         <div>
+             <h1>Hello, React!</h1>
+-            <Home />
++            <Home name="My Home" />
+             <Data />
+         </div>
+     );
+ };
+ 
+ export default App;
+```
 
-export default Home;
+
+
+# React Router を導入する
+
+```bash
+$ npm install --save react-router-dom
 ```
 
 * src/App.tsx
@@ -370,5 +402,6 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 ```
 
