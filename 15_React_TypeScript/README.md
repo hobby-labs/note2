@@ -61,7 +61,6 @@ $ npx mrm lint-staged
 
 * eslint.config.mjs (9.0.0 以降)
 ```javascript
-tsutomu@arch react-ts-webpack$ cat eslint.config.mjs
 import { ESLint } from 'eslint';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
