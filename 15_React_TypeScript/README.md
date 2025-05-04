@@ -85,14 +85,6 @@ module.exports = {
 };
 ```
 
-```bash
-$ npm i -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
-$ npm i -D prettier eslint-config-prettier
-$ npx mrm lint-staged
-```
-
-
-
 * webpack.config.js
 ```diff
  const path = require('path');
@@ -202,16 +194,13 @@ $ npm install --save-dev typesync
 import React from 'react';
 import ReactDOM from 'react-dom/client'
 
-const App: React.FC = () => {
-    return (
-        <div>
-            <h1>Hello, React!</h1>
-        </div>
-    );
-};
-
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-root.render(<App />);
+
+root.render(
+    <div>
+        <h1>Hello, React!</h1>
+    </div>
+);
 ```
 
 * package.json(一部抜粋)
@@ -235,4 +224,78 @@ $ npm start
 ## visit http://localhost:8080
 ```
 
+
+
+# components を作成する
+`src/index.tsx` を、各コンポーネントに分割します。
+`App`, `Home`, `Data` コンポーネントを作成します。
+
+```bash
+$ mkdir src/components
+```
+
+* src/components/Home.tsx
+```typescript
+import React from 'react';
+
+const Home: React.FC = () => {
+    return (
+        <div>
+            <h2>Home component.</h2>
+        </div>
+    );
+};
+
+export default Home;
+```
+
+* src/components/Data.tsx
+```typescript
+import React from 'react';
+
+const Data: React.FC = () => {
+    return (
+        <div>
+            <h2>Data component.</h2>
+        </div>
+    );
+};
+
+export default Data;
+```
+
+* src/App.tsx
+```typescript
+import React from 'react';
+
+import Home from './components/Home';
+import Data from './components/Data';
+
+const App: React.FC = () => {
+    return (
+        <div>
+            <h1>Hello, React!</h1>
+            <Home />
+            <Data />
+        </div>
+    );
+};
+
+export default App;
+```
+
+* src/index.tsx
+```typescript
+import React from 'react';
+import ReactDOM from 'react-dom/client'
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+root.render(
+    <div>
+        <App />
+    </div>
+);
+```
 
