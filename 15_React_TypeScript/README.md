@@ -51,38 +51,63 @@ ESLint を導入します。
 
 ```bash
 $ npm install --save-dev eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
-$ npm install --save-dev prettier eslint-config-prettier
+$ npm install --save-dev prettier eslint-config-prettier eslint-plugin-react eslint-plugin-prettier
 $ git init --initial-branch=main
+$ echo "node_modules" > .gitignore
+$ git add .
+$ git commit -m "init"
 $ npx mrm lint-staged
 ```
 
-* .eslintrc.js
+* eslint.config.mjs (9.0.0 以降)
 ```javascript
-module.exports = {
-  root: true,
-  env: {
-    es6: true,
-    node: true,
+tsutomu@arch react-ts-webpack$ cat eslint.config.mjs
+import { ESLint } from 'eslint';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import reactPlugin from 'eslint-plugin-react';
+import prettierPlugin from 'eslint-plugin-prettier';
+
+export default [
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        sourceType: 'module',
+        ecmaVersion: 2019,
+        tsconfigRootDir: "functions",
+        project: ['./tsconfig.eslint.json'],
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+      react: reactPlugin,
+      prettier: prettierPlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
+      ...tsPlugin.configs['recommended-requiring-type-checking'].rules,
+      ...reactPlugin.configs.recommended.rules,
+      'prettier/prettier': 'error',
+    },
   },
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    sourceType: 'module',
-    ecmaVersion: 2019,
-    tsconfigRootDir: __dirname,
-    project: ['./tsconfig.eslint.json'],
+  {
+    files: ['**/*.js', '**/*.jsx'],
+    languageOptions: {
+      ecmaVersion: 2019,
+      sourceType: 'module',
+    },
+    plugins: {
+      react: reactPlugin,
+      prettier: prettierPlugin,
+    },
+    rules: {
+      ...reactPlugin.configs.recommended.rules,
+      'prettier/prettier': 'error',
+    },
   },
-  plugins: ['@typescript-eslint'],
-  extends: [
-    'eslint:recommended',
-    'plugin:react/recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:@typescript-eslint/recommended-requiring-type-checking',
-    'prettier',
-    'prettier/@typescript-eslint',
-    'prettier/react',
-  ],
-  rules: {},
-};
+];
 ```
 
 * webpack.config.js
@@ -286,16 +311,61 @@ export default App;
 
 * src/index.tsx
 ```typescript
+ import React from 'react';
+ import ReactDOM from 'react-dom/client'
++import App from './App';
+
+ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+ root.render(
+     <div>
+-        <h1>Hello, React!</h1>
++        <App />
+     </div>
+ );
+```
+
+
+
+# props を渡す
+
+* src/components/Home.tsx
+```typescript
 import React from 'react';
-import ReactDOM from 'react-dom/client'
-import App from './App';
 
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+type HomeProps = {
+  name: string;
+}
 
-root.render(
-    <div>
-        <App />
-    </div>
-);
+const Home: React.FC<HomeProps> = ({ name }) => {
+    return (
+        <div>
+            <h1>{name} in component.</h1>
+            This is a test page.
+        </div>
+    );
+}
+
+export default Home;
+```
+
+* src/App.tsx
+```typescript
+import React from 'react';
+
+import Home from './components/Home';
+import Data from './components/Data';
+
+const App: React.FC = () => {
+    return (
+        <div>
+            <h1>Hello, React!</h1>
+            <Home />
+            <Data />
+        </div>
+    );
+};
+
+export default App;
 ```
 
