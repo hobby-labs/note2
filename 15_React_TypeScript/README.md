@@ -198,7 +198,7 @@ typesync を導入します。
 $ npm install --save-dev typesync
 ```
 
-* package.json(一部抜粋)
+* package.json  (一部抜粋)
 ```json
 {
   ......
@@ -227,7 +227,7 @@ root.render(
 );
 ```
 
-* package.json(一部抜粋)
+* package.json  (一部抜粋)
 ```json
 {
   ......
