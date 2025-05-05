@@ -913,42 +913,42 @@ $ npm install --save-dev tailwindcss @tailwindcss/postcss mini-css-extract-plugi
 
 * webpack.config.js
 ```javascript
-const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
-module.exports = {
-  entry: "./src/index.tsx",
-  output: {
-    filename: "bundle.js",
-    path: path.resolve(__dirname, "dist"),
-  },
-  resolve: {
-    extensions: [".tsx", ".ts", ".js"],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(ts|tsx)$/,
-        exclude: /node_modules/,
-        use: "babel-loader",
-      },
-      {
-        test: /\.css$/,
-        include: path.resolve(__dirname, 'src'),
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
-      }
-    ],
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: "./src/index.html",
-    }),
-    new MiniCssExtractPlugin({
-      filename: 'styles.css'
-    })
-  ],
-};
+ const path = require("path");
+ const HtmlWebpackPlugin = require("html-webpack-plugin");
++const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+ 
+ module.exports = {
+   entry: "./src/index.tsx",
+   output: {
+     filename: "bundle.js",
+     path: path.resolve(__dirname, "dist"),
+   },
+   resolve: {
+     extensions: [".tsx", ".ts", ".js"],
+   },
+   module: {
+     rules: [
+       {
+         test: /\.(ts|tsx)$/,
+         exclude: /node_modules/,
+         use: "babel-loader",
+       },
++      {
++        test: /\.css$/,
++        include: path.resolve(__dirname, 'src'),
++        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
++      }
+     ],
+   },
+   plugins: [
+     new HtmlWebpackPlugin({
+       template: "./src/index.html",
+     }),
++    new MiniCssExtractPlugin({
++      filename: 'styles.css'
++    })
+   ],
+ };
 ```
 
 * tailwind.config.js
@@ -1015,3 +1015,11 @@ const Home: React.FC<HomeProps> = ({ name }) => {
 
 export default Home;
 ```
+
+```bash
+$ npm start
+```
+
+
+
+
