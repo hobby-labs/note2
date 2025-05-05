@@ -9,9 +9,6 @@ const Count: React.FC = () => {
     const dispatch: AppDispatch = useDispatch();
     const { loading, item, error } = useSelector((state: RootState) => state.count);
 
-    const count = item.count;
-    GLOBAL_COUNTER += count;
-
     if (loading) return <div>Loading...</div>;
     if (error) return (
         <div>
@@ -19,6 +16,9 @@ const Count: React.FC = () => {
             <button className="btn btn-gray" onClick={() => dispatch(fetchCount())}>Increment</button>
         </div>
     );
+
+    const count = item.count;
+    GLOBAL_COUNTER += count;
 
     return (
         <div>
