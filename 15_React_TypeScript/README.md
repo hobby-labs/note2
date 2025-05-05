@@ -903,3 +903,115 @@ app.listen(PORT, () => {
  export default UserList;
 ```
 
+
+
+# twilwindcss を導入する
+
+```bash
+$ npm install --save-dev tailwindcss @tailwindcss/postcss mini-css-extract-plugin postcss postcss-loader postcss-preset-env css-loader
+```
+
+* webpack.config.js
+```javascript
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+module.exports = {
+  entry: "./src/index.tsx",
+  output: {
+    filename: "bundle.js",
+    path: path.resolve(__dirname, "dist"),
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", ".js"],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(ts|tsx)$/,
+        exclude: /node_modules/,
+        use: "babel-loader",
+      },
+      {
+        test: /\.css$/,
+        include: path.resolve(__dirname, 'src'),
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'],
+      }
+    ],
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: "./src/index.html",
+    }),
+    new MiniCssExtractPlugin({
+      filename: 'styles.css'
+    })
+  ],
+};
+```
+
+* tailwind.config.js
+```javascript
+module.exports = {
+    content: ['./src/**/*.{html,js,jsx,ts,tsx}'],
+
+    theme: {},
+    variants: {
+        extend: {}
+    },
+    plugins: []
+}
+```
+
+* postcss.config.js
+```javascript
+export default {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  }
+}
+```
+
+* src/styles.css
+```css
+@import "tailwindcss";
+```
+
+* ./src/index.tsx
+```typescript
+ import React from 'react';
+ import ReactDOM from 'react-dom/client'
+ import { Provider } from 'react-redux';
+ import { store } from './redux/store';
+ import App from './App';
++import './style.css';
+ 
+ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+ 
+ root.render(
+     <Provider store={store}>
+         <App />
+     </Provider>
+ );
+```
+
+* ./src/components/Home.tsx
+```typescript
+import React from 'react';
+
+type HomeProps = {
+  name: string;
+}
+
+const Home: React.FC<HomeProps> = ({ name }) => {
+    return (
+        <div>
+            <h1 className="text-2xl underline">{name} in component.</h1>
+            This is a test page.
+        </div>
+    );
+}
+
+export default Home;
+```
