@@ -411,4 +411,128 @@ export default App;
 
 
 
-# 
+# Redux を導入する
+
+```bash
+$ npm install --save react-redux @reduxjs/toolkit
+$ mkdir src/redux
+```
+
+* src/redux/countSlice.ts
+```typescript
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+
+export const fetchCount = createAsyncThunk('items/feathCount', async () => {
+    return {id: 1, name: 'Item 1', count: 1};
+})
+
+interface CountObject {
+    count: number;
+}
+
+interface CountState {
+    loading: boolean;
+    item: CountObject;
+}
+
+const initialState: CountState = {
+    loading: false,
+    item: {id: 0, name: 'No name', count: 0},
+};
+
+const countSlice = createSlice({
+    name: 'count',
+    initialState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchCount.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchCount.fulfilled, (state, action) => {
+                state.loading = false;
+                state.item = action.payload;
+            });
+    }
+});
+
+export default countSlice.reducer;
+```
+
+* src/redux/store.ts
+```
+import { configureStore } from '@reduxjs/toolkit';
+import countReducer from './countSlice';
+
+export const store = configureStore({
+    reducer: {
+        count: countReducer
+    }
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+```
+
+* src/components/Count.tsx
+```typescript
+import React from "react";
+import { AppDispatch, RootState } from "../redux/store";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchCount } from "../redux/countSlice";
+
+let GLOBAL_COUNTER = 0;
+
+const Count: React.FC = () => {
+    const dispatch: AppDispatch = useDispatch();
+    const { loading, item } = useSelector((state: RootState) => state.count);
+
+    if (loading) return <div>Loading...</div>;
+
+    const count = item.count;
+    GLOBAL_COUNTER += count;
+
+    return (
+        <div>
+            <h1>Count: {GLOBAL_COUNTER} (Fetched count: {count})</h1>
+            <button onClick={() => dispatch(fetchCount())}>Increment</button>
+        </div>
+    );
+}
+
+export default Count;
+```
+
+* src/components/Data.tsx
+```typescript
+import React from 'react';
+import Count from './Count';
+
+const Data: React.FC = () => {
+    return (
+        <div>
+            <Count />
+        </div>
+    );
+};
+
+export default Data;
+```
+
+* src/index.tsx
+```typescript
+import React from 'react';
+import ReactDOM from 'react-dom/client'
+import { Provider } from 'react-redux';
+import { store } from './redux/store';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+root.render(
+    <Provider store={store}>
+        <App />
+    </Provider>
+);
+```
+
