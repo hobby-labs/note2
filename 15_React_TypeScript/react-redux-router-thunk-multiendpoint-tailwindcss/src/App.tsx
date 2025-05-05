@@ -1,5 +1,4 @@
 import React from 'react';
-import { PopoverGroup } from '@headlessui/react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import Home from './components/Home';
 import Data from './components/Data';
