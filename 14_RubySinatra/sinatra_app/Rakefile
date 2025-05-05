@@ -1,0 +1,18 @@
+require_relative './config/environment'
+require 'sinatra/activerecord/rake'
+require 'rspec/core/rake_task'
+
+desc "Runs a Pry console"
+task :console do
+    ActiveRecord::Base.logger = Logger.new(STDOUT)
+    Pry.start
+end
+
+task :server do
+    exec "rerun -b 'rackup config.ru -p 8000'"
+end
+
+task :spec do
+    ENV['RACK_ENV'] = 'test'
+    RSpec::Core::RakeTask.new(:spec)
+end
