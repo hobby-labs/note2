@@ -536,3 +536,119 @@ root.render(
 );
 ```
 
+
+
+# Redux 2 つ目
+
+* src/redux/userListSlice.ts
+```
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+export const fetchUserList = createAsyncThunk('userList/fetchUserList', async () => {
+    return [
+        { id: 1, name: 'Taro Suzuki' },
+        { id: 2, name: 'Hanako Tanaka' },
+        { id: 3, name: 'Jiro Sato' }
+    ];
+});
+
+interface User {
+    id: number;
+    name: string;
+}
+
+interface UserListState {
+    loading: boolean;
+    items: User[];
+}
+
+const initialState: UserListState = {
+    loading: false,
+    items: []
+};
+
+const userListSlice = createSlice({
+    name: 'userList',
+    initialState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchUserList.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchUserList.fulfilled, (state, action) => {
+                state.loading = false;
+                state.items = action.payload;
+            });
+    }
+});
+
+export default userListSlice.reducer;
+```
+
+* src/redux/store.ts
+```typescript
+import { configureStore } from '@reduxjs/toolkit';
+import countReducer from './countSlice';
+import userListReducer from './userListSlice';
+
+export const store = configureStore({
+    reducer: {
+        count: countReducer,
+        userList: userListReducer
+    }
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+```
+
+* src/components/Data.tsx
+```typescript
+import React from 'react';
+import Count from './Count';
+import UserList from './UserList';
+
+const Data: React.FC = () => {
+    return (
+        <div>
+            <Count />
+            <UserList />
+        </div>
+    );
+};
+
+export default Data;
+```
+
+* src/components/UserList.tsx
+```typescript
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '../redux/store';
+import { fetchUserList } from '../redux/userListSlice';
+
+const UserList: React.FC = () => {
+    const dispatch: AppDispatch = useDispatch();
+    const { loading, items } = useSelector((state: RootState) => state.userList);
+
+    if (loading) return <div>Loading users...</div>;
+
+    return (
+        <div>
+            <h1>UserList: ({items.length} users)</h1>
+            <ul>
+                {items.map((user) => (
+                    <li key={user.id}>
+                        {user.name}
+                    </li>
+                ))}
+            </ul>
+            <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
+        </div>
+    );
+};
+
+export default UserList;
+```
+
