@@ -1,7 +1,6 @@
 import React from "react";
-import { AppDispatch } from "../redux/store";
+import { AppDispatch, RootState } from "../redux/store";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../redux/store";
 import { fetchCount } from "../redux/countSlice";
 
 let GLOBAL_COUNTER = 0;
@@ -12,10 +11,6 @@ const Count: React.FC = () => {
 
     const count = item.count;
     GLOBAL_COUNTER += count;
-
-    console.log("Rendering Count component");
-    console.log(item);
-    console.log(loading);
 
     if (loading) return <div>Loading...</div>;
     if (error) return (
