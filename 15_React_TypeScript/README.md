@@ -505,38 +505,43 @@ export default Count;
 
 * src/components/Data.tsx
 ```typescript
-import React from 'react';
-import Count from './Count';
-
-const Data: React.FC = () => {
-    return (
-        <div>
-            <Count />
-        </div>
-    );
-};
-
-export default Data;
+ import React from 'react';
+ import Count from './Count';
+ 
+ const Data: React.FC = () => {
+     return (
+         <div>
+-            <h2>Data component.</h2>
++            <Count />
+         </div>
+     );
+ };
+ 
+ export default Data;
 ```
 
 * src/index.tsx
 ```typescript
-import React from 'react';
-import ReactDOM from 'react-dom/client'
-import { Provider } from 'react-redux';
-import { store } from './redux/store';
-import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-
-root.render(
-    <Provider store={store}>
-        <App />
-    </Provider>
-);
+ import React from 'react';
+ import ReactDOM from 'react-dom/client'
++import { Provider } from 'react-redux';
++import { store } from './redux/store';
+ import App from './App';
+ 
+ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+ 
+ root.render(
+-    <div>
++    <Provider store={store}>
+         <App />
+-    </div>
++    </Provider>
+ );
 ```
 
-
+```bash
+$ npm start
+```
 
 # Redux 2 つ目
 
@@ -588,37 +593,38 @@ export default userListSlice.reducer;
 
 * src/redux/store.ts
 ```typescript
-import { configureStore } from '@reduxjs/toolkit';
-import countReducer from './countSlice';
-import userListReducer from './userListSlice';
-
-export const store = configureStore({
-    reducer: {
-        count: countReducer,
-        userList: userListReducer
-    }
-});
-
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+ import { configureStore } from '@reduxjs/toolkit';
+ import countReducer from './countSlice';
++import userListReducer from './userListSlice';
+ 
+ export const store = configureStore({
+     reducer: {
+-        count: countReducer
++        count: countReducer,
++        userList: userListReducer
+     }
+ });
+ 
+ export type RootState = ReturnType<typeof store.getState>;
+ export type AppDispatch = typeof store.dispatch;
 ```
 
 * src/components/Data.tsx
 ```typescript
-import React from 'react';
-import Count from './Count';
-import UserList from './UserList';
-
-const Data: React.FC = () => {
-    return (
-        <div>
-            <Count />
-            <UserList />
-        </div>
-    );
-};
-
-export default Data;
+ import React from 'react';
+ import Count from './Count';
++import UserList from './UserList';
+ 
+ const Data: React.FC = () => {
+     return (
+         <div>
+             <Count />
++            <UserList />
+         </div>
+     );
+ };
+ 
+ export default Data;
 ```
 
 * src/components/UserList.tsx
