@@ -660,7 +660,7 @@ export default UserList;
 
 
 
-# Test server
+# axios and test server
 
 ```bash
 $ npm install --save axios
@@ -713,174 +713,193 @@ app.listen(PORT, () => {
 
 * src/redux/countSlice.tsx
 ```typescript
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
++import axios from 'axios';
 
-export const fetchCount = createAsyncThunk('items/fetchCount', async () => {
-    const response = await axios.get('http://localhost:18080');
-    return response.data;
-})
-
-interface CountObject {
-    id: number;
-    count: number;
-}
-
-interface CountState {
-    loading: boolean;
-    item: CountObject;
-    error: string | null;
-}
-
-const initialState: CountState = {
-    loading: false,
-    item: {id: 0, name: 'No name', count: 0},
-    error: null
-};
-
-const countSlice = createSlice({
-    name: 'count',
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        builder
-            .addCase(fetchCount.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(fetchCount.fulfilled, (state, action) => {
-                state.loading = false;
-                state.item = action.payload;
-            })
-            .addCase(fetchCount.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.error.message || 'Failed to fetch count';
-            });
-    }
-});
-
-export default countSlice.reducer;
+-export const fetchCount = createAsyncThunk('items/feathCount', async () => {
+-    return {id: 1, name: 'Item 1', count: 1};
++export const fetchCount = createAsyncThunk('items/featchCount', async () => {
++    const response = await axios.get('http://localhost:18080');
++    return response.data;
+ })
+ 
+ interface CountObject {
++    id: number;
+     count: number;
+ }
+ 
+ interface CountState {
+     loading: boolean;
+     item: CountObject;
++    error: string | null;
+ }
+ 
+ const initialState: CountState = {
+     loading: false,
+-    item: {count: 0},
++    item: {id: 0, count: 0},
+     error: null
+ };
+ 
+ const countSlice = createSlice({
+     name: 'count',
+     initialState,
+     reducers: {},
+     extraReducers: (builder) => {
+         builder
+             .addCase(fetchCount.pending, (state) => {
+                 state.loading = true;
+             })
+             .addCase(fetchCount.fulfilled, (state, action) => {
+                 state.loading = false;
+                 state.item = action.payload;
+             })
+             .addCase(fetchCount.rejected, (state, action) => {
+                 state.loading = false;
+                 state.error = action.error.message || 'Failed to fetch count';
++            })
++            .addCase(fetchCount.rejected, (state, action) => {
++                state.loading = false;
++                state.error = action.error.message || 'Failed to fetch count';
+             });
+     }
+ });
+ 
+ export default countSlice.reducer;
 ```
 
 * src/redux/userListSlice.tsx
 ```typescript
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from 'axios';
-
-export const fetchUserList = createAsyncThunk('userList/fetchUserList', async () => {
-    const response = await axios.get('http://localhost:18080/userList');
-    return response.data;
-});
-
-interface User {
-    id: number;
-    name: string;
-}
-
-interface UserListState {
-    loading: boolean;
-    items: User[];
-    error: string | null;
-}
-
-const initialState: UserListState = {
-    loading: false,
-    items: [],
-    error: null
-};
-
-const userListSlice = createSlice({
-    name: 'userList',
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        builder
-            .addCase(fetchUserList.pending, (state) => {
-                state.loading = true;
-            })
-            .addCase(fetchUserList.fulfilled, (state, action) => {
-                state.loading = false;
-                state.items = action.payload;
-            })
-            .addCase(fetchUserList.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.error.message || 'Failed to fetch user list';
-            });
-    }
-});
-
-export default userListSlice.reducer;
+ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
++import axios from 'axios';
+ 
+ export const fetchUserList = createAsyncThunk('userList/fetchUserList', async () => {
+-    return [
+-        { id: 1, name: 'Taro Suzuki' },
+-        { id: 2, name: 'Hanako Tanaka' },
+-        { id: 3, name: 'Jiro Sato' }
+-    ];
++    const response = await axios.get('http://localhost:18080/userList');
++    return response.data;
+ });
+ 
+ interface User {
+     id: number;
+     name: string;
+ }
+ 
+ interface UserListState {
+     loading: boolean;
+     items: User[];
++    error: string | null;
+ }
+ 
+ const initialState: UserListState = {
+     loading: false,
+     items: [],
+-    items: []
++    items: [],
++    error: null
+ };
+ 
+ const userListSlice = createSlice({
+     name: 'userList',
+     initialState,
+     reducers: {},
+     extraReducers: (builder) => {
+         builder
+             .addCase(fetchUserList.pending, (state) => {
+                 state.loading = true;
+             })
+             .addCase(fetchUserList.fulfilled, (state, action) => {
+                 state.loading = false;
+                 state.items = action.payload;
+             })
+             .addCase(fetchUserList.rejected, (state, action) => {
+                 state.loading = false;
+                 state.error = action.error.message || 'Failed to fetch user list';
++            })
++            .addCase(fetchUserList.rejected, (state, action) => {
++                state.loading = false;
++                state.error = action.error.message || 'Failed to fetch user list';
+             });
+     }
+ });
+ 
+ export default userListSlice.reducer;
 ```
 
 * ./src/components/Count.tsx
 ```typescript
-import React from "react";
-import { AppDispatch, RootState } from "../redux/store";
-import { useSelector, useDispatch } from "react-redux";
-import { fetchCount } from "../redux/countSlice";
-
-let GLOBAL_COUNTER = 0;
-
-const Count: React.FC = () => {
-    const dispatch: AppDispatch = useDispatch();
-    const { loading, item, error } = useSelector((state: RootState) => state.count);
-
-    if (loading) return <div>Loading...</div>;
-    if (error) return (
-        <div>
-            <h1>Error loading countes</h1>
-            <button onClick={() => dispatch(fetchCount())}>Increment</button>
-        </div>
-    );
-
-    const count = item.count;
-    GLOBAL_COUNTER += count;
-
-    return (
-        <div>
-            <h1>Count: {GLOBAL_COUNTER} (Fetched count: {count})</h1>
-            <button onClick={() => dispatch(fetchCount())}>Increment</button>
-        </div>
-    );
-}
-
-export default Count;
+ import React from "react";
+ import { AppDispatch, RootState } from "../redux/store";
+ import { useSelector, useDispatch } from "react-redux";
+ import { fetchCount } from "../redux/countSlice";
+ 
+ let GLOBAL_COUNTER = 0;
+ 
+ const Count: React.FC = () => {
+     const dispatch: AppDispatch = useDispatch();
+-    const { loading, item } = useSelector((state: RootState) => state.count);
++    const { loading, item, error } = useSelector((state: RootState) => state.count);
+ 
+     if (loading) return <div>Loading...</div>;
++    if (error) return (
++        <div>
++            <h1>Error loading countes</h1>
++            <button onClick={() => dispatch(fetchCount())}>Increment</button>
++        </div>
++    );
+ 
+     const count = item.count;
+     GLOBAL_COUNTER += count;
+ 
+     return (
+         <div>
+             <h1>Count: {GLOBAL_COUNTER} (Fetched count: {count})</h1>
+             <button onClick={() => dispatch(fetchCount())}>Increment</button>
+         </div>
+     );
+ }
+ 
+ export default Count;
 ```
 
 * ./src/components/UserList.tsx
 ```typescript
-import React, { useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, AppDispatch } from '../redux/store';
-import { fetchUserList } from '../redux/userListSlice';
-
-const UserList: React.FC = () => {
-    const dispatch: AppDispatch = useDispatch();
-    const { loading, items, error } = useSelector((state: RootState) => state.userList);
-
-    if (loading) return <div>Loading users...</div>;
-
-    if (error) return (
-        <div>
-            <h1>Error loading users</h1>
-            <button className="btn btn-gray" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
-        </div>
-    );
-
-    return (
-        <div>
-            <h1>UserList: ({items.length} users)</h1>
-            <ul>
-                {items.map((user) => (
-                    <li key={user.id}>
-                        {user.name}
-                    </li>
-                ))}
-            </ul>
-            <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
-        </div>
-    );
-};
-
-export default UserList;
+ import React, { useEffect } from 'react';
+ import { useSelector, useDispatch } from 'react-redux';
+ import { RootState, AppDispatch } from '../redux/store';
+ import { fetchUserList } from '../redux/userListSlice';
+ 
+ const UserList: React.FC = () => {
+     const dispatch: AppDispatch = useDispatch();
+-    const { loading, items } = useSelector((state: RootState) => state.userList);
++    const { loading, items, error } = useSelector((state: RootState) => state.userList);
+ 
+     if (loading) return <div>Loading users...</div>;
++    if (error) return (
++        <div>
++            <h1>Error loading users</h1>
++            <button className="btn btn-gray" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
++        </div>
++    );
+ 
+     return (
+         <div>
+             <h1>UserList: ({items.length} users)</h1>
+             <ul>
+                 {items.map((user) => (
+                     <li key={user.id}>
+                         {user.name}
+                     </li>
+                 ))}
+             </ul>
+             <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
+         </div>
+     );
+ };
+ 
+ export default UserList;
 ```
 
