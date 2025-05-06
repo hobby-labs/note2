@@ -1190,3 +1190,131 @@ $ npm start
 +}
 ```
 
+
+
+# svg を表示する
+
+* [赤頭巾ちゃんのフリーアイコン3](https://icooon-mono.com/10903-%e8%b5%a4%e9%a0%ad%e5%b7%be%e3%81%a1%e3%82%83%e3%82%93%e3%81%ae%e3%83%95%e3%83%aa%e3%83%bc%e3%82%a2%e3%82%a4%e3%82%b3%e3%83%b33/)  
+上記のアイコンを、SVG でダウンロードし、`src/images/akazukin3.svg` に保存します。
+
+* webpack.config.js
+```javascript
+ const path = require("path");
+ const HtmlWebpackPlugin = require("html-webpack-plugin");
+ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+ 
+ module.exports = {
+   entry: "./src/index.tsx",
+   output: {
+     filename: "bundle.js",
+     path: path.resolve(__dirname, "dist"),
++    assetModuleFilename: 'images/[name][ext]',
+   },
+   resolve: {
+     extensions: [".tsx", ".ts", ".js"],
+   },
+   module: {
+     rules: [
+       {
+         test: /\.(ts|tsx)$/,
+         exclude: /node_modules/,
+         use: "babel-loader",
+       },
+       {
+         test: /\.css$/,
+         include: path.resolve(__dirname, "src"),
+         use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+       },
++      {
++        test: /\.(png|jpe?g|gif|webp|svg)$/i,
++        type: 'asset/resource',
++      }
+     ],
+   },
+   plugins: [
+     new HtmlWebpackPlugin({
+       template: "./src/index.html",
+     }),
+     new MiniCssExtractPlugin({
+       filename: "styles.css",
+     }),
+   ],
+ };
+```
+
+* src/App.tsx
+```typescript
+ import React from 'react';
+ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+ 
+ import Home from './components/Home';
+ import Data from './components/Data';
++import logo from './images/akazukin3.png';
+ 
+ const App: React.FC = () => {
+     return (
+         <Router>
+             <nav aria-label="Global" className="mx-auto flex items-center justify-between p-4 lg:px-8">
+                 <div className="flex lg:flex-1">
+                     <Link to="/" className="text-sm/6 font-semibold">
+-                        😀
++                        <img src={logo} className='w-10 h-10' />
+                     </Link>
+                 </div>
+                 <div className="flex items-stretch grid-cols-2 gap-8">
+                     <div className="py-1">
+                         <Link to="/" className="text-sm/6 font-semibold">Home</Link>
+                     </div>
+                     <div className="py-1">
+                         <Link to="/data" className="text-sm/6 font-semibold">Data</Link>
+                     </div>
+                 </div>
+ 
+             </nav>
+             <Routes>
+                 <Route path="/" element={<Home name="My Home" />} />
+                 <Route path="/data" element={<Data />} />
+             </Routes>
+         </Router>
+     );
+ };
+ 
+ export default App;
+```
+
+```bash
+$ npm start
+```
+
+
+
+# svg ファイrをReact コンポーネントとして使用する
+
+.svg 拡張子を持つファイルを、React コンポーネントとして使用するための型定義を追加します。
+
+```bash
+$ npm install --save-dev @svgr/webpack
+```
+
+* ./src/custom.d.ts
+```typescript
+// https://stackoverflow.com/a/45887328/4307818
+declare module "*.svg" {
+    const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
+    export default content;
+}
+```
+
+* tsconfig.json
+```json
+{
+  "include": ["src/components", "src/custom.d.ts"]
+}
+```
+
+* src/App.tsx
+```typescript
+
+```
+
+
