@@ -1314,7 +1314,90 @@ declare module "*.svg" {
 
 * src/App.tsx
 ```typescript
-
+ import React from 'react';
+ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+ 
+ import Home from './components/Home';
+ import Data from './components/Data';
+ import Logo from './images/akazukin3.svg';
+ 
+ const App: React.FC = () => {
+     return (
+         <Router>
+             <nav aria-label="Global" className="mx-auto flex items-center justify-between p-4 lg:px-8">
+                 <div className="flex lg:flex-1">
+                     <Link to="/" className="text-sm/6 font-semibold">
+-                        <img src={logo} className='w-10 h-10' />
++                        <Logo className="w-10 h-10" />
+                     </Link>
+                 </div>
+                 <div className="flex items-stretch grid-cols-2 gap-8">
+                     <div className="py-1">
+                         <Link to="/" className="text-sm/6 font-semibold">Home</Link>
+                     </div>
+                     <div className="py-1">
+                         <Link to="/data" className="text-sm/6 font-semibold">Data</Link>
+                     </div>
+                 </div>
+ 
+             </nav>
+             <Routes>
+                 <Route path="/" element={<Home name="My Home" />} />
+                 <Route path="/data" element={<Data />} />
+             </Routes>
+         </Router>
+     );
+ };
+ 
+ export default App;
 ```
 
-
+* webpack.config.js
+```javascript
+ const path = require("path");
+ const HtmlWebpackPlugin = require("html-webpack-plugin");
+ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+ 
+ module.exports = {
+   entry: "./src/index.tsx",
+   output: {
+     filename: "bundle.js",
+     path: path.resolve(__dirname, "dist"),
+     assetModuleFilename: "images/[name][ext]",
+   },
+   resolve: {
+     extensions: [".tsx", ".ts", ".js"],
+   },
+   module: {
+     rules: [
+       {
+         test: /\.(ts|tsx)$/,
+         exclude: /node_modules/,
+         use: "babel-loader",
+       },
+       {
+         test: /\.css$/,
+         include: path.resolve(__dirname, "src"),
+         use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+       },
+       {
+-        test: /\.(png|jpe?g|gif|webp|svg)$/i,
++        test: /\.(png|jpe?g|gif|webp)$/i,
+         type: "asset/resource",
+       },
++      {
++        test: /\.svg$/,
++        use: ["@svgr/webpack"],
++      },
+     ],
+   },
+   plugins: [
+     new HtmlWebpackPlugin({
+       template: "./src/index.html",
+     }),
+     new MiniCssExtractPlugin({
+       filename: "styles.css",
+     }),
+   ],
+ };
+```
