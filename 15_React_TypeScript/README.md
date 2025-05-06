@@ -895,7 +895,7 @@ app.listen(PORT, () => {
 +    if (error) return (
 +        <div>
 +            <h1>Error loading users</h1>
-+            <button className="btn btn-gray" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
++            <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
 +        </div>
 +    );
  
@@ -995,7 +995,7 @@ export default {
 }
 ```
 
-* src/styles.css
+* src/style.css
 ```css
 @import "tailwindcss";
 ```
@@ -1020,22 +1020,23 @@ export default {
 
 * ./src/components/Home.tsx
 ```typescript
-import React from 'react';
-
-type HomeProps = {
-  name: string;
-}
-
-const Home: React.FC<HomeProps> = ({ name }) => {
-    return (
-        <div>
-            <h1 className="text-2xl underline">{name} in component.</h1>
-            This is a test page.
-        </div>
-    );
-}
-
-export default Home;
+ import React from 'react';
+ 
+ type HomeProps = {
+   name: string;
+ }
+ 
+ const Home: React.FC<HomeProps> = ({ name }) => {
+     return (
+         <div>
+-            <h1>{name} in component.</h1>
++            <h1 className="text-2xl underline">{name} in component.</h1>
+             This is a test page.
+         </div>
+     );
+ }
+ 
+ export default Home;
 ```
 
 ```bash
@@ -1073,7 +1074,6 @@ $ npm start
 +                        <Link to="/data" className="text-sm/6 font-semibold">Data</Link>
 +                    </div>
 +                </div>
-+
              </nav>
              <Routes>
                  <Route path="/" element={<Home name="My Home" />} />
