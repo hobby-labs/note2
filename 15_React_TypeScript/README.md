@@ -421,6 +421,8 @@ $ npm install --save react-router-dom
 $ npm start
 ```
 
+
+
 # Redux を導入する
 
 ```bash
@@ -433,7 +435,7 @@ $ mkdir src/redux
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 export const fetchCount = createAsyncThunk('items/fetchCount', async () => {
-    return {id: 1, name: 'Item 1', count: 1};
+    return {count: 1};
 })
 
 interface CountObject {
@@ -447,7 +449,7 @@ interface CountState {
 
 const initialState: CountState = {
     loading: false,
-    item: {id: 0, name: 'No name', count: 0},
+    item: {count: 0},
 };
 
 const countSlice = createSlice({
@@ -469,7 +471,7 @@ const countSlice = createSlice({
 export default countSlice.reducer;
 ```
 
-* src/redux/store.ts
+* src/redux/store.tsx
 ```
 import { configureStore } from '@reduxjs/toolkit';
 import countReducer from './countSlice';
@@ -516,7 +518,7 @@ export default Count;
 * src/components/Data.tsx
 ```typescript
  import React from 'react';
- import Count from './Count';
++import Count from './Count';
  
  const Data: React.FC = () => {
      return (
@@ -553,9 +555,11 @@ export default Count;
 $ npm start
 ```
 
+
+
 # Redux 2 つ目
 
-* src/redux/userListSlice.ts
+* src/redux/userListSlice.tsx
 ```
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
@@ -601,7 +605,7 @@ const userListSlice = createSlice({
 export default userListSlice.reducer;
 ```
 
-* src/redux/store.ts
+* src/redux/store.tsx
 ```typescript
  import { configureStore } from '@reduxjs/toolkit';
  import countReducer from './countSlice';
@@ -911,6 +915,14 @@ app.listen(PORT, () => {
  };
  
  export default UserList;
+```
+
+```bash
+$ node test_server.js
+```
+
+```bash
+$ npm start
 ```
 
 
