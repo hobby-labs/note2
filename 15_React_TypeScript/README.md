@@ -1271,7 +1271,7 @@ $ npm start
  
  import Home from './components/Home';
  import Data from './components/Data';
-+import logo from './images/akazukin3.png';
++import logo from './images/akazukin3.svg';
  
  const App: React.FC = () => {
      return (
@@ -1310,7 +1310,7 @@ $ npm start
 
 
 
-# svg ファイrをReact コンポーネントとして使用する
+# svg ファイルをReact コンポーネントとして使用する
 
 .svg 拡張子を持つファイルを、React コンポーネントとして使用するための型定義を追加します。
 
