@@ -122,7 +122,7 @@ export default [
    },
    resolve: {
      extensions: ['.tsx', '.ts', '.js']
--   }
+-  }
 +  },
 +  module: {
 +    rules: [
