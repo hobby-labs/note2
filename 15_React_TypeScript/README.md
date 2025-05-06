@@ -1022,4 +1022,171 @@ $ npm start
 
 
 
+# tailwindcss で、メニューとボタンを作成する
+
+* src/App.tsx
+```typescript
+ import React from 'react';
+ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+ 
+ import Home from './components/Home';
+ import Data from './components/Data';
+ 
+ const App: React.FC = () => {
+     return (
+         <Router>
+-            <nav>
+-                <Link to="/">Home</Link> | <Link to="/data">Data</Link>
++            <nav aria-label="Global" className="mx-auto flex items-center justify-between p-4 lg:px-8">
++                <div className="flex lg:flex-1">
++                    <Link to="/" className="text-sm/6 font-semibold">
++                        😀
++                    </Link>
++                </div>
++                <div className="flex items-stretch grid-cols-2 gap-8">
++                    <div className="py-1">
++                        <Link to="/" className="text-sm/6 font-semibold">Home</Link>
++                    </div>
++                    <div className="py-1">
++                        <Link to="/data" className="text-sm/6 font-semibold">Data</Link>
++                    </div>
++                </div>
++
+             </nav>
+             <Routes>
+                 <Route path="/" element={<Home name="My Home" />} />
+                 <Route path="/data" element={<Data />} />
+             </Routes>
+         </Router>
+     );
+ };
+ 
+ export default App;
+```
+
+* src/components/Count.tsx
+```typescript
+ import React from "react";
+ import { AppDispatch, RootState } from "../redux/store";
+ import { useSelector, useDispatch } from "react-redux";
+ import { fetchCount } from "../redux/countSlice";
+ 
+ let GLOBAL_COUNTER = 0;
+ 
+ const Count: React.FC = () => {
+     const dispatch: AppDispatch = useDispatch();
+     const { loading, item, error } = useSelector((state: RootState) => state.count);
+ 
+     if (loading) return <div>Loading...</div>;
+     if (error) return (
+         <div>
+             <h1>Error loading countes</h1>
+-            <button onClick={() => dispatch(fetchCount())}>Increment</button>
++            <button className="btn btn-gray" onClick={() => dispatch(fetchCount())}>Increment</button>
+         </div>
+     );
+ 
+     const count = item.count;
+     GLOBAL_COUNTER += count;
+ 
+     return (
+         <div>
+             <h1>Count: {GLOBAL_COUNTER} (Fetched count: {count})</h1>
+-            <button onClick={() => dispatch(fetchCount())}>Increment</button>
++            <button className="btn btn-blue" onClick={() => dispatch(fetchCount())}>Increment</button>
+         </div>
+     );
+ }
+ 
+ export default Count;
+```
+
+* src/components/Home.tsx
+```typescript
+ import React from 'react';
+ 
+ type HomeProps = {
+   name: string;
+ }
+ 
+ const Home: React.FC<HomeProps> = ({ name }) => {
+     return (
+-        <div>
++        <div className="grid grid-cols-1 mx-auto max-w-7xl justify-between lg:px-8">
+             <h1 className="text-2xl underline">{name} in component.</h1>
+             This is a test page.
+         </div>
+     );
+ }
+ 
+ export default Home;
+```
+
+* src/components/UserList.tsx
+```typescript
+ import React, { useEffect } from 'react';
+ import { useSelector, useDispatch } from 'react-redux';
+ import { RootState, AppDispatch } from '../redux/store';
+ import { fetchUserList } from '../redux/userListSlice';
+ 
+ const UserList: React.FC = () => {
+     const dispatch: AppDispatch = useDispatch();
+     const { loading, items, error } = useSelector((state: RootState) => state.userList);
+ 
+     if (loading) return <div>Loading users...</div>;
+     if (error) return (
+         <div>
+             <h1>Error loading users</h1>
+-            <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
++            <button className="btn btn-gray" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
+         </div>
+     );
+ 
+     return (
+         <div>
+             <h1>UserList: ({items.length} users)</h1>
+             <ul>
+                 {items.map((user) => (
+                     <li key={user.id}>
+                         {user.name}
+                     </li>
+                 ))}
+             </ul>
+-            <button onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
++            <button className="btn btn-emerald" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
+         </div>
+     );
+ };
+ 
+ export default UserList;
+```
+
+* src/style.css
+```css
+ @import "tailwindcss";
++
++.btn {
++    @apply font-bold py-2 px-4 rounded;
++}
++.btn-blue {
++    @apply bg-blue-500 text-white;
++}
++.btn-blue:hover {
++    @apply bg-blue-700;
++}
++
++.btn-emerald {
++    @apply bg-emerald-500 text-white;
++}
++.btn-emerald:hover {
++    @apply bg-emerald-700;
++}
++
++.btn-gray {
++    @apply bg-gray-500 text-white;
++}
++.btn-gray:hover {
++    @apply bg-gray-700;
++}
+```
 
