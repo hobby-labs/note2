@@ -349,8 +349,7 @@ $ npm start
 +            This is a test page.
          </div>
      );
--};
-+}
+ };
  
  export default Home;
 ```
@@ -376,6 +375,10 @@ $ npm start
  export default App;
 ```
 
+```bash
+$ npm start
+```
+
 
 
 # React Router を導入する
@@ -386,30 +389,37 @@ $ npm install --save react-router-dom
 
 * src/App.tsx
 ```typescript
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-
-import Home from './components/Home';
-import Data from './components/Data';
-
-const App: React.FC = () => {
-    return (
-        <Router>
-            <nav>
-                <Link to="/">Home</Link> | <Link to="/data">Data</Link>
-            </nav>
-            <Routes>
-                <Route path="/" element={<Home name="My Home" />} />
-                <Route path="/data" element={<Data />} />
-            </Routes>
-        </Router>
-    );
-};
-
-export default App;
+ import React from 'react';
++import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+ 
+ import Home from './components/Home';
+ import Data from './components/Data';
+ 
+ const App: React.FC = () => {
+     return (
+-        <div>
+-            <h1>Hello, React!</h1>
+-            <Home name="My Home" />
+-            <Data />
+-        </div>
++        <Router>
++            <nav>
++                <Link to="/">Home</Link> | <Link to="/data">Data</Link>
++            </nav>
++            <Routes>
++                <Route path="/" element={<Home name="My Home" />} />
++                <Route path="/data" element={<Data />} />
++            </Routes>
++        </Router>
+     );
+ };
+ 
+ export default App;
 ```
 
-
+```bash
+$ npm start
+```
 
 # Redux を導入する
 
