@@ -1423,3 +1423,7 @@ declare module "*.svg" {
    ],
  };
 ```
+
+```
+$ npm start
+```
