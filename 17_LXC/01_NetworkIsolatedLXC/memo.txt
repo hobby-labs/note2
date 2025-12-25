@@ -1,0 +1,108 @@
+[root@lxc-host01 network-scripts]# cat ifcfg-eth0
+DEVICE=eth0
+TYPE=Ethernet
+BOOTPROTO=none
+BRIDGE=lxcbr0
+ONBOOT=yes
+
+[root@lxc-host01 network-scripts]# cat ifcfg-lxcbr0
+DEVICE=lxcbr0
+TYPE=Bridge
+BOOTPROTO=static
+IPADDR=172.31.3.1
+NETMASK=255.255.0.0
+ONBOOT=yes
+DELAY=0
+
+
+I'm trying to create sub development environments using LXC containers with isolated networks.
+
+
+* Data center network.
+  Segment is 172.17.0.0/16.
+  This is a segment that host OS is connected to.
+  And this network can access to the Internet.
+  And there are several development servers on this network.
+
+* LXC bridge network.
+  Segment is 172.17.0.0/16.
+  This is a bridge network created on the host OS.
+  LXC containers are connected to this network.
+  This bridge will communicate with the home network via NAT on the host OS.
+
+* LXC inner data center network.
+  Segment is 172.17.0.0/16. Same as the data center network.
+  This is an isolated network created inside each LXC container.
+  This segment is for building clone of development servers which belonging in the data center network.
+  This network is isolated from the data center network.
+  This is for preventing interference between the sub development environments and the data center network.
+
+I want to build the clone of development servers on the LXC inner data center network with same IP addresses as the data center network.
+And I want to try to create bastion host which has two network interfaces "LXC bridge network" and "LXC inner data center network".
+If developer want to use sub development environment, he/she access to the bastion host on the LXC bridge network.
+And I want to create bustion host as a netns namespace on the host OS not container or any other VMs.
+
+Is my strategy feasible? I want you to review it!
+
+
+
+
+But I have a question. 🤔
+If the containers in "LXC Inner Network" want to access to the Internet, how can I do that?
+Real servers in "Data center network" are all accessible to the Internet via the gateway 172.17.0.1.
+Are there any strategies to make containers in "LXC Inner Network" access to the Internet via the gateway?
+
+-
+
+# Network segments
+* Data center network
+  Segment is 172.31.0.0/16.
+  This is a segment that host OS is connected to.
+  And this network can access to the Internet.
+  And there are several development servers on this network.
+
+* LXC bustion network
+  Segment is 192.168.123.0/24.
+  This is a bridge network created on the host OS.
+  LXC containers are connected to this network.
+  This bridge will communicate with the home network via NAT on the host OS.
+
+* LXC inner data center network.
+  Segment is 172.17.0.0/16. Same as the data center network.
+  This is an isolated network created inside each LXC container.
+  This segment is for building clone of development servers which belonging in the data center network.
+  This network is isolated from the data center network.
+  This is for preventing interference between the sub development environments and the data center network.
+
+# LXC Host network interface
+* eth0: connected to Data center network.
+  And its IP is 172.31.0.11/16.
+* lxcbr0: bridge for LXC bastion network.
+  A segment is 192.168.123.0/24.
+* br-int0: bridge for LXC inner data center network.
+  A segment is 172.31.0.0/16.
+
+# Design
+* Netns bastion host
+  - veth0: connected to lxcbr0.
+    And its IP is 192.168.123.2/24.
+  - veth1: connected to br-int0.
+    And its IP is 172.31.0.2/16.
+
+* LXC containers
+  - eth0: connected to br-int0.
+    And its IP is 172.31.1.11/16.
+
+# Routing
+* Netns bastion host
+  - default via 192.168.123.1
+
+* LXC containers
+  - default via 172.31.0.1
+
+# NAT settings
+When LXC containers in "LXC inner data center network" access to the Internet.
+For example, the LXC container access to 1.1.1.1.
+
+1. The packet is sent from the LXC container to the 172.31.0.1 (br-int0) as the default gateway.
+2. br-int0 forwards the packet to the netns bastion host via veth1
