@@ -16,7 +16,6 @@ const UserList: React.FC = () => {
             <h1>Error loading users</h1>
             <button className="btn btn-gray" onClick={() => dispatch(fetchUserList())}>Refresh User List</button>
         </div>
-        
     );
 
     return (
