@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "$SCRIPTDIR"
+
+main() {
+
+    # shift off the first argument from $@
+    local sub_command="$1"
+    shift
+
+    local ret
+
+    echo "sub_command: $sub_command"
+    echo "args: $@"
+
+    case "$sub_command" in
+    clone )
+        ./lib/exec-clone.sh "$@"
+        ret=$?
+        ;;
+    * )
+        echo "Unknown sub-command: $sub_command" >&2
+        return 1
+        ;;
+    esac
+
+    return $ret
+}
+
+main "$@"
