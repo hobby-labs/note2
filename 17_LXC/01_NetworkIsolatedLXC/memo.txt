@@ -85,9 +85,9 @@ Are there any strategies to make containers in "LXC Inner Network" access to the
 # Design
 * Netns bastion host
   - veth0: connected to lxcbr0.
-    And its IP is 192.168.123.2/24.
+    And its IP is 192.168.123.1/24.
   - veth1: connected to br-int0.
-    And its IP is 172.31.0.2/16.
+    And its IP is 172.31.0.1/16.
 
 * LXC containers
   - eth0: connected to br-int0.
