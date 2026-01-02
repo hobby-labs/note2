@@ -10,7 +10,7 @@ main() {
           default_gateway
 
     . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getopses
+    . ${SCRIPTDIR%/}/getoptses
 
     local options
     options=$(getoptses -o "n:h" --longoptions "name:,outer-link-name:,outer-interface:,outer-peer-bridge:,outer-ip-with-cidr:,inner-link-name:,inner-interface:,inner-peer-bridge:,inner-ip-with-cidr:,default-gateway:,help" -- "$@")
@@ -235,6 +235,47 @@ do_create_ns() {
     }
 
     return 0
+}
+
+usage() {
+    cat << EOF
+Usage: create_ns.sh [OPTIONS]
+Options:
+  -n, --name NAME
+        Name of the network namespace to create (required)
+  --outer-link-name NAME
+        Name of the outer veth link inside the namespace (required)
+  --outer-interface NAME
+        Name of the outer veth interface on the host side (required)
+  --outer-peer-bridge NAME
+        Name of the bridge to attach the outer interface (required)
+  --outer-ip-with-cidr IP/CIDR
+        IP address with CIDR for the outer interface (required)
+  --inner-link-name NAME
+        Name of the inner veth link inside the namespace (required)
+  --inner-interface NAME
+        Name of the inner veth interface on the host side (required)
+  --inner-peer-bridge NAME
+        Name of the bridge to attach the inner interface (required)
+  --inner-ip-with-cidr IP/CIDR
+        IP address with CIDR for the inner interface (required)
+  --default-gateway IP
+        Default gateway IP address inside the namespace (required)
+  -h, --help
+        Show this help message and exit
+Example:
+  create_ns.sh \\
+    --name ns01 \\
+    --outer-link-name link-ns01-vb0 \\
+    --outer-interface veth-ns01-vb0 \\
+    --outer-peer-bridge virbr0 \\
+    --outer-ip-with-cidr 192.168.122.11/24 \\
+    --inner-link-name link-ns01-br0 \\
+    --inner-interface veth-ns01-br0 \\
+    --inner-peer-bridge brint01 \\
+    --inner-ip-with-cidr 172.31.0.11/16 \\
+    --default-gateway 192.168.122.1
+EOF
 }
 
 main "$@"

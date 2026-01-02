@@ -361,44 +361,19 @@ ifup ns02-br01
 
 * Creating ns01
 ```
-name=ns01
-outer_link_name=link-ns01-vb0
-outer_interface=veth-ns01-vb0
-outer_peer_bridge=virbr0
-outer_ip_with_cidr=192.168.122.254/24
+./create_ns.sh --name ns01 \
+    --outer-link-name link-ns01-vb0 --outer-interface veth-ns01-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.254/24 \
+    --inner-link-name link-ns01-br00 --inner-interface veth-ns01-br00 --inner-peer-bridge ns01-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+    --default-gateway 192.168.122.1
 
-inner_link_name=link-ns01-br00
-inner_interface=veth-ns01-br00
-inner_peer_bridge=ns01-br00
-inner_ip_with_cidr=172.31.0.1/16
+./create_ns.sh --name ns02 \
+    --outer-link-name link-ns02-vb0 --outer-interface veth-ns02-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.253/24 \
+    --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+    --default-gateway 192.168.122.1
 
-default_gateway=192.168.122.1
-
-# Create network namespace
-ip netns add ${name}
-
-# Create outer veth pair for virbr0
-ip link add ${outer_link_name} type veth peer name ${outer_interface}
-brctl addif ${outer_peer_bridge} ${outer_interface}
-ip link set ${outer_interface} up
-ip link set ${outer_link_name} netns ${name}
-ip netns exec ${name} ip addr add ${outer_ip_with_cidr} dev ${outer_link_name}
-ip netns exec ${name} ip link set ${outer_link_name} up
-
-# Create inner veth pair for ns01-br00
-ip link add ${inner_link_name} type veth peer name ${inner_interface}
-brctl addif ${inner_peer_bridge} ${inner_interface}
-ip link set ${inner_interface} up
-ip link set ${inner_link_name} netns ${name}
-ip netns exec ${name} ip addr add ${inner_ip_with_cidr} dev ${inner_link_name}
-ip netns exec ${name} ip link set ${inner_link_name} up
-
-# Create NAT rule on host
-ip netns exec ${name} sysctl -w net.ipv4.ip_forward=1
-ip netns exec ${name} ip route add default via ${default_gateway}
 
 # Enter namespace
-ip netns exec ${name} bash -c 'export PS1="(${name}) [\u@\h \W]\$ "; exec bash'
+ip netns exec ${name} bash -c "export PS1=\"(${name}) [\u@\h \W]\$ \"; exec bash"
 ```
 
 
