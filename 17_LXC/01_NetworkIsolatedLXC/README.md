@@ -293,3 +293,186 @@ Enter the session of the namespace and configure NAT and routing.
 ip netns exec gateway-ns bash
 ```
 
+
+-----------------------
+Creating bridges.
+
+* ns01-br00
+```
+cat > /etc/sysconfig/network-scripts/ifcfg-ns01-br00 << 'EOF'
+DEVICE=ns01-br00
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+DELAY=0
+NM_CONTROLLED=no
+IPV6INIT=no
+EOF
+
+ifup ns01-br00
+```
+
+* ns01-br01
+```
+cat > /etc/sysconfig/network-scripts/ifcfg-ns01-br01 << 'EOF'
+DEVICE=ns01-br01
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+DELAY=0
+NM_CONTROLLED=no
+IPV6INIT=no
+EOF
+
+ifup ns01-br01
+```
+
+* ns02-br00
+```
+cat > /etc/sysconfig/network-scripts/ifcfg-ns02-br00 << 'EOF'
+DEVICE=ns02-br00
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+DELAY=0
+NM_CONTROLLED=no
+IPV6INIT=no
+EOF
+
+ifup ns02-br00
+```
+
+* ns02-br01
+```
+cat > /etc/sysconfig/network-scripts/ifcfg-ns02-br01 << 'EOF'
+DEVICE=ns02-br01
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+DELAY=0
+NM_CONTROLLED=no
+IPV6INIT=no
+EOF
+
+ifup ns02-br01
+```
+
+------------------------------------------------------------------------------------------
+
+* Creating ns01
+```
+name=ns01
+outer_link_name=link-ns01-vb0
+outer_interface=veth-ns01-vb0
+outer_peer_bridge=virbr0
+outer_ip_with_cidr=192.168.122.254/24
+
+inner_link_name=link-ns01-br00
+inner_interface=veth-ns01-br00
+inner_peer_bridge=ns01-br00
+inner_ip_with_cidr=172.31.0.1/16
+
+default_gateway=192.168.122.1
+
+# Create network namespace
+ip netns add ${name}
+
+# Create outer veth pair for virbr0
+ip link add ${outer_link_name} type veth peer name ${outer_interface}
+brctl addif ${outer_peer_bridge} ${outer_interface}
+ip link set ${outer_interface} up
+ip link set ${outer_link_name} netns ${name}
+ip netns exec ${name} ip addr add ${outer_ip_with_cidr} dev ${outer_link_name}
+ip netns exec ${name} ip link set ${outer_link_name} up
+
+# Create inner veth pair for ns01-br00
+ip link add ${inner_link_name} type veth peer name ${inner_interface}
+brctl addif ${inner_peer_bridge} ${inner_interface}
+ip link set ${inner_interface} up
+ip link set ${inner_link_name} netns ${name}
+ip netns exec ${name} ip addr add ${inner_ip_with_cidr} dev ${inner_link_name}
+ip netns exec ${name} ip link set ${inner_link_name} up
+
+# Create NAT rule on host
+ip netns exec ${name} sysctl -w net.ipv4.ip_forward=1
+ip netns exec ${name} ip route add default via ${default_gateway}
+
+# Enter namespace
+ip netns exec ${name} bash -c 'export PS1="(${name}) [\u@\h \W]\$ "; exec bash'
+```
+
+
+LXCPATH=/var/lib/lxc-ns1 lxc-ls -f
+LXCPATH=/var/lib/lxc-ns2 lxc-ls -f
+
+
+
+------------------------------------------------------------------------------------------
+
+```
+lxc_name=lxc-inner01
+bridge_name=brint01
+mkdir -p /var/lib/lxc/${lxc_name}/rootfs/
+mv ./centos7-rootfs.tar.xz /var/lib/lxc/${lxc_name}/rootfs/
+cd /var/lib/lxc/${lxc_name}/rootfs/
+tar -Jxf centos7-rootfs.tar.xz
+
+mkdir -p /var/lib/lxc/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
+cat > /var/lib/lxc/${lxc_name}/config << EOF
+lxc.utsname = ${lxc_name}
+lxc.rootfs = /var/lib/lxc/${lxc_name}/rootfs
+lxc.network.type = veth
+lxc.network.flags = up
+lxc.network.link = ${bridge_name}
+lxc.network.name = eth0
+
+lxc.aa_profile = unconfined
+lxc.cgroup.devices.allow = a
+lxc.cap.drop =
+EOF
+
+echo "${lxc_name}" > /var/lib/lxc/${lxc_name}/rootfs/etc/hostname
+# Inside the container
+cp /var/lib/lxc/${lxc_name}/rootfs/etc/fstab /var/lib/lxc/${lxc_name}/rootfs/etc/fstab.backup
+
+cat > /var/lib/lxc/${lxc_name}/rootfs/etc/fstab << 'EOF'
+# LXC container - minimal fstab
+# Root filesystem is managed by LXC
+tmpfs   /dev/shm   tmpfs   defaults   0 0
+devpts  /dev/pts   devpts  gid=5,mode=620  0 0
+sysfs   /sys       sysfs   defaults   0 0
+proc    /proc      proc    defaults   0 0
+EOF
+
+cat > /var/lib/lxc/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth0 << "EOF"
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=eth0
+UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb88
+DEVICE=eth0
+ONBOOT=yes
+
+IPADDR=172.31.0.11
+NETMASK=255.255.0.0
+GATEWAY=172.31.0.1
+DNS1=8.8.8.8
+EOF
+
+iptables -t nat -A POSTROUTING -o veth-gw2 -j MASQUERADE
+# or
+# iptables -t nat -D POSTROUTING -s 172.31.0.0/16 -o veth-gw2 -j SNAT --to-source 192.168.122.254
+# If you want to delete NAT rules
+# iptables -t nat -F
+
+```
+
+
