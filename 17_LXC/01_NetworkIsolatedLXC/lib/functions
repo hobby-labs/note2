@@ -41,5 +41,12 @@ setup_lxc_environment_variables() {
         export LXC_PATH="${LXC_BASE_DIR}/${NS_NAME}"
     fi
 
+    # If LXC_BASE_IMAGE_DIR is not set, set it
+    if [[ -z "${LXC_BASE_IMAGE_DIR}" ]]; then
+        # LXC_BASE_IMAGE_DIR is a directory to store base images for cloning.
+        # This location of storing base image is located among all namespaces.
+        export LXC_BASE_IMAGE_DIR="${LXC_BASE_DIR}/_base_images_"
+    fi
+
     return 0
 }
