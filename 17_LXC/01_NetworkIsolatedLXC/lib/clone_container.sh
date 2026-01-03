@@ -31,6 +31,18 @@ main() {
             do_list_base_images
             return 0
             ;;
+        --hostname )
+            hostname="$2"
+            shift 2
+            ;;
+        --lxc-base-dir )
+            lxc_base_dir="$2"
+            shift 2
+            ;;
+        --ns-name )
+            ns_name="$2"
+            shift 2
+            ;;
         -- )
             shift
             break
