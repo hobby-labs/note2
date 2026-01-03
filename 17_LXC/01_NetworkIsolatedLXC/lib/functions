@@ -13,34 +13,33 @@ logger_warning() {
     echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${__FONT_COLOR_YELLOW}WARNING${__FONT_COLOR_RESET}] $@" >&2
 }
 
-# Add at the end of functions file
-setup_lxcpath_environment_variable() {
+# Function to setup LXC_PATH environment variable and LXC_BASE_DIR, NS_NAME if not set.
+setup_lxc_environment_variables() {
     local lxc_base_dir="$1"
     local name_space="$2"
-    
-    if [[ -n "${LXCPATH}" ]]; then
-        return 0
-    fi
-    
+        
     if [[ -z "${LXC_BASE_DIR}" ]]; then 
         if [[ -z "${lxc_base_dir}" ]]; then
-            logger_error "LXCPATH environment variable or --lxc-base-dir option (LXC_BASE_DIR environment variable) is required" >&2
+            logger_error "LXC_PATH environment variable or --lxc-base-dir option (LXC_BASE_DIR environment variable) is required" >&2
             return 1
         else
             export LXC_BASE_DIR="${lxc_base_dir}"
         fi
     fi
     
-    if [[ -z "${NSNAME}" ]]; then
+    if [[ -z "${NS_NAME}" ]]; then
         if [[ -z "${name_space}" ]]; then
-            logger_error "LXCPATH environment variable or --ns-name option (NSNAME environment variable) is required" >&2
+            logger_error "LXC_PATH environment variable or --ns-name option (NS_NAME environment variable) is required" >&2
             return 1
         else
-            export NSNAME="${name_space}"
+            export NS_NAME="${name_space}"
         fi
     fi
-    
-    export LXCPATH="${LXC_BASE_DIR}/${NSNAME}"
-    
+
+    # If LXC_PATH is not set, set it
+    if [[ -z "${LXC_PATH}" ]]; then
+        export LXC_PATH="${LXC_BASE_DIR}/${NS_NAME}"
+    fi
+
     return 0
 }

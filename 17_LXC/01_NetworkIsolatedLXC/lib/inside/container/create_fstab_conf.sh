@@ -49,8 +49,8 @@ main() {
         return 1
     fi
 
-    # Declare LXCPATH if not set
-    setup_lxcpath_environment_variable "${lxc_base_dir}" "${ns_name}" || return 1
+    # Declare LXC_PATH if not set
+    setup_lxc_environment_variables "${lxc_base_dir}" "${ns_name}" || return 1
 
     do_create_fstab_conf_container "${lxc_name}" || return 1
 
@@ -60,7 +60,7 @@ main() {
 do_create_fstab_conf_container() {
     local lxc_name="$1"
 
-    local fstab_file="${LXCPATH%/}/${lxc_name}/rootfs/etc/fstab"
+    local fstab_file="${LXC_PATH%/}/${lxc_name}/rootfs/etc/fstab"
 
     logger_info "Creating fstab file for LXC container: ${lxc_name}"
 

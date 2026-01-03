@@ -56,7 +56,7 @@ main() {
         return 1
     fi
 
-    setup_lxcpath_environment_variable "${lxc_base_dir}" "${ns_name}" || return 1
+    setup_lxc_environment_variables "${lxc_base_dir}" "${ns_name}" || return 1
 
     do_create_lxc_config "${lxc_base_dir}" "${lxc_name}" "${ns_name}" "${interface_list[@]}" || return 1
 
@@ -85,12 +85,12 @@ do_create_lxc_config() {
     local interface
     local interface_list=("$@")
 
-    local config_path="${LXCPATH}/${lxc_name}/config"
+    local config_path="${LXC_PATH}/${lxc_name}/config"
 
     logger_info "Creating LXC config file at ${config_path}"
 
     echo "lxc.utsname = ${lxc_name}"                                    > "${config_path}"
-    echo "lxc.rootfs = ${LXCPATH}/${lxc_name}/rootfs"                  >> "${config_path}"
+    echo "lxc.rootfs = ${LXC_PATH}/${lxc_name}/rootfs"                  >> "${config_path}"
 
     for interface in "${interface_list[@]}"; do
         # Convert value of interface like "link=br0,name=eth0", "link=br1,name=eth1" into LXC config format.

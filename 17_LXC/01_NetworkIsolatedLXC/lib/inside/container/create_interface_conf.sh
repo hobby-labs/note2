@@ -82,8 +82,8 @@ main() {
         return 1
     fi
 
-    # Declare LXCPATH if not set
-    setup_lxcpath_environment_variable "${lxc_base_dir}" "${ns_name}" || return 1
+    # Declare LXC_PATH if not set
+    setup_lxc_environment_variables "${lxc_base_dir}" "${ns_name}" || return 1
 
     do_create_interface_of_container "${interface_name}" "${lxc_name}" "${ip_addr}" "${netmask}" "${gateway}" "${dns}" || return 1
 
@@ -100,8 +100,8 @@ do_create_interface_of_container() {
 
     local file_path
 
-    # This instruction assumes that the LXCPATH environment variable has already set
-    file_path="${LXCPATH}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-${interface_name}"
+    # This instruction assumes that the LXC_PATH environment variable has already set
+    file_path="${LXC_PATH%/}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-${interface_name}"
 
     logger_info "Creating interface configuration file for container. FILE_PATH: ${file_path}, IP: ${ip_addr}, NETMASK: ${netmask}, GATEWAY: ${gateway}, DNS: ${dns}"
 
