@@ -4,13 +4,13 @@ SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$SCRIPTDIR"
 
 main() {
-    local namespace
+    local ns_name
 
     . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getopses
+    . ${SCRIPTDIR%/}/getoptses
 
     local options
-    options=$(getoptses -o "n:h" --longoptions "name:,help" -- "$@")
+    options=$(getoptses -o "n:h" --longoptions "ns-name:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
         echo "Invalid option were specified" >&2
         return 1
@@ -19,8 +19,8 @@ main() {
 
     while true; do
         case "$1" in
-        -n | --name )
-            namespace="$2"
+        -n | --ns-name )
+            ns_name="$2"
             shift 2
             ;;
         -h | --help )
@@ -38,31 +38,59 @@ main() {
         esac
     done
 
-    if [[ -z "$namespace" ]]; then
-        logger_error "Namespace name must be specified" >&2
+    if [[ -z "$ns_name" ]]; then
+        logger_error "--ns_name must be specified" >&2
         return 1
     fi
 
-    do_enter_ns "$namespace" || return 1
-
+    do_enter_ns "$ns_name" || return 1
     return 0
 }
 
 usage() {
+    cat << EOF
+Usage: $0 --ns_name <namespace-name>
+Options:
+  -n, --ns_name       Name of the network namespace to enter
+  -h, --help          Show this help message
+EOF
 
+    return 0
 }
 
 do_enter_ns() {
-    local namespace="$1"
+    local ns_name="$1"
 
-    ip netns exec "$namespace" bash -c "
-    echo \"================================================\"
-    echo \"  You are now in the $namespace namespace\"
-    echo \"  To verify: ip netns identify \$\$\"
-    echo \"================================================\"
-    export PS1=\"($namespace) [\u@\h \W]\$ \"
-    exec bash
-    "
+    # Create temporary rcfile
+    TMPRC=$(mktemp)
+    trap "rm -f $TMPRC" EXIT
+
+    cat > $TMPRC << EOF
+# Source system bashrc first
+if [ -f /etc/bashrc ]; then
+    . /etc/bashrc
+fi
+
+# Set namespace-specific variables
+export NSNAME=${ns_name}
+export PS1="(\${NSNAME})[\u@\h \W]\$ "
+export LXC_BASE_DIR=/var/lib/lxc-ns
+export LXCPATH=\${LXC_BASE_DIR}/\${NSNAME}
+
+# Create directory if not exists
+mkdir -p \${LXCPATH}
+
+# Create aliases for lxc commands
+alias lxc-ls="lxc-ls -P \${LXCPATH}"
+alias lxc-start="lxc-start -P \${LXCPATH}"
+alias lxc-stop="lxc-stop -P \${LXCPATH}"
+alias lxc-info="lxc-info -P \${LXCPATH}"
+alias lxc-attach="lxc-attach -P \${LXCPATH}"
+alias lxc-console="lxc-console -P \${LXCPATH}"
+alias lxc-destroy="lxc-destroy -P \${LXCPATH}"
+EOF
+
+    ip netns exec ${ns_name} bash --rcfile $TMPRC
 
     return $?
 }
