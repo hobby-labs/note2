@@ -203,22 +203,22 @@ ip netns identify $$
 Enter namespace.
 
 ```
-nsname=ns01
-ip netns exec ${nsname} bash -c "
-export NSNAME=${nsname}
-export PS1=\"(\${NSNAME})[\u@\h \W]\$ \"
-mkdir -p /var/lib/lxc-ns/\${NSNAME}
+ns_name=ns01
+ip netns exec ${ns_name} bash -c "
+export NS_NAME=${ns_name}
+export PS1=\"(\${NS_NAME})[\u@\h \W]\$ \"
+mkdir -p /var/lib/lxc-ns/\${NS_NAME}
 export LXC_BASE_DIR=/var/lib/lxc-ns
-export LXCPATH=\${LXC_BASE_DIR}/\${NSNAME}
+export LXC_PATH=\${LXC_BASE_DIR}/\${NS_NAME}
 
 # Create aliases for lxc commands to automatically use -P flag
-alias lxc-ls='lxc-ls -P \${LXCPATH}'
-alias lxc-start='lxc-start -P \${LXCPATH}'
-alias lxc-stop='lxc-stop -P \${LXCPATH}'
-alias lxc-info='lxc-info -P \${LXCPATH}'
-alias lxc-attach='lxc-attach -P \${LXCPATH}'
-alias lxc-console='lxc-console -P \${LXCPATH}'
-alias lxc-destroy='lxc-destroy -P \${LXCPATH}'
+alias lxc-ls='lxc-ls -P \${LXC_PATH}'
+alias lxc-start='lxc-start -P \${LXC_PATH}'
+alias lxc-stop='lxc-stop -P \${LXC_PATH}'
+alias lxc-info='lxc-info -P \${LXC_PATH}'
+alias lxc-attach='lxc-attach -P \${LXC_PATH}'
+alias lxc-console='lxc-console -P \${LXC_PATH}'
+alias lxc-destroy='lxc-destroy -P \${LXC_PATH}'
 
 exec bash
 "
@@ -233,9 +233,9 @@ outer_interface_name=eth0
 inner_bridge_name=ns01-br00
 inner_interface_name=eth1
 
-mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/
-tar -C /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
-mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/
+tar -C /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 
 ./create_lxc_conf.sh --lxc-name ${lxc_name} \
     --interface "link=${outer_bridge_name},name=${outer_interface_name}" \

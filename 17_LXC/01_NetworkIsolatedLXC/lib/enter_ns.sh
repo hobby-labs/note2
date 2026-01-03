@@ -72,22 +72,22 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # Set namespace-specific variables
-export NSNAME=${ns_name}
-export PS1="(\${NSNAME})[\u@\h \W]\$ "
+export NS_NAME=${ns_name}
+export PS1="(\${NS_NAME})[\u@\h \W]\$ "
 export LXC_BASE_DIR=/var/lib/lxc-ns
-export LXCPATH=\${LXC_BASE_DIR}/\${NSNAME}
+export LXC_PATH=\${LXC_BASE_DIR}/\${NS_NAME}
 
 # Create directory if not exists
-mkdir -p \${LXCPATH}
+mkdir -p \${LXC_PATH}
 
 # Create aliases for lxc commands
-alias lxc-ls="lxc-ls -P \${LXCPATH}"
-alias lxc-start="lxc-start -P \${LXCPATH}"
-alias lxc-stop="lxc-stop -P \${LXCPATH}"
-alias lxc-info="lxc-info -P \${LXCPATH}"
-alias lxc-attach="lxc-attach -P \${LXCPATH}"
-alias lxc-console="lxc-console -P \${LXCPATH}"
-alias lxc-destroy="lxc-destroy -P \${LXCPATH}"
+alias lxc-ls="lxc-ls -P \${LXC_PATH}"
+alias lxc-start="lxc-start -P \${LXC_PATH}"
+alias lxc-stop="lxc-stop -P \${LXC_PATH}"
+alias lxc-info="lxc-info -P \${LXC_PATH}"
+alias lxc-attach="lxc-attach -P \${LXC_PATH}"
+alias lxc-console="lxc-console -P \${LXC_PATH}"
+alias lxc-destroy="lxc-destroy -P \${LXC_PATH}"
 EOF
 
     ip netns exec ${ns_name} bash --rcfile $TMPRC
