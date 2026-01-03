@@ -163,49 +163,14 @@ ip a
 ```
 
 ```
+yum clean all
+cd /tmp
 XZ_OPT='-9 -T0' tar -C / --numeric-owner --exclude=./proc --exclude=./sys --exclude=./dev \
     --exclude=./run --exclude=./tmp --exclude=./mnt --exclude=./media \
     -Jcf centos7-rootfs.tar.xz .
 ```
 
 Download a CentOS7 rootfs tarball from a trusted source or create your own as shown above.
-
-```
-mkdir -p /var/lib/lxc/lxc-guest01/rootfs/
-mv ./centos7-rootfs.tar.xz /var/lib/lxc/lxc-guest01/rootfs/
-cd /var/lib/lxc/lxc-guest01/rootfs/
-tar -Jxf centos7-rootfs.tar.xz
-
-mkdir -p /var/lib/lxc/lxc-guest01/rootfs/{proc,sys,dev,run,tmp}
-cat > /var/lib/lxc/lxc-guest01/config << 'EOF'
-lxc.utsname = lxc-guest01
-lxc.rootfs = /var/lib/lxc/lxc-guest01/rootfs
-lxc.network.type = veth
-lxc.network.flags = up
-lxc.network.link = virbr0
-lxc.network.name = eth0
-
-lxc.aa_profile = unconfined
-lxc.cgroup.devices.allow = a
-lxc.cap.drop =
-EOF
-
-echo "lxc-guest01" > /var/lib/lxc/lxc-guest01/rootfs/etc/hostname
-
-# Inside the container
-cp /var/lib/lxc/lxc-guest01/rootfs/etc/fstab /var/lib/lxc/lxc-guest01/rootfs/etc/fstab.backup
-
-cat > /var/lib/lxc/lxc-guest01/rootfs/etc/fstab << 'EOF'
-# LXC container - minimal fstab
-# Root filesystem is managed by LXC
-tmpfs   /dev/shm   tmpfs   defaults   0 0
-devpts  /dev/pts   devpts  gid=5,mode=620  0 0
-sysfs   /sys       sysfs   defaults   0 0
-proc    /proc      proc    defaults   0 0
-EOF
-
-
-```
 
 -----------------------
 Creating bridges.
@@ -241,10 +206,20 @@ Enter namespace.
 nsname=ns01
 ip netns exec ${nsname} bash -c "
 export NSNAME=${nsname}
-export PS1=\"(${nsname})[\u@\h \W]\$ \"
-mkdir -p /var/lib/lxc-ns/${nsname}
+export PS1=\"(\${NSNAME})[\u@\h \W]\$ \"
+mkdir -p /var/lib/lxc-ns/\${NSNAME}
 export LXC_BASE_DIR=/var/lib/lxc-ns
-export LXCPATH=${LXC_BASE_DIR}/${nsname}
+export LXCPATH=\${LXC_BASE_DIR}/\${NSNAME}
+
+# Create aliases for lxc commands to automatically use -P flag
+alias lxc-ls='lxc-ls -P \${LXCPATH}'
+alias lxc-start='lxc-start -P \${LXCPATH}'
+alias lxc-stop='lxc-stop -P \${LXCPATH}'
+alias lxc-info='lxc-info -P \${LXCPATH}'
+alias lxc-attach='lxc-attach -P \${LXCPATH}'
+alias lxc-console='lxc-console -P \${LXCPATH}'
+alias lxc-destroy='lxc-destroy -P \${LXCPATH}'
+
 exec bash
 "
 ```
@@ -254,104 +229,31 @@ exec bash
 ```
 lxc_name=lxc-guest01
 outer_bridge_name=virbr0
+outer_interface_name=eth0
 inner_bridge_name=ns01-br00
+inner_interface_name=eth1
 
 mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/
-mv ~/centos7-rootfs.tar.xz /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/
-tar -C /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/ -Jxf centos7-rootfs.tar.xz
+tar -C /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
 mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 
-./create_lxc_config.sh \
-    --lxc-base-dir /var/lib/lxc-ns --lxc-name ${lxc_name} --ns-name ${NSNAME} \
-    --interface "link=${outer_bridge_name},name=eth0" \
-    --interface "link=${inner_bridge_name},name=eth1"
+./create_lxc_conf.sh --lxc-name ${lxc_name} \
+    --interface "link=${outer_bridge_name},name=${outer_interface_name}" \
+    --interface "link=${inner_bridge_name},name=${inner_interface_name}"
 
+./create_hostname_conf_of_container.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
 
-
-cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/config << EOF
-lxc.utsname = ${lxc_name}
-lxc.rootfs = /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs
-
-# First network interface (eth0) - connected to ns01-br00
-lxc.network.type = veth
-lxc.network.flags = up
-lxc.network.link = ${outer_bridge_name}
-lxc.network.name = eth0
-
-# Second network interface (eth1) - connected to ns01-br01
-lxc.network.type = veth
-lxc.network.flags = up
-lxc.network.link = ${inner_bridge_name}
-lxc.network.name = eth1
-
-lxc.aa_profile = unconfined
-lxc.cgroup.devices.allow = a
-lxc.cap.drop =
-EOF
-
-echo "${lxc_name}" > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/hostname
 # Inside the container
-cp /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab.backup
 
-cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab << 'EOF'
-# LXC container - minimal fstab
-# Root filesystem is managed by LXC
-tmpfs   /dev/shm   tmpfs   defaults   0 0
-devpts  /dev/pts   devpts  gid=5,mode=620  0 0
-sysfs   /sys       sysfs   defaults   0 0
-proc    /proc      proc    defaults   0 0
-EOF
+./create_fstab_conf_container.sh --lxc-name ${lxc_name}
 
-./set_interface_of_container.sh \
-    --lxc-base-dir /var/lib/lxc-ns --lxc-name ${lxc_name} --ns-name ${NSNAME} \
-    --interface-name eth0 --ip-address-with-cidr 192.168.122.254 --netmask 255.255.255.0 --gateway 192.168.122.1 --dns 8.8.8.8
+./create_interface_conf_of_container.sh \
+    --lxc-name ${lxc_name} --interface-name eth0 --ip 192.168.122.254 --netmask 255.255.255.0 --gateway 192.168.122.1 --dns 8.8.8.8
 
-cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth0 << "EOF"
-TYPE=Ethernet
-PROXY_METHOD=none
-BROWSER_ONLY=no
-BOOTPROTO=static
-DEFROUTE=yes
-IPV4_FAILURE_FATAL=no
-IPV6INIT=yes
-IPV6_AUTOCONF=yes
-IPV6_DEFROUTE=yes
-IPV6_FAILURE_FATAL=no
-IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=eth0
-UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb88
-DEVICE=eth0
-ONBOOT=yes
+./create_interface_conf_of_container.sh \
+    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.31.0.1 --netmask 255.255.0.0
 
-IPADDR=192.168.122.254
-NETMASK=255.255.255.0
-GATEWAY=192.168.122.1
-DNS1=8.8.8.8
-EOF
-
-cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth1 << "EOF"
-TYPE=Ethernet
-PROXY_METHOD=none
-BROWSER_ONLY=no
-BOOTPROTO=static
-DEFROUTE=yes
-IPV4_FAILURE_FATAL=no
-IPV6INIT=yes
-IPV6_AUTOCONF=yes
-IPV6_DEFROUTE=yes
-IPV6_FAILURE_FATAL=no
-IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=eth1
-UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb89
-DEVICE=eth1
-ONBOOT=yes
-
-IPADDR=172.31.0.1
-NETMASK=255.255.0.0
-EOF
-
-
-iptables -t nat -A POSTROUTING -o veth-gw2 -j MASQUERADE
+iptables -t nat -A POSTROUTING -o ${outer_interface_name} -j MASQUERADE
 # or
 # iptables -t nat -D POSTROUTING -s 172.31.0.0/16 -o veth-gw2 -j SNAT --to-source 192.168.122.254
 # If you want to delete NAT rules
