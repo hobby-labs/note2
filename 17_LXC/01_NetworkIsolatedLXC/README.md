@@ -204,158 +204,20 @@ sysfs   /sys       sysfs   defaults   0 0
 proc    /proc      proc    defaults   0 0
 EOF
 
-cat > /var/lib/lxc/lxc-guest01/rootfs/etc/sysconfig/network-scripts/ifcfg-eth0 << "EOF"
-TYPE=Ethernet
-PROXY_METHOD=none
-BROWSER_ONLY=no
-BOOTPROTO=static
-DEFROUTE=yes
-IPV4_FAILURE_FATAL=no
-IPV6INIT=yes
-IPV6_AUTOCONF=yes
-IPV6_DEFROUTE=yes
-IPV6_FAILURE_FATAL=no
-IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=eth0
-UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb88
-DEVICE=eth0
-ONBOOT=yes
-
-IPADDR=192.168.122.11
-NETMASK=255.255.255.0
-GATEWAY=192.168.122.1
-DNS1=8.8.8.8
-EOF
 
 ```
-
-```
-lxc-ls -f
-lxc-start -n lxc-guest01 -d
-lxc-ls -f
-lxc-attach -n lxc-guest01
-```
-
-config for LXC container.
-
-
-```
-# Create bridge interface (e.g., lxcbr0)
-cat > /etc/sysconfig/network-scripts/ifcfg-brint01 << 'EOF'
-DEVICE=brint01
-TYPE=Bridge
-BOOTPROTO=none
-ONBOOT=yes
-DELAY=0
-NM_CONTROLLED=no
-EOF
-
-ifup brint01
-ip addr show brint01
-```
-
-Create namespace.
-
-```
-# Create network namespace
-ip netns add gateway-ns
-
-# Create first veth pair for brint01
-ip link add veth-gw type veth peer name veth-br
-brctl addif brint01 veth-br
-ip link set veth-br up
-ip link set veth-gw netns gateway-ns
-ip netns exec gateway-ns ip addr add 172.31.0.1/16 dev veth-gw
-ip netns exec gateway-ns ip link set veth-gw up
-
-# Create second veth pair for virbr0
-ip link add veth-gw2 type veth peer name veth-vir
-brctl addif virbr0 veth-vir
-ip link set veth-vir up
-ip link set veth-gw2 netns gateway-ns
-ip netns exec gateway-ns ip addr add 192.168.122.254/24 dev veth-gw2
-ip netns exec gateway-ns ip link set veth-gw2 up
-```
-
-Enter namespace and verify it.
-
-```
-ip netns exec gateway-ns sysctl -w net.ipv4.ip_forward=1
-ip netns exec gateway-ns ip addr show
-ip netns exec gateway-ns bash -c 'export PS1="(gateway-ns) [\u@\h \W]\$ "; exec bash'
-ip netns identify $$
-```
-
-
-Enter the session of the namespace and configure NAT and routing.
-
-```
-ip netns exec gateway-ns bash
-```
-
 
 -----------------------
 Creating bridges.
 
-* ns01-br00
 ```
-cat > /etc/sysconfig/network-scripts/ifcfg-ns01-br00 << 'EOF'
-DEVICE=ns01-br00
-TYPE=Bridge
-BOOTPROTO=none
-ONBOOT=yes
-DELAY=0
-NM_CONTROLLED=no
-IPV6INIT=no
-EOF
-
-ifup ns01-br00
+./create_bridge.sh --bridge-name ns01-br00
+./create_bridge.sh --bridge-name ns01-br01
+./create_bridge.sh --bridge-name ns02-br00
+./create_bridge.sh --bridge-name ns02-br01
 ```
 
-* ns01-br01
-```
-cat > /etc/sysconfig/network-scripts/ifcfg-ns01-br01 << 'EOF'
-DEVICE=ns01-br01
-TYPE=Bridge
-BOOTPROTO=none
-ONBOOT=yes
-DELAY=0
-NM_CONTROLLED=no
-IPV6INIT=no
-EOF
-
-ifup ns01-br01
-```
-
-* ns02-br00
-```
-cat > /etc/sysconfig/network-scripts/ifcfg-ns02-br00 << 'EOF'
-DEVICE=ns02-br00
-TYPE=Bridge
-BOOTPROTO=none
-ONBOOT=yes
-DELAY=0
-NM_CONTROLLED=no
-IPV6INIT=no
-EOF
-
-ifup ns02-br00
-```
-
-* ns02-br01
-```
-cat > /etc/sysconfig/network-scripts/ifcfg-ns02-br01 << 'EOF'
-DEVICE=ns02-br01
-TYPE=Bridge
-BOOTPROTO=none
-ONBOOT=yes
-DELAY=0
-NM_CONTROLLED=no
-IPV6INIT=no
-EOF
-
-ifup ns02-br01
-```
+ip netns identify $$
 
 ------------------------------------------------------------------------------------------
 
@@ -371,46 +233,67 @@ ifup ns02-br01
     --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
     --default-gateway 192.168.122.1
 
-
-# Enter namespace
-ip netns exec ${name} bash -c "export PS1=\"(${name}) [\u@\h \W]\$ \"; exec bash"
 ```
 
+Enter namespace.
 
-LXCPATH=/var/lib/lxc-ns1 lxc-ls -f
-LXCPATH=/var/lib/lxc-ns2 lxc-ls -f
-
-
+```
+nsname=ns01
+ip netns exec ${nsname} bash -c "
+export NSNAME=${nsname}
+export PS1=\"(${nsname})[\u@\h \W]\$ \"
+mkdir -p /var/lib/lxc-ns/${nsname}
+export LXC_BASE_DIR=/var/lib/lxc-ns
+export LXCPATH=${LXC_BASE_DIR}/${nsname}
+exec bash
+"
+```
 
 ------------------------------------------------------------------------------------------
 
 ```
-lxc_name=lxc-inner01
-bridge_name=brint01
-mkdir -p /var/lib/lxc/${lxc_name}/rootfs/
-mv ./centos7-rootfs.tar.xz /var/lib/lxc/${lxc_name}/rootfs/
-cd /var/lib/lxc/${lxc_name}/rootfs/
-tar -Jxf centos7-rootfs.tar.xz
+lxc_name=lxc-guest01
+outer_bridge_name=virbr0
+inner_bridge_name=ns01-br00
 
-mkdir -p /var/lib/lxc/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
-cat > /var/lib/lxc/${lxc_name}/config << EOF
+mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/
+mv ~/centos7-rootfs.tar.xz /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/
+tar -C /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/ -Jxf centos7-rootfs.tar.xz
+mkdir -p /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
+
+./create_lxc_config.sh \
+    --lxc-base-dir /var/lib/lxc-ns --lxc-name ${lxc_name} --ns-name ${NSNAME} \
+    --interface "link=${outer_bridge_name},name=eth0" \
+    --interface "link=${inner_bridge_name},name=eth1"
+
+
+
+cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/config << EOF
 lxc.utsname = ${lxc_name}
-lxc.rootfs = /var/lib/lxc/${lxc_name}/rootfs
+lxc.rootfs = /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs
+
+# First network interface (eth0) - connected to ns01-br00
 lxc.network.type = veth
 lxc.network.flags = up
-lxc.network.link = ${bridge_name}
+lxc.network.link = ${outer_bridge_name}
 lxc.network.name = eth0
+
+# Second network interface (eth1) - connected to ns01-br01
+lxc.network.type = veth
+lxc.network.flags = up
+lxc.network.link = ${inner_bridge_name}
+lxc.network.name = eth1
 
 lxc.aa_profile = unconfined
 lxc.cgroup.devices.allow = a
 lxc.cap.drop =
 EOF
 
-echo "${lxc_name}" > /var/lib/lxc/${lxc_name}/rootfs/etc/hostname
+echo "${lxc_name}" > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/hostname
 # Inside the container
-cp /var/lib/lxc/${lxc_name}/rootfs/etc/fstab /var/lib/lxc/${lxc_name}/rootfs/etc/fstab.backup
+cp /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab.backup
 
-cat > /var/lib/lxc/${lxc_name}/rootfs/etc/fstab << 'EOF'
+cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/fstab << 'EOF'
 # LXC container - minimal fstab
 # Root filesystem is managed by LXC
 tmpfs   /dev/shm   tmpfs   defaults   0 0
@@ -419,7 +302,11 @@ sysfs   /sys       sysfs   defaults   0 0
 proc    /proc      proc    defaults   0 0
 EOF
 
-cat > /var/lib/lxc/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth0 << "EOF"
+./set_interface_of_container.sh \
+    --lxc-base-dir /var/lib/lxc-ns --lxc-name ${lxc_name} --ns-name ${NSNAME} \
+    --interface-name eth0 --ip-address-with-cidr 192.168.122.254 --netmask 255.255.255.0 --gateway 192.168.122.1 --dns 8.8.8.8
+
+cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth0 << "EOF"
 TYPE=Ethernet
 PROXY_METHOD=none
 BROWSER_ONLY=no
@@ -436,11 +323,33 @@ UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb88
 DEVICE=eth0
 ONBOOT=yes
 
-IPADDR=172.31.0.11
-NETMASK=255.255.0.0
-GATEWAY=172.31.0.1
+IPADDR=192.168.122.254
+NETMASK=255.255.255.0
+GATEWAY=192.168.122.1
 DNS1=8.8.8.8
 EOF
+
+cat > /var/lib/lxc-ns/${NSNAME}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-eth1 << "EOF"
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=eth1
+UUID=ba020b0a-8c3a-4c40-b591-ab17b165bb89
+DEVICE=eth1
+ONBOOT=yes
+
+IPADDR=172.31.0.1
+NETMASK=255.255.0.0
+EOF
+
 
 iptables -t nat -A POSTROUTING -o veth-gw2 -j MASQUERADE
 # or
