@@ -69,10 +69,10 @@ Usage: $(basename "$0") [OPTIONS]
   --lxc-base-dir LXC_BASE_DIR       Specify the base directory for LXC containers
   --lxc-name LXC_NAME               Specify the name of the LXC container
   --ns-name NS_NAME                 Specify the namespace name
-  --interface INTERFACE             Specify network interface in the format "link=BRIDGE_NAME,name=IF_NAME". Can be specified multiple times for multiple interfaces.
+  --interface INTERFACE             Specify network interface in the format "bind_bridge=BRIDGE_NAME,interface_name=IF_NAME". Can be specified multiple times for multiple interfaces.
   -h, --help                        Show this help message
 Example:
-  $(basename "$0") --lxc-base-dir /var/lib/lxc --lxc-name mycontainer --ns-name mynamespace --interface "link=br0,name=eth0" --interface "link=br1,name=eth1"
+  $(basename "$0") --lxc-base-dir /var/lib/lxc --lxc-name mycontainer --ns-name mynamespace --interface "bind_bridge=br0,interface_name=eth0" --interface "bind_bridge=br1,interface_name=eth1"
 EOF
     return 0
 }
@@ -93,18 +93,18 @@ do_create_lxc_config() {
     echo "lxc.rootfs = ${LXC_PATH}/${lxc_name}/rootfs"                  >> "${config_path}"
 
     for interface in "${interface_list[@]}"; do
-        # Convert value of interface like "link=br0,name=eth0", "link=br1,name=eth1" into LXC config format.
-        # User may specify unusual order like "link=br0,name=eth0", "name=eth1,link=br1" but both are acceptable.
-        local link name
+        # Convert value of interface like "bind_bridge=br0,interface_name=eth0", "bind_bridge=br1,interface_name=eth1" into LXC config format.
+        # User may specify unusual order like "bind_bridge=br0,interface_name=eth0", "interface_name=eth1,bind_bridge=br1" but both are acceptable.
+        local bind_bridge interface_name
         IFS=',' read -ra parts <<< "${interface}"
         for part in "${parts[@]}"; do
             IFS='=' read -ra kv <<< "${part}"
             case "${kv[0]}" in
-                link)
-                    link="${kv[1]}"
+                bind_bridge)
+                    bind_bridge="${kv[1]}"
                     ;;
-                name)
-                    name="${kv[1]}"
+                interface_name)
+                    interface_name="${kv[1]}"
                     ;;
                 *)
                     logger_error "Unknown interface part: ${kv[0]}"
@@ -112,16 +112,16 @@ do_create_lxc_config() {
                     ;;
             esac
         done
-        if [[ -z "${link}" || -z "${name}" ]]; then
-            logger_error "Both link and name must be specified in interface: ${interface}"
+        if [[ -z "${bind_bridge}" || -z "${interface_name}" ]]; then
+            logger_error "Both bind_bridge and interface_name must be specified in interface: ${interface}"
             return 1
         fi
 
         echo ""                                                         >> "${config_path}"
         echo "lxc.network.type = veth"                                  >> "${config_path}"
         echo "lxc.network.flags = up"                                   >> "${config_path}"
-        echo "lxc.network.link = ${link}"                               >> "${config_path}"
-        echo "lxc.network.name = ${name}"                               >> "${config_path}"
+        echo "lxc.network.link = ${bind_bridge}"                        >> "${config_path}"
+        echo "lxc.network.name = ${interface_name}"                     >> "${config_path}"
     done
 
     echo ""                                                             >> "${config_path}"
