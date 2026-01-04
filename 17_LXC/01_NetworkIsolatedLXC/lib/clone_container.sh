@@ -6,8 +6,7 @@ cd "$SCRIPTDIR"
 main() {
     local clone_from clone_to lxc_base_dir ns_name interface_list=()
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/functions/all
 
     local options
     options=$(getoptses --longoptions "clone-from:,clone-to:,list,interface:,lxc-base-dir:,ns-name:" -- "$@")

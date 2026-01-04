@@ -9,8 +9,7 @@ main() {
           inner_link_name inner_interface inner_peer_bridge inner_ip_with_cidr \
           default_gateway
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/functions/all
 
     local options
     options=$(getoptses -o "n:h" --longoptions "name:,outer-link-name:,outer-interface:,outer-peer-bridge:,outer-ip-with-cidr:,inner-link-name:,inner-interface:,inner-peer-bridge:,inner-ip-with-cidr:,default-gateway:,help" -- "$@")

@@ -204,24 +204,26 @@ Enter namespace.
 
 ```
 ns_name=ns01
-ip netns exec ${ns_name} bash -c "
-export NS_NAME=${ns_name}
-export PS1=\"(\${NS_NAME})[\u@\h \W]\$ \"
-mkdir -p /var/lib/lxc-ns/\${NS_NAME}
-export LXC_BASE_DIR=/var/lib/lxc-ns
-export LXC_PATH=\${LXC_BASE_DIR}/\${NS_NAME}
+./enter_ns.sh --ns-name ${ns_name}
 
-# Create aliases for lxc commands to automatically use -P flag
-alias lxc-ls='lxc-ls -P \${LXC_PATH}'
-alias lxc-start='lxc-start -P \${LXC_PATH}'
-alias lxc-stop='lxc-stop -P \${LXC_PATH}'
-alias lxc-info='lxc-info -P \${LXC_PATH}'
-alias lxc-attach='lxc-attach -P \${LXC_PATH}'
-alias lxc-console='lxc-console -P \${LXC_PATH}'
-alias lxc-destroy='lxc-destroy -P \${LXC_PATH}'
-
-exec bash
-"
+# ip netns exec ${ns_name} bash -c "
+# export NS_NAME=${ns_name}
+# export PS1=\"(\${NS_NAME})[\u@\h \W]\$ \"
+# mkdir -p /var/lib/lxc-ns/\${NS_NAME}
+# export LXC_BASE_DIR=/var/lib/lxc-ns
+# export LXC_PATH=\${LXC_BASE_DIR}/\${NS_NAME}
+# 
+# # Create aliases for lxc commands to automatically use -P flag
+# alias lxc-ls='lxc-ls -P \${LXC_PATH}'
+# alias lxc-start='lxc-start -P \${LXC_PATH}'
+# alias lxc-stop='lxc-stop -P \${LXC_PATH}'
+# alias lxc-info='lxc-info -P \${LXC_PATH}'
+# alias lxc-attach='lxc-attach -P \${LXC_PATH}'
+# alias lxc-console='lxc-console -P \${LXC_PATH}'
+# alias lxc-destroy='lxc-destroy -P \${LXC_PATH}'
+# 
+# exec bash
+# "
 ```
 
 ------------------------------------------------------------------------------------------
@@ -238,19 +240,19 @@ tar -C /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.
 mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 
 ./create_lxc_conf.sh --lxc-name ${lxc_name} \
-    --interface "link=${outer_bridge_name},name=${outer_interface_name}" \
-    --interface "link=${inner_bridge_name},name=${inner_interface_name}"
+    --interface "bind_bridge=${outer_bridge_name},interface_name=${outer_interface_name}" \
+    --interface "bind_bridge=${inner_bridge_name},interface_name=${inner_interface_name}"
 
-./create_hostname_conf_of_container.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
+./inside/container/create_hostname_conf.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
 
 # Inside the container
 
-./create_fstab_conf_container.sh --lxc-name ${lxc_name}
+./inside/container/create_fstab_conf.sh --lxc-name ${lxc_name}
 
-./create_interface_conf_of_container.sh \
+./inside/container/create_interface_conf.sh \
     --lxc-name ${lxc_name} --interface-name eth0 --ip 192.168.122.254 --netmask 255.255.255.0 --gateway 192.168.122.1 --dns 8.8.8.8
 
-./create_interface_conf_of_container.sh \
+./inside/container/create_interface_conf.sh \
     --lxc-name ${lxc_name} --interface-name eth1 --ip 172.31.0.1 --netmask 255.255.0.0
 
 iptables -t nat -A POSTROUTING -o ${outer_interface_name} -j MASQUERADE
