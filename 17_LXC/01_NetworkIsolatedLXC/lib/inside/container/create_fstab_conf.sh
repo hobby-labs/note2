@@ -9,7 +9,7 @@ main() {
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,ns-name:,lxc-name:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to parse options" >&2
+        logger.error "Failed to parse options" >&2
         return 1
     fi
     eval "set -- $options"
@@ -37,7 +37,7 @@ main() {
                 break
                 ;;
             *)
-                logger_error "Unknown option: $1" >&2
+                logger.error "Unknown option: $1" >&2
                 return 1
                 ;;
         esac
@@ -45,7 +45,7 @@ main() {
 
     # --lxc-name is required
     if [[ -z "${lxc_name}" ]]; then
-        logger_error "--lxc-name is required"
+        logger.error "--lxc-name is required"
         return 1
     fi
 
@@ -62,7 +62,7 @@ do_create_fstab_conf_container() {
 
     local fstab_file="${LXC_PATH%/}/${lxc_name}/rootfs/etc/fstab"
 
-    logger_info "Creating fstab file for LXC container: ${lxc_name}"
+    logger.info "Creating fstab file for LXC container: ${lxc_name}"
 
     cat > "${fstab_file}" << 'EOF'
 # LXC container - minimal fstab
@@ -74,7 +74,7 @@ proc    /proc      proc    defaults   0 0
 EOF
 
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to create fstab file: ${fstab_file}"
+        logger.error "Failed to create fstab file: ${fstab_file}"
         return 1
     fi
 

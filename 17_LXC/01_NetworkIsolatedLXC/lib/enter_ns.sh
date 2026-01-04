@@ -32,14 +32,14 @@ main() {
             break
             ;;
         * )
-            logger_error "Internal error has occured" >&2
+            logger.error "Internal error has occured" >&2
             return 1
             ;;
         esac
     done
 
     if [[ -z "$ns_name" ]]; then
-        logger_error "--ns_name must be specified" >&2
+        logger.error "--ns_name must be specified" >&2
         return 1
     fi
 

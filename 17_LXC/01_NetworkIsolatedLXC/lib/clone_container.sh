@@ -85,7 +85,7 @@ main() {
 
 do_list_base_images() {
     ls -1 "${LXC_BASE_IMAGE_DIR%/}/" || {
-        logger_error "Failed to list base images in \"${LXC_BASE_IMAGE_DIR%/}/\"" >&2
+        logger.error "Failed to list base images in \"${LXC_BASE_IMAGE_DIR%/}/\"" >&2
         return 1
     }
     return 0
@@ -97,11 +97,11 @@ do_clone() {
     shift 2
     local interface_list=("$@")
 
-    logger_info "Cloning and extracting LXC image from \"$clone_from\" to \"$clone_to\"."
+    logger.info "Cloning and extracting LXC image from \"$clone_from\" to \"$clone_to\"."
 
     # Check if the base image exists
     if [[ ! -d "${LXC_BASE_IMAGE_DIR%/}/${clone_from}" ]]; then
-        logger_error "Base image \"$clone_from\" does not exist in \"${LXC_BASE_IMAGE_DIR%/}/\"." >&2
+        logger.error "Base image \"$clone_from\" does not exist in \"${LXC_BASE_IMAGE_DIR%/}/\"." >&2
         return 1
     fi
 
@@ -112,17 +112,17 @@ do_clone() {
     #        upperdir=${LXC_PATH%/}/${clone_to}/overlay/upper
     #        workdir=${LXC_PATH%/}/${clone_to}/overlay/work
     setup_overlayfs_container "${LXC_BASE_IMAGE_DIR%/}/${clone_from}" "${clone_to}" || {
-        logger_error "Failed to setup overlayfs for container \"$clone_to\"." >&2
+        logger.error "Failed to setup overlayfs for container \"$clone_to\"." >&2
         return 1
     }
 
     post_setup "${clone_to}" "${interface_list[@]}" || {
-        logger_error "Failed to perform post setup for container \"$clone_to\"." >&2
+        logger.error "Failed to perform post setup for container \"$clone_to\"." >&2
         return 1
     }
 
 
-    logger_info "Cloned LXC container \"$clone_to\" from base image \"$clone_from\"."
+    logger.info "Cloned LXC container \"$clone_to\" from base image \"$clone_from\"."
 
     return 0
 }
@@ -138,11 +138,11 @@ post_setup() {
         # Append --interface option only with keys "bind_bridge=" and "interface_name=".
         local bind_bridge interface_name
         bind_bridge=$(parse_interface_value "$interface" "bind_bridge") || {
-            logger_error "Failed to parse bind_bridge from interface: ${interface} in ${FUNCNAME[0]}" >&2
+            logger.error "Failed to parse bind_bridge from interface: ${interface} in ${FUNCNAME[0]}" >&2
             return 1
         }
         interface_name=$(parse_interface_value "$interface" "interface_name") || {
-            logger_error "Failed to parse interface_name from interface: ${interface} in ${FUNCNAME[0]}" >&2
+            logger.error "Failed to parse interface_name from interface: ${interface} in ${FUNCNAME[0]}" >&2
             return 1
         }
         interface_options_for_create_lxc_conf+=("--interface" "bind_bridge=${bind_bridge},interface_name=${interface_name}")
@@ -155,15 +155,15 @@ post_setup() {
     for interface in "${interface_list[@]}"; do
         local interface_name ip_addr netmask gateway dns
         interface_name=$(parse_interface_value "$interface" "interface_name") || {
-            logger_error "Failed to parse interface_name from interface: ${interface} in ${FUNCNAME[0]}" >&2
+            logger.error "Failed to parse interface_name from interface: ${interface} in ${FUNCNAME[0]}" >&2
             return 1
         }
         ip_addr=$(parse_interface_value "$interface" "ip") || {
-            logger_error "Failed to parse ip from interface: ${interface} in ${FUNCNAME[0]}" >&2
+            logger.error "Failed to parse ip from interface: ${interface} in ${FUNCNAME[0]}" >&2
             return 1
         }
         netmask=$(parse_interface_value "$interface" "netmask") || {
-            logger_error "Failed to parse netmask from interface: ${interface} in ${FUNCNAME[0]}" >&2
+            logger.error "Failed to parse netmask from interface: ${interface} in ${FUNCNAME[0]}" >&2
             return 1
         }
         gateway=$(parse_interface_value "$interface" "gateway") || {
@@ -201,10 +201,10 @@ setup_overlayfs_container() {
 
     # Mount overlayfs
     mount -t overlay overlay -o "lowerdir=${base_image_dir%/}/rootfs,upperdir=${overlay_upper_dir},workdir=${overlay_work_dir}" "${rootfs_dir}" || {
-        logger_error "Failed to mount overlayfs for container \"$lxc_name\"." >&2
+        logger.error "Failed to mount overlayfs for container \"$lxc_name\"." >&2
         return 1
     }
-    logger_info "Mounted overlayfs for container \"$lxc_name\": LOWERDIR=${base_image_dir%/}/rootfs, UPPERDIR=${overlay_upper_dir}, WORKDIR=${overlay_work_dir}, MOUNTPOINT=${rootfs_dir}"
+    logger.info "Mounted overlayfs for container \"$lxc_name\": LOWERDIR=${base_image_dir%/}/rootfs, UPPERDIR=${overlay_upper_dir}, WORKDIR=${overlay_work_dir}, MOUNTPOINT=${rootfs_dir}"
 
     return 0
 }
@@ -287,52 +287,52 @@ validate_interface_syntax() {
        [[ ! "$interface" =~ (^|,)interface_name= ]] || \
        [[ ! "$interface" =~ (^|,)ip= ]] || \
        [[ ! "$interface" =~ (^|,)netmask= ]]; then
-        logger_error "Invalid interface syntax: $interface" >&2
-        logger_error "Required format: bind_bridge=<bridge>,interface_name=<name>,ip=<ip>,netmask=<mask>[,gateway=<gw>][,dns=<dns>]" >&2
+        logger.error "Invalid interface syntax: $interface" >&2
+        logger.error "Required format: bind_bridge=<bridge>,interface_name=<name>,ip=<ip>,netmask=<mask>[,gateway=<gw>][,dns=<dns>]" >&2
         return 1
     fi
     
     # Validate bind_bridge
     local bind_bridge
     bind_bridge=$(parse_interface_value "$interface" "bind_bridge") || {
-        logger_error "Failed to parse bind_bridge from: $interface" >&2
+        logger.error "Failed to parse bind_bridge from: $interface" >&2
         return 1
     }
     if ! validate_name "$bind_bridge"; then
-        logger_error "Invalid bind_bridge name: $bind_bridge (must start with letter and contain only letters, numbers, -, _)" >&2
+        logger.error "Invalid bind_bridge name: $bind_bridge (must start with letter and contain only letters, numbers, -, _)" >&2
         return 1
     fi
     
     # Validate interface_name
     local interface_name
     interface_name=$(parse_interface_value "$interface" "interface_name") || {
-        logger_error "Failed to parse interface_name from: $interface" >&2
+        logger.error "Failed to parse interface_name from: $interface" >&2
         return 1
     }
     if ! validate_name "$interface_name"; then
-        logger_error "Invalid interface_name: $interface_name (must start with letter and contain only letters, numbers, -, _)" >&2
+        logger.error "Invalid interface_name: $interface_name (must start with letter and contain only letters, numbers, -, _)" >&2
         return 1
     fi
     
     # Validate ip
     local ip
     ip=$(parse_interface_value "$interface" "ip") || {
-        logger_error "Failed to parse ip from: $interface" >&2
+        logger.error "Failed to parse ip from: $interface" >&2
         return 1
     }
     if ! validate_ipv4 "$ip"; then
-        logger_error "Invalid IP address: $ip" >&2
+        logger.error "Invalid IP address: $ip" >&2
         return 1
     fi
     
     # Validate netmask
     local netmask
     netmask=$(parse_interface_value "$interface" "netmask") || {
-        logger_error "Failed to parse netmask from: $interface" >&2
+        logger.error "Failed to parse netmask from: $interface" >&2
         return 1
     }
     if ! validate_netmask "$netmask"; then
-        logger_error "Invalid netmask: $netmask" >&2
+        logger.error "Invalid netmask: $netmask" >&2
         return 1
     fi
     
@@ -340,7 +340,7 @@ validate_interface_syntax() {
     local gateway
     if gateway=$(parse_interface_value "$interface" "gateway"); then
         if ! validate_ipv4 "$gateway"; then
-            logger_error "Invalid gateway IP address: $gateway" >&2
+            logger.error "Invalid gateway IP address: $gateway" >&2
             return 1
         fi
     fi
@@ -349,7 +349,7 @@ validate_interface_syntax() {
     local dns
     if dns=$(parse_interface_value "$interface" "dns"); then
         if ! validate_ipv4 "$dns"; then
-            logger_error "Invalid DNS IP address: $dns" >&2
+            logger.error "Invalid DNS IP address: $dns" >&2
             return 1
         fi
     fi

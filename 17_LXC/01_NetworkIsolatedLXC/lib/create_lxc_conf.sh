@@ -12,7 +12,7 @@ main() {
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,lxc-name:,ns-name:,interface:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to parse options" >&2
+        logger.error "Failed to parse options" >&2
         return 1
     fi
     eval "set -- $options"
@@ -44,7 +44,7 @@ main() {
                 break
                 ;;
             *)
-                logger_error "Unknown option: $1" >&2
+                logger.error "Unknown option: $1" >&2
                 return 1
                 ;;
         esac
@@ -52,7 +52,7 @@ main() {
 
     # Validate required options
     if [[ -z "${lxc_name}" ]]; then
-        logger_error "--lxc-name is required" >&2
+        logger.error "--lxc-name is required" >&2
         return 1
     fi
 
@@ -87,7 +87,7 @@ do_create_lxc_config() {
 
     local config_path="${LXC_PATH}/${lxc_name}/config"
 
-    logger_info "Creating LXC config file at ${config_path}"
+    logger.info "Creating LXC config file at ${config_path}"
 
     echo "lxc.utsname = ${lxc_name}"                                    > "${config_path}"
     echo "lxc.rootfs = ${LXC_PATH}/${lxc_name}/rootfs"                  >> "${config_path}"
@@ -107,13 +107,13 @@ do_create_lxc_config() {
                     interface_name="${kv[1]}"
                     ;;
                 *)
-                    logger_error "Unknown interface part: ${kv[0]}"
+                    logger.error "Unknown interface part: ${kv[0]}"
                     return 1
                     ;;
             esac
         done
         if [[ -z "${bind_bridge}" || -z "${interface_name}" ]]; then
-            logger_error "Both bind_bridge and interface_name must be specified in interface: ${interface}"
+            logger.error "Both bind_bridge and interface_name must be specified in interface: ${interface}"
             return 1
         fi
 
@@ -129,7 +129,7 @@ do_create_lxc_config() {
     echo "lxc.cgroup.devices.allow = a"                                 >> "${config_path}"
     echo "lxc.cap.drop ="                                               >> "${config_path}"
 
-    logger_info "LXC config file created successfully at ${config_path}"
+    logger.info "LXC config file created successfully at ${config_path}"
 
     return 0
 }
