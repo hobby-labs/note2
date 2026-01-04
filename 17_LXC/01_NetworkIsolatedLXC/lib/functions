@@ -1,17 +1,10 @@
+_IMPORT_COMMON_="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "${_IMPORT_COMMON_}/logger"
+
 __FONT_COLOR_RESET="\e[0m"
 __FONT_COLOR_RED="\e[31m"
 __FONT_COLOR_GREEN="\e[32m"
 __FONT_COLOR_YELLOW="\e[33m"
-
-logger_info() {
-    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${__FONT_COLOR_GREEN}INFO${__FONT_COLOR_RESET}] $@"
-}
-logger_error() {
-    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${__FONT_COLOR_RED}ERROR${__FONT_COLOR_RESET}] $@" >&2
-}
-logger_warning() {
-    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${__FONT_COLOR_YELLOW}WARNING${__FONT_COLOR_RESET}] $@" >&2
-}
 
 # Function to setup LXC_PATH environment variable and LXC_BASE_DIR, NS_NAME if not set.
 setup_lxc_environment_variables() {
@@ -20,7 +13,7 @@ setup_lxc_environment_variables() {
         
     if [[ -z "${LXC_BASE_DIR}" ]]; then 
         if [[ -z "${lxc_base_dir}" ]]; then
-            logger_error "LXC_PATH environment variable or --lxc-base-dir option (LXC_BASE_DIR environment variable) is required" >&2
+            logger.error "LXC_PATH environment variable or --lxc-base-dir option (LXC_BASE_DIR environment variable) is required" >&2
             return 1
         else
             export LXC_BASE_DIR="${lxc_base_dir}"
@@ -29,7 +22,7 @@ setup_lxc_environment_variables() {
     
     if [[ -z "${NS_NAME}" ]]; then
         if [[ -z "${name_space}" ]]; then
-            logger_error "LXC_PATH environment variable or --ns-name option (NS_NAME environment variable) is required" >&2
+            logger.error "LXC_PATH environment variable or --ns-name option (NS_NAME environment variable) is required" >&2
             return 1
         else
             export NS_NAME="${name_space}"

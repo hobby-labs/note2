@@ -12,7 +12,7 @@ main() {
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,ns-name:,lxc-name:,hostname:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to parse options" >&2
+        logger.error "Failed to parse options" >&2
         return 1
     fi
     eval "set -- $options"
@@ -44,7 +44,7 @@ main() {
                 break
                 ;;
             *)
-                logger_error "Unknown option: $1" >&2
+                logger.error "Unknown option: $1" >&2
                 return 1
                 ;;
         esac
@@ -52,11 +52,11 @@ main() {
 
     # --lxc-name and --hostname are required
     if [[ -z "${lxc_name}" ]]; then
-        logger_error "--lxc-name is required"
+        logger.error "--lxc-name is required"
         return 1
     fi
     if [[ -z "${hostname}" ]]; then
-        logger_error "--hostname is required"
+        logger.error "--hostname is required"
         return 1
     fi
 
@@ -75,10 +75,10 @@ do_create_hostname_conf_of_container() {
     local hostname_conf_file="${LXC_PATH%/}/${lxc_name}/rootfs/etc/hostname"
 
     echo "${hostname}" > "${hostname_conf_file}" || {
-        logger_error "Failed to create hostname configuration file: ${hostname_conf_file}" >&2
+        logger.error "Failed to create hostname configuration file: ${hostname_conf_file}" >&2
         return 1
     }
-    logger_info "Created hostname configuration file: ${hostname_conf_file}"
+    logger.info "Created hostname configuration file: ${hostname_conf_file}"
 
     return 0
 }

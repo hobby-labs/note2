@@ -12,7 +12,7 @@ main() {
     local options
     options=$(getoptses -o "b:h" --longoptions "bridge-name:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to parse options" >&2
+        logger.error "Failed to parse options" >&2
         return 1
     fi
     eval "set -- $options"
@@ -31,7 +31,7 @@ main() {
                 break
                 ;;
             *)
-                logger_error "Unknown option: $1" >&2
+                logger.error "Unknown option: $1" >&2
                 return 1
                 ;;
         esac
@@ -39,7 +39,7 @@ main() {
 
     # --bridge-name is required
     if [[ -z "${bridge_name}" ]]; then
-        logger_error "--bridge-name is required" >&2
+        logger.error "--bridge-name is required" >&2
         return 1
     fi
     # Create bridge
@@ -65,14 +65,14 @@ do_create_bridge() {
     # Create the bridge device first (if it doesn't exist)
     if ! ip link show "${bridge_name}" &>/dev/null; then
         ip link add name "${bridge_name}" type bridge
-        logger_info "Bridge device ${bridge_name} created"
+        logger.info "Bridge device ${bridge_name} created"
     elif [[ "${force}" == "1" ]]; then
-        logger_info "Bridge ${bridge_name} already exists (force mode)"
+        logger.info "Bridge ${bridge_name} already exists (force mode)"
     else
-        logger_info "Bridge ${bridge_name} already exists"
+        logger.info "Bridge ${bridge_name} already exists"
     fi
 
-    logger_info "Bridge ${bridge_name} created successfully"
+    logger.info "Bridge ${bridge_name} created successfully"
     return 0
 }
 

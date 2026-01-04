@@ -12,7 +12,7 @@ main() {
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,ns-name:,interface-name:,lxc-name:,ip:,netmask:,gateway:,dns:,help" -- "$@")
     if [[ "$?" -ne 0 ]]; then
-        logger_error "Failed to parse options" >&2
+        logger.error "Failed to parse options" >&2
         return 1
     fi
     eval "set -- $options"
@@ -60,7 +60,7 @@ main() {
                 break
                 ;;
             *)
-                logger_error "Unknown option: $1" >&2
+                logger.error "Unknown option: $1" >&2
                 return 1
                 ;;
         esac
@@ -68,17 +68,17 @@ main() {
 
     # --interface-name is required
     if [[ -z "${interface_name}" ]]; then
-        logger_error "--interface-name is required" >&2
+        logger.error "--interface-name is required" >&2
         return 1
     fi
     # --lxc-name is required
     if [[ -z "${lxc_name}" ]]; then
-        logger_error "--lxc-name is required" >&2
+        logger.error "--lxc-name is required" >&2
         return 1
     fi
     # --netmask is required if --ip is specified
     if [[ -n "${ip_addr}" && -z "${netmask}" ]]; then
-        logger_error "--netmask is required when --ip is specified" >&2
+        logger.error "--netmask is required when --ip is specified" >&2
         return 1
     fi
 
@@ -103,7 +103,7 @@ do_create_interface_of_container() {
     # This instruction assumes that the LXC_PATH environment variable has already set
     file_path="${LXC_PATH%/}/${lxc_name}/rootfs/etc/sysconfig/network-scripts/ifcfg-${interface_name}"
 
-    logger_info "Creating interface configuration file for container. FILE_PATH: ${file_path}, IP: ${ip_addr}, NETMASK: ${netmask}, GATEWAY: ${gateway}, DNS: ${dns}"
+    logger.info "Creating interface configuration file for container. FILE_PATH: ${file_path}, IP: ${ip_addr}, NETMASK: ${netmask}, GATEWAY: ${gateway}, DNS: ${dns}"
 
     cat > "${file_path}" << EOF
 TYPE=Ethernet
