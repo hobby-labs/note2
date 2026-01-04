@@ -1,0 +1,14 @@
+_FONT_COLOR_RESET_="\e[0m"
+_FONT_COLOR_RED_="\e[31m"
+_FONT_COLOR_GREEN_="\e[32m"
+_FONT_COLOR_YELLOW_="\e[33m"
+
+logger.info() {
+    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${_FONT_COLOR_GREEN_}INFO${_FONT_COLOR_RESET_}] $@"
+}
+logger.error() {
+    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${_FONT_COLOR_RED_}ERROR${_FONT_COLOR_RESET_}] $@" >&2
+}
+logger.warning() {
+    echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${_FONT_COLOR_YELLOW_}WARNING${_FONT_COLOR_RESET_}] $@" >&2
+}
