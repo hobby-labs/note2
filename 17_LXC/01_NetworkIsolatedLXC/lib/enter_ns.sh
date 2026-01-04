@@ -6,8 +6,7 @@ cd "$SCRIPTDIR"
 main() {
     local ns_name
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/all
 
     local options
     options=$(getoptses -o "n:h" --longoptions "ns-name:,help" -- "$@")

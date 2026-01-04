@@ -1,3 +1,8 @@
+_FONT_COLOR_RESET_="\e[0m"
+_FONT_COLOR_RED_="\e[31m"
+_FONT_COLOR_GREEN_="\e[32m"
+_FONT_COLOR_YELLOW_="\e[33m"
+
 logger.info() {
     echo -e "$(date "+%Y-%m-%d %H:%M:%S") - [${__FONT_COLOR_GREEN}INFO${__FONT_COLOR_RESET}] $@"
 }
