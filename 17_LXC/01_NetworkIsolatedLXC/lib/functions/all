@@ -1,0 +1,7 @@
+_IMPORT_COMMON_="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Find all files in ${_IMPORT_COMMON_} except this file and source them
+for file in "${_IMPORT_COMMON_}"/*; do
+    if [[ "${file}" != "${BASH_SOURCE[0]}" && -f "${file}" ]]; then
+        . "${file}"
+    fi
+done
