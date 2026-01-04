@@ -6,8 +6,7 @@ cd "$SCRIPTDIR"
 main() {
     local lxc_base_dir ns_name interface_name lxc_name ip_addr netmask gateway dns
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/../../functions/all
 
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,ns-name:,interface-name:,lxc-name:,ip:,netmask:,gateway:,dns:,help" -- "$@")

@@ -6,7 +6,7 @@ cd "$SCRIPTDIR"
 main() {
     local ns_name
 
-    . ${SCRIPTDIR%/}/all
+    . ${SCRIPTDIR%/}/functions/all
 
     local options
     options=$(getoptses -o "n:h" --longoptions "ns-name:,help" -- "$@")
@@ -24,7 +24,7 @@ main() {
             ;;
         -h | --help )
             usage
-            shift
+            return 0
             ;;
         -- )
             shift
@@ -48,9 +48,9 @@ main() {
 
 usage() {
     cat << EOF
-Usage: $0 --ns_name <namespace-name>
+Usage: $0 --ns-name <namespace-name>
 Options:
-  -n, --ns_name       Name of the network namespace to enter
+  -n, --ns-name       Name of the network namespace to enter
   -h, --help          Show this help message
 EOF
 

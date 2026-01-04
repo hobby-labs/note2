@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "$SCRIPTDIR"
+
 main() {
     local lxc_base_dir ns_name lxc_name
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/../../functions/all
 
     local options
     options=$(getoptses -o "h" --longoptions "lxc-base-dir:,ns-name:,lxc-name:,help" -- "$@")

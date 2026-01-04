@@ -6,8 +6,7 @@ cd "$SCRIPTDIR"
 main() {
     local bridge_name force
 
-    . ${SCRIPTDIR%/}/functions
-    . ${SCRIPTDIR%/}/getoptses
+    . ${SCRIPTDIR%/}/functions/all
 
     local options
     options=$(getoptses -o "b:h" --longoptions "bridge-name:,help" -- "$@")
