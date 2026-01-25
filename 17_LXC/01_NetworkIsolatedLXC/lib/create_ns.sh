@@ -221,13 +221,22 @@ do_create_interfaces_in_ns() {
         logger.info "${interface} is already added to bridge ${peer_bridge}. Skipping adding."
     fi
 
+    # Set interface up if not already up.
+    local interface_state
+    interface_state=$(cat "/sys/class/net/${interface}/operstate"  2>/dev/null || echo "down")
+    if [[ "${interface_state}" == "up" ]] || [[ "${interface_state}" == "lowerlayerdown" ]]; then
+        logger.info "${interface} is already up. Skipping setting up."
+    else
+        # "lowerlayerdown" means the interface is administratively up, but its peer (the other end of the veth pair) is down.
+        logger.info "Setting ${interface} up: ip link set ${interface} up"
+        ip link set ${interface} up || {
+            logger.error "Failed to set ${interface} up" >&2
+            return 1
+        }
+
+    fi
 
 
-    logger.info "Setting ${interface} up: ip link set ${interface} up"
-    ip link set ${interface} up || {
-        logger.error "Failed to set ${interface} up" >&2
-        return 1
-    }
     logger.info "Moving ${link_name} to namespace ${ns_name}: ip link set ${link_name} netns ${ns_name}"
     ip link set ${link_name} netns ${ns_name} || {
         logger.error "Failed to move ${link_name} to namespace ${ns_name}" >&2
@@ -238,11 +247,22 @@ do_create_interfaces_in_ns() {
         logger.error "Failed to assign IP ${ip} to ${link_name} in namespace ${ns_name}" >&2
         return 1
     }
-    logger.info "Setting ${link_name} up in namespace ${ns_name}: ip netns exec ${ns_name} ip link set ${link_name} up"
-    ip netns exec ${ns_name} ip link set ${link_name} up || {
-        logger.error "Failed to set ${link_name} up in namespace ${ns_name}" >&2
-        return 1
-    }
+
+
+    local link_state
+    link_state=$(cat "/sys/class/net/${link_name}/operstate" 2>/dev/null || echo "down")
+    if [[ "${link_state}" == "up" ]] || [[ "${link_state}" == "lowerlayerdown" ]]; then
+        logger.info "${link_name} is already up in namespace ${ns_name}. Skipping setting up."
+        return 0
+    else
+        logger.info "Setting ${link_name} up in namespace ${ns_name}: ip netns exec ${ns_name} ip link set ${link_name} up"
+        # It makes "lowerlayerdown" state to "up" state if the peer interface is already up.
+        ip netns exec ${ns_name} ip link set ${link_name} up || {
+            logger.error "Failed to set ${link_name} up in namespace ${ns_name}" >&2
+            return 1
+        }
+    fi
+
 
     return 0
 }
