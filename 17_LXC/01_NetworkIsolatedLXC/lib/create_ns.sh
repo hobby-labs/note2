@@ -4,15 +4,13 @@ SCRIPTDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "$SCRIPTDIR"
 
 main() {
-    local name \
-          outer_link_name outer_interface outer_peer_bridge outer_ip_with_cidr \
-          inner_link_name inner_interface inner_peer_bridge inner_ip_with_cidr \
-          default_gateway
+    local name default_gateway
+    declare -a links=()
 
     . ${SCRIPTDIR%/}/functions/all
 
     local options
-    options=$(getoptses -o "n:h" --longoptions "name:,outer-link-name:,outer-interface:,outer-peer-bridge:,outer-ip-with-cidr:,inner-link-name:,inner-interface:,inner-peer-bridge:,inner-ip-with-cidr:,default-gateway:,help" -- "$@")
+    options=$(getoptses -o "hd:l:n:" --longoptions "help,default-gateway:,link:,name:" -- "$@")
     if [[ "$?" -ne 0 ]]; then
         echo "Invalid option were specified" >&2
         return 1
@@ -25,44 +23,13 @@ main() {
             name="$2"
             shift 2
             ;;
-        --outer-link-name )
-            outer_link_name="$2"
-            shift 2
-            ;;
-        --outer-interface )
-            outer_interface="$2"
-            shift 2
-            ;;
-        --outer-ip-with-cidr )
-            outer_ip_with_cidr="$2"
-            shift 2
-            ;;
-        --outer-peer-bridge )
-            outer_peer_bridge="$2"
-            shift 2
-            ;;
-        --outer-ip-with-cidr )
-            outer_ip_with_cidr="$2"
-            shift 2
-            ;;
-        --inner-link-name )
-            inner_link_name="$2"
-            shift 2
-            ;;
-        --inner-interface )
-            inner_interface="$2"
-            shift 2
-            ;;
-        --inner-peer-bridge )
-            inner_peer_bridge="$2"
-            shift 2
-            ;;
-        --inner-ip-with-cidr )
-            inner_ip_with_cidr="$2"
-            shift 2
-            ;;
         --default-gateway )
             default_gateway="$2"
+            shift 2
+            ;;
+        --link )
+            local link_param="$2"
+            links+=("$link_param")
             shift 2
             ;;
         -h | --help )
@@ -80,143 +47,40 @@ main() {
         esac    
     done
 
-    # --name is required
+    # -n|---name is required
     if [[ -z "${name}" ]]; then
-        logger.error "--name is required" >&2
-        return 1
-    fi
-    # ---outer-link-name is required
-    if [[ -z "${outer_link_name}" ]]; then
-        logger.error "--outer-link-name is required" >&2
-        return 1
-    fi
-    # ---outer-interface is required
-    if [[ -z "${outer_interface}" ]]; then
-        logger.error "--outer-interface is required" >&2
-        return 1
-    fi
-    # ---outer-peer-bridge is required
-    if [[ -z "${outer_peer_bridge}" ]]; then
-        logger.error "--outer-peer-bridge is required" >&2
-        return 1
-    fi
-    # ---outer-ip-with-cidr is required
-    if [[ -z "${outer_ip_with_cidr}" ]]; then
-        logger.error "--outer-ip-with-cidr is required" >&2
-        return 1
-    fi
-    # ---inner-link-name is required
-    if [[ -z "${inner_link_name}" ]]; then
-        logger.error "--inner-link-name is required" >&2
-        return 1
-    fi
-    # ---inner-interface is required
-    if [[ -z "${inner_interface}" ]]; then
-        logger.error "--inner-interface is required" >&2
-        return 1
-    fi
-    # ---inner-peer-bridge is required
-    if [[ -z "${inner_peer_bridge}" ]]; then
-        logger.error "--inner-peer-bridge is required" >&2
-        return 1
-    fi
-    # ---inner-ip-with-cidr is required
-    if [[ -z "${inner_ip_with_cidr}" ]]; then
-        logger.error "--inner-ip-with-cidr is required" >&2
-        return 1
-    fi
-    # ---default-gateway is required
-    if [[ -z "${default_gateway}" ]]; then
-        logger.error "--default-gateway is required" >&2
+        logger.error "-n|--name is required" >&2
         return 1
     fi
 
-    do_create_ns "${name}" \
-                    "${outer_link_name}" "${outer_interface}" "${outer_peer_bridge}" "${outer_ip_with_cidr}" \
-                    "${inner_link_name}" "${inner_interface}" "${inner_peer_bridge}" "${inner_ip_with_cidr}" \
-                    "${default_gateway}" || {
+    # -d|---default-gateway is required
+    if [[ -z "${default_gateway}" ]]; then
+        logger.error "-d|--default-gateway is required" >&2
+        return 1
+    fi
+
+    create_ns "${name}" "${default_gateway}" "${links[@]}" || {
         logger.error "Failed to create network namespace: ${name}" >&2
         return 1
     }
 }
 
-do_create_ns() {
+create_ns() {
     local name=$1
-    local outer_link_name=$2
-    local outer_interface=$3
-    local outer_peer_bridge=$4
-    local outer_ip_with_cidr=$5
-    local inner_link_name=$6
-    local inner_interface=$7
-    local inner_peer_bridge=$8
-    local inner_ip_with_cidr=$9
-    local default_gateway=${10}
+    local default_gateway=$2
+    shift 2
+    local links=("$@")
+
 
     logger.info "Creating network namespace: ${name}: ip netns add ${name}"
-    ip netns add ${name}
-
-    # Create outer veth pair
-    logger.info "Creating outer veth pair: ip link add ${outer_link_name} type veth peer name ${outer_interface}"
-    ip link add ${outer_link_name} type veth peer name ${outer_interface} || {
-        logger.error "Failed to create veth pair: ${outer_link_name} and ${outer_interface}" >&2
+    ip netns add ${name} || {
+        logger.error "Failed to create network namespace: ${name}. (ip netns add ${name})" >&2
         return 1
     }
 
-    logger.info "Adding ${outer_interface} to bridge ${outer_peer_bridge}: brctl addif ${outer_peer_bridge} ${outer_interface}"
-    brctl addif ${outer_peer_bridge} ${outer_interface} || {
-        logger.error "Failed to add ${outer_interface} to bridge ${outer_peer_bridge}" >&2
-        return 1
-    }
-    logger.info "Setting ${outer_interface} up: ip link set ${outer_interface} up"
-    ip link set ${outer_interface} up || {
-        logger.error "Failed to set ${outer_interface} up" >&2
-        return 1
-    }
-    logger.info "Moving ${outer_link_name} to namespace ${name}: ip link set ${outer_link_name} netns ${name}"
-    ip link set ${outer_link_name} netns ${name} || {
-        logger.error "Failed to move ${outer_link_name} to namespace ${name}" >&2
-        return 1
-    }
-    logger.info "Assigning IP ${outer_ip_with_cidr} to ${outer_link_name} in namespace ${name}: ip netns exec ${name} ip addr add ${outer_ip_with_cidr} dev ${outer_link_name}"
-    ip netns exec ${name} ip addr add ${outer_ip_with_cidr} dev ${outer_link_name} || {
-        logger.error "Failed to assign IP ${outer_ip_with_cidr} to ${outer_link_name} in namespace ${name}" >&2
-        return 1
-    }
-    logger.info "Setting ${outer_link_name} up in namespace ${name}: ip netns exec ${name} ip link set ${outer_link_name} up"
-    ip netns exec ${name} ip link set ${outer_link_name} up || {
-        logger.error "Failed to set ${outer_link_name} up in namespace ${name}" >&2
-        return 1
-    }
-
-    # Create inner veth pair
-    logger.info "Creating inner veth pair: ip link add ${inner_link_name} type veth peer name ${inner_interface}"
-    ip link add ${inner_link_name} type veth peer name ${inner_interface} || {
-        logger.error "Failed to create veth pair: ${inner_link_name} and ${inner_interface}" >&2
-        return 1
-    }
-    logger.info "Adding ${inner_interface} to bridge ${inner_peer_bridge}: brctl addif ${inner_peer_bridge} ${inner_interface}"
-    brctl addif ${inner_peer_bridge} ${inner_interface} || {
-        logger.error "Failed to add ${inner_interface} to bridge ${inner_peer_bridge}" >&2
-        return 1
-    }
-    logger.info "Setting ${inner_interface} up: ip link set ${inner_interface} up"
-    ip link set ${inner_interface} up || {
-        logger.error "Failed to set ${inner_interface} up" >&2
-        return 1
-    }
-    logger.info "Moving ${inner_link_name} to namespace ${name}: ip link set ${inner_link_name} netns ${name}"
-    ip link set ${inner_link_name} netns ${name} || {
-        logger.error "Failed to move ${inner_link_name} to namespace ${name}" >&2
-        return 1
-    }
-    logger.info "Assigning IP ${inner_ip_with_cidr} to ${inner_link_name} in namespace ${name}: ip netns exec ${name} ip addr add ${inner_ip_with_cidr} dev ${inner_link_name}"
-    ip netns exec ${name} ip addr add ${inner_ip_with_cidr} dev ${inner_link_name} || {
-        logger.error "Failed to assign IP ${inner_ip_with_cidr} to ${inner_link_name} in namespace ${name}" >&2
-        return 1
-    }
-    logger.info "Setting ${inner_link_name} up in namespace ${name}: ip netns exec ${name} ip link set ${inner_link_name} up"
-    ip netns exec ${name} ip link set ${inner_link_name} up || {
-        logger.error "Failed to set ${inner_link_name} up in namespace ${name}" >&2
+    # Create interfaces in namespace
+    create_interfaces_in_ns "${name}" "${links[@]}" || {
+        logger.error "Failed to create interfaces in network namespace: ${name}" >&2
         return 1
     }
 
@@ -234,6 +98,168 @@ do_create_ns() {
     }
 
     return 0
+}
+
+create_interface_in_ns() {
+    local ns_name="$1"
+    shift
+    local links=("$@")
+
+    # Parse link in links array. Format of each element is like "name=eth-ns01-vb0,interface=veth-ns01-vb0,peer-bridge=virbr0,ip=192.168.122.254/24"
+    local link params param
+    local p_name p_interface p_peer_bridge p_ip
+    for link in "${links[@]}"; do
+        IFS=',' read -r -a params <<< "${link}"
+        for param in "${params[@]}"; do
+            IFS='=' read -r key value <<< "${param}"
+            case "${key}" in
+                name)
+                    p_name="${value}"
+                    ;;
+                interface)
+                    p_interface="${value}"
+                    ;;
+                peer-bridge)
+                    p_peer_bridge="${value}"
+                    ;;
+                ip)
+                    p_ip="${value}"
+                    ;;
+                *)
+                    logger.error "Unknown link parameter: ${key}" >&2
+                    return 1
+                    ;;
+            esac
+        done
+
+        # p_name(name of namespace) is required
+        if [[ -z "${p_name}" ]]; then
+            logger.error "Link parameter 'name(name of namespace)' is required. (-l|--link=\"${link}\")"
+            return 1
+        fi
+        # p_name should start with a letter
+        if [[ ! "${p_name:0:1}" =~ [a-zA-Z] ]]; then
+            logger.error "Link parameter 'name(name of namespace)' must start with a letter. You specified \"${p_name}\". (-l|--link=\"${link}\")"
+            return 1
+        fi
+        # p_name must be 15 characters or less
+        if [[ "${#p_name}" -gt 15 ]]; then
+            logger.error "Link parameter 'name(name of namespace)' must be 15 characters or less. You specified \"${p_name}\". (-l|--link=\"${link}\")"
+            return 1
+        fi
+
+        # p_interface(interface in namespace) is required
+        if [[ -z "${p_interface}" ]]; then
+            logger.error "Link parameter 'interface(interface in host)' is required. (-l|--link=\"${link}\")"
+            return 1
+        fi
+        # p_interface(interface in namespace) should start with a letter
+        if [[ ! "${p_interface:0:1}" =~ [a-zA-Z] ]]; then
+            logger.error "Link parameter 'interface(interface in host)' must start with a letter. You specified \"${p_interface}\". (-l|--link=\"${link}\")"
+            return 1
+        fi
+        # p_interface(interface in namespace) must be 15 characters or less
+        if [[ "${#p_interface}" -gt 15 ]]; then
+            logger.error "Link parameter 'interface(interface in host)' must be 15 characters or less. You specified \"${p_interface}\". (-l|--link=\"${link}\")"
+            return 1
+        fi
+
+        # p_peer_bridge(peer bridge of the interface) is required
+        if [[ -z "${p_peer_bridge}" ]]; then
+            logger.error "Link parameter 'peer-bridge(peer bridge of the interface)' is required. (-l|--link=\"${link}\")"
+            return 1
+        fi
+
+        # p_ip(IP address with CIDR) is required
+        if [[ -z "${p_ip}" ]]; then
+            logger.error "Link parameter 'ip(IP address with CIDR)' is required. (-l|--link=\"${link}\")"
+            return 1
+        fi
+        # p_ip must be a IP with CIDR format
+        if ! echo "${p_ip}" | grep -E -q '^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$'; then
+            logger.error "Link parameter 'ip(IP address with CIDR)' must be in IP/CIDR format. You specified \"${p_ip}\". (-l|--link=\"${link}\")"
+            return 1
+        fi
+
+        do_create_interfaces_in_ns "${name}" "${p_name}" "${p_interface}" "${p_peer_bridge}" "${p_ip}" || {
+            logger.error "Failed to create interface ${p_name} in namespace ${name}" >&2
+            return 1
+        }
+
+        logger_info "Successfully created interface ${p_name}(interface=${p_interface}, peer-bridge=${p_peer_bridge}, ip=${p_ip}) in namespace ${name}"
+    done
+
+    return 0
+}
+
+do_create_interfaces_in_ns() {
+    local ns_name="$1"
+    local link_name="$2"
+    local interface="$3"
+    local peer_bridge="$4"
+    local ip="$5"
+
+    # Create outer veth pair if it was not existing.
+    if ! check_veth_pair_exists "${link_name}" "${interface}" > /dev/null 2>&1; then
+        logger.info "Creating veth pair: ip link add ${link_name} type veth peer name ${interface}"
+        ip link add ${link_name} type veth peer name ${interface} || {
+            logger.error "Failed to create veth pair: ${link_name} and ${interface}" >&2
+            return 1
+        }
+    else
+        logger.info "Veth pair ${link_name}  already exists in . Skipping creation."
+    fi
+
+    # Add interface to peer bridge if not already added.
+    if [[ ! -e "/sys/class/net/${peer_bridge}/brif/${interface}" ]]; then
+        logger.info "Adding ${interface} to bridge ${peer_bridge}: brctl addif ${peer_bridge} ${interface}"
+        brctl addif ${peer_bridge} ${interface} || {
+            logger.error "Failed to add ${interface} to bridge ${peer_bridge}" >&2
+            return 1
+        }
+    else
+        logger.info "${interface} is already added to bridge ${peer_bridge}. Skipping adding."
+    fi
+
+
+
+    logger.info "Setting ${interface} up: ip link set ${interface} up"
+    ip link set ${interface} up || {
+        logger.error "Failed to set ${interface} up" >&2
+        return 1
+    }
+    logger.info "Moving ${link_name} to namespace ${ns_name}: ip link set ${link_name} netns ${ns_name}"
+    ip link set ${link_name} netns ${ns_name} || {
+        logger.error "Failed to move ${link_name} to namespace ${ns_name}" >&2
+        return 1
+    }
+    logger.info "Assigning IP ${ip} to ${link_name} in namespace ${ns_name}: ip netns exec ${ns_name} ip addr add ${ip} dev ${link_name}"
+    ip netns exec ${ns_name} ip addr add ${ip} dev ${link_name} || {
+        logger.error "Failed to assign IP ${ip} to ${link_name} in namespace ${ns_name}" >&2
+        return 1
+    }
+    logger.info "Setting ${link_name} up in namespace ${ns_name}: ip netns exec ${ns_name} ip link set ${link_name} up"
+    ip netns exec ${ns_name} ip link set ${link_name} up || {
+        logger.error "Failed to set ${link_name} up in namespace ${ns_name}" >&2
+        return 1
+    }
+
+    return 0
+}
+
+check_veth_pair_exists() {
+    local link_name="$1"
+    local peer_name="$2"
+    
+    # Check both interfaces exist
+    [[ ! -e "/sys/class/net/${link_name}" ]] && return 1
+    [[ ! -e "/sys/class/net/${peer_name}" ]] && return 1
+    
+    # Check if they are actually peers
+    local link_peer_ifindex=$(cat "/sys/class/net/${link_name}/iflink")
+    local peer_ifindex=$(cat "/sys/class/net/${peer_name}/ifindex")
+    
+    [[ "$link_peer_ifindex" == "$peer_ifindex" ]]
 }
 
 usage() {
