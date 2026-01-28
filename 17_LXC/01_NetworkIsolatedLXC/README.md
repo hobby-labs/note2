@@ -172,14 +172,20 @@ XZ_OPT='-9 -T0' tar -C / --numeric-owner --exclude=./proc --exclude=./sys --excl
 
 Download a CentOS7 rootfs tarball from a trusted source or create your own as shown above.
 
------------------------
+<!--
+Snapshot name: lxc_installed
+-->
+
 Creating bridges.
 
 ```
 ./create_bridge.sh --bridge-name ns01-br00
 ./create_bridge.sh --bridge-name ns01-br01
+./create_bridge.sh --bridge-name ns01-br99
+
 ./create_bridge.sh --bridge-name ns02-br00
 ./create_bridge.sh --bridge-name ns02-br01
+./create_bridge.sh --bridge-name ns02-br99
 ```
 
 ip netns identify $$
@@ -188,14 +194,26 @@ ip netns identify $$
 
 * Creating ns01
 ```
+#./create_ns.sh --name ns01 \
+#    --outer-link-name eth-ns01-vb0 --outer-interface veth-ns01-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.254/24 \
+#    --inner-link-name eth-ns01-br00 --inner-interface veth-ns01-br00 --inner-peer-bridge ns01-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+#    --default-gateway 192.168.122.1
+
+#./create_ns.sh --name ns02 \
+#    --outer-link-name link-ns02-vb0 --outer-interface veth-ns02-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.253/24 \
+#    --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+#    --default-gateway 192.168.122.1
+
 ./create_ns.sh --name ns01 \
-    --outer-link-name link-ns01-vb0 --outer-interface veth-ns01-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.254/24 \
-    --inner-link-name link-ns01-br00 --inner-interface veth-ns01-br00 --inner-peer-bridge ns01-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+    --link "name=eth-ns01-vb0,interface=veth-ns01-vb0,peer-bridge=virbr0,ip=192.168.122.254/24" \
+    --link "name=eth-ns01-br00,interface=veth-ns01-br00,peer-bridge=ns01-br00,ip=172.31.0.1/16" \
+    --link "name=eth-ns01-br01,interface=veth-ns01-br01,peer-bridge=ns01-br01,ip=172.30.0.1/16" \
     --default-gateway 192.168.122.1
 
 ./create_ns.sh --name ns02 \
-    --outer-link-name link-ns02-vb0 --outer-interface veth-ns02-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.253/24 \
-    --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
+    --link "name=link-ns02-vb0,interface=veth-ns02-vb0,peer-bridge=virbr0,ip=192.168.122.253/24" \
+    --link "name=link-ns02-br00,interface=veth-ns02-br00,peer-bridge=ns02-br00,ip=172.31.0.1/16" \
+    --link "name=eth-ns02-br01,interface=veth-ns02-br01,peer-bridge=ns02-br01,ip=172.30.0.1/16" \
     --default-gateway 192.168.122.1
 
 ```
