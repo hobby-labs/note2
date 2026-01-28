@@ -199,6 +199,15 @@ do_create_interfaces_in_ns() {
     local peer_bridge="$4"
     local ip="$5"
 
+    if ! check_ns_exists "${ns_name}"; then
+        ip netns add ${ns_name} || {
+            logger.error "Failed to create network namespace: ${ns_name}. (ip netns add ${ns_name})" >&2
+            return 1
+        }
+    else
+        logger.info "Network namespace ${ns_name} already exists. Skipping creation."
+    fi
+
     # Create outer veth pair if it was not existing.
     if ! check_veth_pair_exists "${link_name}" "${interface}" > /dev/null 2>&1; then
         logger.info "Creating veth pair: ip link add ${link_name} type veth peer name ${interface}"
@@ -211,7 +220,7 @@ do_create_interfaces_in_ns() {
     fi
 
     # Add interface to peer bridge if not already added.
-    if [[ ! -e "/sys/class/net/${peer_bridge}/brif/${interface}" ]]; then
+    if ! check_interface_in_peer_bridge "${interface}" "${peer_bridge}" > /dev/null 2>&1; then
         logger.info "Adding ${interface} to bridge ${peer_bridge}: brctl addif ${peer_bridge} ${interface}"
         brctl addif ${peer_bridge} ${interface} || {
             logger.error "Failed to add ${interface} to bridge ${peer_bridge}" >&2
@@ -222,49 +231,53 @@ do_create_interfaces_in_ns() {
     fi
 
     # Set interface up if not already up.
-    local interface_state
-    interface_state=$(cat "/sys/class/net/${interface}/operstate"  2>/dev/null || echo "down")
-    if [[ "${interface_state}" == "up" ]] || [[ "${interface_state}" == "lowerlayerdown" ]]; then
-        logger.info "${interface} is already up. Skipping setting up."
-    else
+    if ! check_interface_up "${interface}"; then
         # "lowerlayerdown" means the interface is administratively up, but its peer (the other end of the veth pair) is down.
         logger.info "Setting ${interface} up: ip link set ${interface} up"
         ip link set ${interface} up || {
             logger.error "Failed to set ${interface} up" >&2
             return 1
         }
-
+    else
+        logger.info "${interface} is already up. Skipping setting up."
     fi
 
-
-    logger.info "Moving ${link_name} to namespace ${ns_name}: ip link set ${link_name} netns ${ns_name}"
-    ip link set ${link_name} netns ${ns_name} || {
-        logger.error "Failed to move ${link_name} to namespace ${ns_name}" >&2
-        return 1
-    }
-    logger.info "Assigning IP ${ip} to ${link_name} in namespace ${ns_name}: ip netns exec ${ns_name} ip addr add ${ip} dev ${link_name}"
-    ip netns exec ${ns_name} ip addr add ${ip} dev ${link_name} || {
-        logger.error "Failed to assign IP ${ip} to ${link_name} in namespace ${ns_name}" >&2
-        return 1
-    }
-
-
-    local link_state
-    link_state=$(cat "/sys/class/net/${link_name}/operstate" 2>/dev/null || echo "down")
-    if [[ "${link_state}" == "up" ]] || [[ "${link_state}" == "lowerlayerdown" ]]; then
-        logger.info "${link_name} is already up in namespace ${ns_name}. Skipping setting up."
-        return 0
+    if ! check_link_in_ns "${ns_name}" "${link_name}"; then
+        logger.info "Moving ${link_name} to namespace ${ns_name}: ip link set ${link_name} netns ${ns_name}"
+        ip link set ${link_name} netns ${ns_name} || {
+            logger.error "Failed to move ${link_name} to namespace ${ns_name}" >&2
+            return 1
+        }
     else
+        logger.info "${link_name} is already in namespace ${ns_name}. Skipping moving."
+    fi
+
+    if ! check_ip_assigned_in_ns "${ns_name}" "${link_name}" "${ip}"; then
+        ip netns exec ${ns_name} ip addr add ${ip} dev ${link_name} || {
+            logger.error "Failed to assign IP ${ip} to ${link_name} in namespace ${ns_name}" >&2
+            return 1
+        }
+    else
+        logger.info "IP ${ip} is already assigned to ${link_name} in namespace ${ns_name}. Skipping assigning."
+    fi
+
+    if ! check_interface_up "${link_name}"; then
         logger.info "Setting ${link_name} up in namespace ${ns_name}: ip netns exec ${ns_name} ip link set ${link_name} up"
         # It makes "lowerlayerdown" state to "up" state if the peer interface is already up.
         ip netns exec ${ns_name} ip link set ${link_name} up || {
             logger.error "Failed to set ${link_name} up in namespace ${ns_name}" >&2
             return 1
         }
+    else
+        logger.info "${link_name} is already up in namespace ${ns_name}. Skipping setting up."
     fi
 
-
     return 0
+}
+
+check_ns_exists() {
+    local ns_name="$1"
+    [[ -e "/var/run/netns/${ns_name}" ]]
 }
 
 check_veth_pair_exists() {
@@ -280,6 +293,35 @@ check_veth_pair_exists() {
     local peer_ifindex=$(cat "/sys/class/net/${peer_name}/ifindex")
     
     [[ "$link_peer_ifindex" == "$peer_ifindex" ]]
+}
+
+check_interface_in_peer_bridge() {
+    local interface="$1"
+    local peer_bridge="$2"
+
+    [[ -e "/sys/class/net/${peer_bridge}/brif/${interface}" ]]
+}
+
+check_interface_up() {
+    local interface="$1"
+    local state
+    state=$(cat "/sys/class/net/${interface}/operstate" 2>/dev/null || echo "down")
+    [[ "${state}" == "up" ]] || [[ "${state}" == "lowerlayerdown" ]]
+}
+
+check_link_in_ns() {
+    local ns_name="$1"
+    local link_name="$2"
+
+    ip netns exec "${ns_name}" test -e "/sys/class/net/${link_name}"
+}
+
+check_ip_assigned_in_ns() {
+    local ns_name="$1"
+    local link_name="$2"
+    local ip_with_cidr="$3"
+
+    ip netns exec "${ns_name}" ip addr show dev "${link_name}" | grep -wq "${ip_with_cidr}"
 }
 
 usage() {
