@@ -204,7 +204,7 @@ ip netns identify $$
 #    --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
 #    --default-gateway 192.168.122.1
 
-./create_ns.sh --name ns01 \
+./create_ns.sh --name ns01 \    
     --link "name=eth-ns01-vb0,interface=veth-ns01-vb0,peer-bridge=virbr0,ip=192.168.122.254/24" \
     --link "name=eth-ns01-br00,interface=veth-ns01-br00,peer-bridge=ns01-br00,ip=172.31.0.1/16" \
     --link "name=eth-ns01-br01,interface=veth-ns01-br01,peer-bridge=ns01-br01,ip=172.30.0.1/16" \
@@ -215,6 +215,15 @@ ip netns identify $$
     --link "name=link-ns02-br00,interface=veth-ns02-br00,peer-bridge=ns02-br00,ip=172.31.0.1/16" \
     --link "name=eth-ns02-br01,interface=veth-ns02-br01,peer-bridge=ns02-br01,ip=172.30.0.1/16" \
     --default-gateway 192.168.122.1
+
+## Manual
+ns_name="ns01"
+link_name="eth-ns01-vb0"
+interface="veth-ns01-vb0"
+peer_bridge="virbr0"
+ip="192.168.122.254/24"
+
+ip link add ${link_name} type veth peer name ${interface}
 
 ```
 
