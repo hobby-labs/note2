@@ -72,11 +72,17 @@ create_ns() {
     local links=("$@")
 
 
-    logger.info "Creating network namespace: ${name}: ip netns add ${name}"
-    ip netns add ${name} || {
-        logger.error "Failed to create network namespace: ${name}. (ip netns add ${name})" >&2
-        return 1
-    }
+    # Create a new network namespace only if the file /var/run/netns/ns01 does not exist.
+    if ! check_ns_exists "${name}"; then
+        logger.info "Creating network namespace: ${name}: ip netns add ${name}"
+        ip netns add ${name} || {
+            logger.error "Failed to create network namespace: ${name}. (ip netns add ${name})" >&2
+            return 1
+        }
+    else
+        logger.info "Network namespace ${name} already exists. Skipping creation."
+    fi
+
 
     # Create interfaces in namespace
     create_interfaces_in_ns "${name}" "${links[@]}" || {
@@ -100,7 +106,7 @@ create_ns() {
     return 0
 }
 
-create_interface_in_ns() {
+create_interfaces_in_ns() {
     local ns_name="$1"
     shift
     local links=("$@")
@@ -186,7 +192,7 @@ create_interface_in_ns() {
             return 1
         }
 
-        logger_info "Successfully created interface ${p_name}(interface=${p_interface}, peer-bridge=${p_peer_bridge}, ip=${p_ip}) in namespace ${name}"
+        logger.info "Successfully created interface ${p_name}(interface=${p_interface}, peer-bridge=${p_peer_bridge}, ip=${p_ip}) in namespace ${name}"
     done
 
     return 0
