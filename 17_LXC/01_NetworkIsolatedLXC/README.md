@@ -165,6 +165,14 @@ ip a
 ```
 yum clean all
 cd /tmp
+# Disable unused services when running in a container to omit unnecessary logs.
+systemctl disable plymouth-start.service
+systemctl disable auditd.service
+systemctl disable qemu-guest-agent.service
+systemctl mask plymouth-start.service
+systemctl mask auditd.service
+systemctl mask qemu-guest-agent.service
+
 XZ_OPT='-9 -T0' tar -C / --numeric-owner --exclude=./proc --exclude=./sys --exclude=./dev \
     --exclude=./run --exclude=./tmp --exclude=./mnt --exclude=./media \
     -Jcf centos7-rootfs.tar.xz .
@@ -178,88 +186,75 @@ Snapshot name: lxc_installed
 
 Creating bridges.
 
-```
-./create_bridge.sh --bridge-name ns01-br00
-./create_bridge.sh --bridge-name ns01-br01
-./create_bridge.sh --bridge-name ns01-br99
-
-./create_bridge.sh --bridge-name ns02-br00
-./create_bridge.sh --bridge-name ns02-br01
-./create_bridge.sh --bridge-name ns02-br99
-```
-
-ip netns identify $$
-
 ------------------------------------------------------------------------------------------
 
 * Creating ns01
 ```
-#./create_ns.sh --name ns01 \
-#    --outer-link-name eth-ns01-vb0 --outer-interface veth-ns01-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.254/24 \
-#    --inner-link-name eth-ns01-br00 --inner-interface veth-ns01-br00 --inner-peer-bridge ns01-br00 --inner-ip-with-cidr 172.31.0.1/16 \
-#    --default-gateway 192.168.122.1
+ip netns add ns01
 
-#./create_ns.sh --name ns02 \
-#    --outer-link-name link-ns02-vb0 --outer-interface veth-ns02-vb0 --outer-peer-bridge virbr0 --outer-ip-with-cidr 192.168.122.253/24 \
-#    --inner-link-name link-ns02-br00 --inner-interface veth-ns02-br00 --inner-peer-bridge ns02-br00 --inner-ip-with-cidr 172.31.0.1/16 \
-#    --default-gateway 192.168.122.1
+-----
+#mount | grep cgroup
+#
+## If not mounted, mount it
+#mount -t tmpfs cgroup_root /sys/fs/cgroup
+#
+## Mount each cgroup subsystem
+#for subsys in cpuset cpu cpuacct blkio memory devices freezer net_cls perf_event hugetlb; do
+#    mkdir -p /sys/fs/cgroup/${subsys}
+#    mount -t cgroup -o ${subsys} cgroup /sys/fs/cgroup/${subsys} 2>/dev/null || true
+#done
+#
+## Also mount the systemd cgroup if needed
+#mkdir -p /sys/fs/cgroup/systemd
+#mount -t cgroup -o name=systemd cgroup /sys/fs/cgroup/systemd 2>/dev/null || true
 
-./create_ns.sh --name ns01 \    
-    --link "name=eth-ns01-vb0,interface=veth-ns01-vb0,peer-bridge=virbr0,ip=192.168.122.254/24" \
-    --link "name=eth-ns01-br00,interface=veth-ns01-br00,peer-bridge=ns01-br00,ip=172.31.0.1/16" \
-    --link "name=eth-ns01-br01,interface=veth-ns01-br01,peer-bridge=ns01-br01,ip=172.30.0.1/16" \
-    --default-gateway 192.168.122.1
+--
 
-./create_ns.sh --name ns02 \
-    --link "name=link-ns02-vb0,interface=veth-ns02-vb0,peer-bridge=virbr0,ip=192.168.122.253/24" \
-    --link "name=link-ns02-br00,interface=veth-ns02-br00,peer-bridge=ns02-br00,ip=172.31.0.1/16" \
-    --link "name=eth-ns02-br01,interface=veth-ns02-br01,peer-bridge=ns02-br01,ip=172.30.0.1/16" \
-    --default-gateway 192.168.122.1
+for dir in /sys/fs/cgroup/*/; do
+    echo "mkdir -p ${dir}lxc"
+    mkdir -p "${dir}lxc" 2>/dev/null
+done
 
-## Manual
-ns_name="ns01"
-link_name="eth-ns01-vb0"
-interface="veth-ns01-vb0"
-peer_bridge="virbr0"
-ip="192.168.122.254/24"
+# Initialize cpuset
+cat /sys/fs/cgroup/cpuset/cpuset.cpus > /sys/fs/cgroup/cpuset/lxc/cpuset.cpus
+cat /sys/fs/cgroup/cpuset/cpuset.mems > /sys/fs/cgroup/cpuset/lxc/cpuset.mems
 
-ip link add ${link_name} type veth peer name ${interface}
+# Enable clone_children so child cgroups inherit cpuset values automatically
+echo 1 > /sys/fs/cgroup/cpuset/lxc/cgroup.clone_children
+-----
 
-```
 
-Enter namespace.
 
-```
+ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br00
+ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br01
+ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br99
+
+ip link add eth-ns01-vb0 type veth peer name veth-ns01-vb0
+brctl addif virbr0 veth-ns01-vb0
+ip link set veth-ns01-vb0 up
+ip link set eth-ns01-vb0 netns ns01
+ip netns exec ns01 ip link set eth-ns01-vb0 up
+
+ip link add eth-ns01-br00 type veth peer name veth-ns01-br00
+ip link set veth-ns01-br00 up
+ip link set eth-ns01-br00 netns ns01
+ip netns exec ns01 brctl addif ns01-br00 eth-ns01-br00
+ip netns exec ns01 ip link set eth-ns01-br00 up
+
 ns_name=ns01
 ./enter_ns.sh --ns-name ${ns_name}
 
-# ip netns exec ${ns_name} bash -c "
-# export NS_NAME=${ns_name}
-# export PS1=\"(\${NS_NAME})[\u@\h \W]\$ \"
-# mkdir -p /var/lib/lxc-ns/\${NS_NAME}
-# export LXC_BASE_DIR=/var/lib/lxc-ns
-# export LXC_PATH=\${LXC_BASE_DIR}/\${NS_NAME}
-# 
-# # Create aliases for lxc commands to automatically use -P flag
-# alias lxc-ls='lxc-ls -P \${LXC_PATH}'
-# alias lxc-start='lxc-start -P \${LXC_PATH}'
-# alias lxc-stop='lxc-stop -P \${LXC_PATH}'
-# alias lxc-info='lxc-info -P \${LXC_PATH}'
-# alias lxc-attach='lxc-attach -P \${LXC_PATH}'
-# alias lxc-console='lxc-console -P \${LXC_PATH}'
-# alias lxc-destroy='lxc-destroy -P \${LXC_PATH}'
-# 
-# exec bash
-# "
-```
+ip addr add 172.31.0.1/16 dev ns01-br00
+ip link set ns01-br00 up
 
-------------------------------------------------------------------------------------------
+ip addr add 192.168.122.254/24 dev eth-ns01-vb0
+ip link set eth-ns01-vb0 up
+ip route add default via 192.168.122.1 dev eth-ns01-vb0
 
-```
 lxc_name=lxc-guest01
-outer_bridge_name=virbr0
+outer_bridge_name=ns01-br00
 outer_interface_name=eth0
-inner_bridge_name=ns01-br00
+inner_bridge_name=ns01-br99
 inner_interface_name=eth1
 
 mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/
@@ -271,23 +266,24 @@ mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
     --interface "bind_bridge=${inner_bridge_name},interface_name=${inner_interface_name}"
 
 ./inside/container/create_hostname_conf.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
-
-# Inside the container
-
 ./inside/container/create_fstab_conf.sh --lxc-name ${lxc_name}
 
 ./inside/container/create_interface_conf.sh \
-    --lxc-name ${lxc_name} --interface-name eth0 --ip 192.168.122.254 --netmask 255.255.255.0 --gateway 192.168.122.1 --dns 8.8.8.8
+    --lxc-name ${lxc_name} --interface-name eth0 --ip 172.31.0.11 --netmask 255.255.0.0 --gateway 172.31.0.1 --dns 8.8.8.8
 
 ./inside/container/create_interface_conf.sh \
-    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.31.0.1 --netmask 255.255.0.0
+    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.16.0.1 --netmask 255.255.0.0
 
-iptables -t nat -A POSTROUTING -o ${outer_interface_name} -j MASQUERADE
-# or
-# iptables -t nat -D POSTROUTING -s 172.31.0.0/16 -o veth-gw2 -j SNAT --to-source 192.168.122.254
-# If you want to delete NAT rules
-# iptables -t nat -F
+# Now start the container
+lxc-start --name lxc-guest01
 
-```
 
+
+lxc-start --name lxc-guest01 --logfile /var/tmp/log2.log
+
+
+# In ns1
+iptables -t nat -F
+iptables -F
+iptables -t nat -A POSTROUTING -j MASQUERADE -o eth-ns01-vb0 -s 172.31.0.0/16
 
