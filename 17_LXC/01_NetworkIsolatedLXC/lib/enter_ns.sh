@@ -89,7 +89,8 @@ alias lxc-console="lxc-console -P \${LXC_PATH}"
 alias lxc-destroy="lxc-destroy -P \${LXC_PATH}"
 EOF
 
-    ip netns exec ${ns_name} bash --rcfile $TMPRC
+    # Use nsenter instead of ip netns exec to preserve mount namespace (cgroup visibility)
+    nsenter --net=/var/run/netns/${ns_name} -- bash --rcfile $TMPRC
 
     return $?
 }
