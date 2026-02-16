@@ -223,8 +223,6 @@ cat /sys/fs/cgroup/cpuset/cpuset.mems > /sys/fs/cgroup/cpuset/lxc/cpuset.mems
 echo 1 > /sys/fs/cgroup/cpuset/lxc/cgroup.clone_children
 -----
 
-
-
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br00
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br01
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br99
@@ -235,11 +233,11 @@ ip link set veth-ns01-vb0 up
 ip link set eth-ns01-vb0 netns ns01
 ip netns exec ns01 ip link set eth-ns01-vb0 up
 
-ip link add eth-ns01-br00 type veth peer name veth-ns01-br00
-ip link set veth-ns01-br00 up
-ip link set eth-ns01-br00 netns ns01
-ip netns exec ns01 brctl addif ns01-br00 eth-ns01-br00
-ip netns exec ns01 ip link set eth-ns01-br00 up
+# ip link add eth-ns01-br00 type veth peer name veth-ns01-br00
+# ip link set veth-ns01-br00 up
+# ip link set eth-ns01-br00 netns ns01
+# ip netns exec ns01 brctl addif ns01-br00 eth-ns01-br00
+# ip netns exec ns01 ip link set eth-ns01-br00 up
 
 ns_name=ns01
 ./enter_ns.sh --ns-name ${ns_name}
@@ -250,6 +248,11 @@ ip link set ns01-br00 up
 ip addr add 192.168.122.254/24 dev eth-ns01-vb0
 ip link set eth-ns01-vb0 up
 ip route add default via 192.168.122.1 dev eth-ns01-vb0
+
+# Create iptables rules for NAT and forwarding outside the namespace eg internet access
+iptables -t nat -F
+iptables -F
+iptables -t nat -A POSTROUTING -j MASQUERADE -o eth-ns01-vb0 -s 172.31.0.0/16
 
 lxc_name=lxc-guest01
 outer_bridge_name=ns01-br00
@@ -278,12 +281,8 @@ mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 lxc-start --name lxc-guest01
 
 
-
 lxc-start --name lxc-guest01 --logfile /var/tmp/log2.log
 
 
-# In ns1
-iptables -t nat -F
-iptables -F
-iptables -t nat -A POSTROUTING -j MASQUERADE -o eth-ns01-vb0 -s 172.31.0.0/16
+
 
