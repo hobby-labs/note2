@@ -215,16 +215,37 @@ for dir in /sys/fs/cgroup/*/; do
     mkdir -p "${dir}lxc" 2>/dev/null
 done
 
-# Initialize cpuset
+# Initialize cpuset for the lxc cgroup.
+#
+# Background: A cgroup (control group) is a Linux kernel mechanism that limits
+# and isolates resource usage (CPU, memory, etc.) for a group of processes.
+# When lxc-start launches a container, it writes the container's first process
+# (init, PID 1) into the cgroup by writing its PID to the cgroup's "tasks" file
+# (e.g. /sys/fs/cgroup/cpuset/lxc/<container>/tasks). This is what "moving a
+# task into a cgroup" means — the kernel then enforces that cgroup's resource
+# limits on that process and all its children.
+#
+# The cpuset subsystem is special: it controls WHICH CPU cores and memory nodes
+# a process is allowed to use. Unlike other subsystems, cpuset requires
+# cpuset.cpus and cpuset.mems to be set BEFORE any process can be assigned.
+# If they are empty, the kernel rejects the write to the tasks file with
+# "No space left on device" or "Write error", and lxc-start fails.
+#
+# We copy the parent's values so LXC containers can use all available CPUs and
+# memory nodes, matching the host's topology.
 cat /sys/fs/cgroup/cpuset/cpuset.cpus > /sys/fs/cgroup/cpuset/lxc/cpuset.cpus
 cat /sys/fs/cgroup/cpuset/cpuset.mems > /sys/fs/cgroup/cpuset/lxc/cpuset.mems
 
-# Enable clone_children so child cgroups inherit cpuset values automatically
+# Enable clone_children so child cgroups inherit cpuset values automatically.
+# When lxc-start creates per-container child cgroups under /sys/fs/cgroup/cpuset/lxc/,
+# this flag makes the kernel auto-populate cpuset.cpus and cpuset.mems in each child,
+# so we don't have to manually initialize every new container's cpuset.
 echo 1 > /sys/fs/cgroup/cpuset/lxc/cgroup.clone_children
 -----
 
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br00
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br01
+ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br98
 ip netns exec ns01 ./create_bridge.sh --bridge-name ns01-br99
 
 ip link add eth-ns01-vb0 type veth peer name veth-ns01-vb0
@@ -244,6 +265,10 @@ ns_name=ns01
 
 ip addr add 172.31.0.1/16 dev ns01-br00
 ip link set ns01-br00 up
+ip link set ns01-br01 up
+ip link set ns01-br98 up
+ip addr add 172.16.0.1/16 dev ns01-br99
+ip link set ns01-br99 up
 
 ip addr add 192.168.122.254/24 dev eth-ns01-vb0
 ip link set eth-ns01-vb0 up
@@ -253,36 +278,86 @@ ip route add default via 192.168.122.1 dev eth-ns01-vb0
 iptables -t nat -F
 iptables -F
 iptables -t nat -A POSTROUTING -j MASQUERADE -o eth-ns01-vb0 -s 172.31.0.0/16
+iptables -t nat -A POSTROUTING -j MASQUERADE -o eth-ns01-vb0 -s 172.16.0.0/16
 
-lxc_name=lxc-guest01
-outer_bridge_name=ns01-br00
-outer_interface_name=eth0
-inner_bridge_name=ns01-br99
-inner_interface_name=eth1
+# Creating app-server01 container in ns01 #########################################################################
+
+lxc_name=app-server01
+mng_bridge_name=ns01-br99
+mng_interface_name=eth0
+service_bridge_name=ns01-br00
+service_interface_name=eth1
+db_bridge_name=ns01-br01
+db_interface_name=eth2
 
 mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/
 tar -C /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
 mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 
 ./create_lxc_conf.sh --lxc-name ${lxc_name} \
-    --interface "bind_bridge=${outer_bridge_name},interface_name=${outer_interface_name}" \
-    --interface "bind_bridge=${inner_bridge_name},interface_name=${inner_interface_name}"
+    --interface "bind_bridge=${mng_bridge_name},interface_name=${mng_interface_name}" \
+    --interface "bind_bridge=${service_bridge_name},interface_name=${service_interface_name}" \
+    --interface "bind_bridge=${db_bridge_name},interface_name=${db_interface_name}"
 
 ./inside/container/create_hostname_conf.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
 ./inside/container/create_fstab_conf.sh --lxc-name ${lxc_name}
 
 ./inside/container/create_interface_conf.sh \
-    --lxc-name ${lxc_name} --interface-name eth0 --ip 172.31.0.11 --netmask 255.255.0.0 --gateway 172.31.0.1 --dns 8.8.8.8
-
+    --lxc-name ${lxc_name} --interface-name eth0 --ip 172.16.1.11 --netmask 255.255.0.0 --gateway 172.16.0.1 --dns 8.8.8.8
 ./inside/container/create_interface_conf.sh \
-    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.16.0.1 --netmask 255.255.0.0
+    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.31.1.11 --netmask 255.255.0.0
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth2 --ip 172.30.1.11 --netmask 255.255.0.0
 
 # Now start the container
-lxc-start --name lxc-guest01
+lxc-start --name ${lxc_name}
 
+# Creating app-server02 container in ns01 #########################################################################
 
-lxc-start --name lxc-guest01 --logfile /var/tmp/log2.log
+lxc_name=app-server02
 
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/
+tar -C /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
 
+./create_lxc_conf.sh --lxc-name ${lxc_name} \
+    --interface "bind_bridge=${mng_bridge_name},interface_name=${mng_interface_name}" \
+    --interface "bind_bridge=${service_bridge_name},interface_name=${service_interface_name}" \
+    --interface "bind_bridge=${db_bridge_name},interface_name=${db_interface_name}"
 
+./inside/container/create_hostname_conf.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
+./inside/container/create_fstab_conf.sh --lxc-name ${lxc_name}
+
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth0 --ip 172.16.1.12 --netmask 255.255.0.0 --gateway 172.16.0.1 --dns 8.8.8.8
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.31.1.12 --netmask 255.255.0.0
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth2 --ip 172.30.1.12 --netmask 255.255.0.0
+# Now start the container
+lxc-start --name ${lxc_name}
+
+# Creating db-server01 container in ns01 #########################################################################
+
+lxc_name=db-server01
+db_bridge_name=ns01-br01
+db_interface_name=eth1
+
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/
+tar -C /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/ -Jxf ~/centos7-rootfs.tar.xz
+mkdir -p /var/lib/lxc-ns/${NS_NAME}/${lxc_name}/rootfs/{proc,sys,dev,run,tmp}
+
+./create_lxc_conf.sh --lxc-name ${lxc_name} \
+    --interface "bind_bridge=${mng_bridge_name},interface_name=${mng_interface_name}" \
+    --interface "bind_bridge=${db_bridge_name},interface_name=${db_interface_name}"
+
+./inside/container/create_hostname_conf.sh --lxc-name ${lxc_name} --hostname ${lxc_name}
+./inside/container/create_fstab_conf.sh --lxc-name ${lxc_name}
+
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth0 --ip 172.16.101.11 --netmask 255.255.0.0 --gateway 172.16.0.1 --dns 8.8.8.8
+./inside/container/create_interface_conf.sh \
+    --lxc-name ${lxc_name} --interface-name eth1 --ip 172.30.101.11 --netmask 255.255.0.0
+# Now start the container
+lxc-start --name ${lxc_name}
 
