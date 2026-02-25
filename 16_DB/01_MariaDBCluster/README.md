@@ -386,7 +386,7 @@ crm_mon --version
 cibadmin --version
 ```
 
---- Snapshot init_empty_cluster (Restart drbd if rebooted) ---
+--- Snapshot init_empty_cluster (Restart drbd if rebooted: systemctl restart drbd) ---
 
 # Configure Corosync
 
@@ -532,7 +532,7 @@ crm_mon -1
 Add resource group and constraints.
 
 ```
-yum install psmisc
+yum install -y psmisc
 
 systemctl start corosync
 systemctl start pacemaker
