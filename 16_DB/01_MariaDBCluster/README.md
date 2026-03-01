@@ -670,6 +670,14 @@ crm_node -l
 > 3 drbd103 member
 ```
 
+# Add STONITH
+Are those environment stands on KVM. We can use `fence_virsh` agent for STONITH.
+STONITH is a feature that allows the cluster to forcibly power off a node that is not responding, to prevent data corruption. It is recommended to have STONITH configured in production environments.
+
+
+
+
+
 # Test cluster and failover
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
@@ -822,8 +830,11 @@ crm_mon -Af1
 >     * master-drbd_mariadb             	: 10000
 > 
 > Migration Summary:
+```
 
-
+* On primary node, failover by killing corosync process to simulate crash.
+```
+killall -9 corosync
 ```
 
 
