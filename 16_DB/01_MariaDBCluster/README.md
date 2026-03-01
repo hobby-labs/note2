@@ -671,10 +671,41 @@ crm_node -l
 ```
 
 # Add STONITH
+## Avilable agents
+| Fencing Method       | Requires                   | Reliability                  |
+|----------------------|----------------------------|-----------------------------|
+| fence_virsh          | KVM hypervisor SSH access  | ✅ High                     |
+| fence_ipmilan        | IPMI/BMC hardware          | ✅ High                     |
+| fence_sbd (watchdog) | Software/hardware watchdog | ✅ Medium-High              |
+| No STONITH           | Nothing                    | ❌ Manual recovery required |
+
+## Use fence_virsh
 Are those environment stands on KVM. We can use `fence_virsh` agent for STONITH.
 STONITH is a feature that allows the cluster to forcibly power off a node that is not responding, to prevent data corruption. It is recommended to have STONITH configured in production environments.
 
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+systemd-detect-virt
+> kvm
 
+yum install -y fence-agents-virsh
+
+ls /usr/sbin/fence_virsh
+> /usr/sbin/fence_virsh
+```
+
+Create SSH key for passwordless access.
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519
+# Then copy the public key and private key to hypervisor node.
+```
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+chmod 600 /root/.ssh/id_ed25519
+```
 
 
 
