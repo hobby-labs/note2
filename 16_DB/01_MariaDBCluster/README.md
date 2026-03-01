@@ -524,21 +524,306 @@ cibadmin --replace --xml-file /tmp/cib.xml
 
 sleep 10
 crm_mon -1
-
 ```
 
 //////// Next instructions will fail after `cibadmin --replace --xml-file /tmp/cib.xml`.
 //////// Call cib_replace failed (-203): Update does not conform to the configured schema
 Add resource group and constraints.
 
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
 yum install -y psmisc
+```
 
-systemctl start corosync
-systemctl start pacemaker
+* drbd101 only: MariaDB Cluster 1
+```
+cibadmin --query > /tmp/cib.xml
 
-crm_attribute --type crm_config --name stonith-enabled --update false
-crm_attribute --type crm_config --name no-quorum-policy --update ignore
+python2 << 'PYEOF'
+import xml.etree.ElementTree as ET
+
+tree = ET.parse('/tmp/cib.xml')
+root = tree.getroot()
+config = root.find('configuration')
+resources = config.find('resources')
+constraints = config.find('constraints')
+
+# Add group
+group = ET.SubElement(resources, 'group')
+group.set('id', 'grp_mariadb')
+
+fs = ET.SubElement(group, 'primitive')
+fs.set('id', 'fs_mariadb')
+fs.set('class', 'ocf')
+fs.set('provider', 'heartbeat')
+fs.set('type', 'Filesystem')
+fs_inst = ET.SubElement(fs, 'instance_attributes')
+fs_inst.set('id', 'fs_mariadb-attrs')
+for nv_id, name, value in [
+    ('fs_mariadb-device', 'device', '/dev/drbd0'),
+    ('fs_mariadb-directory', 'directory', '/var/lib/mysql'),
+    ('fs_mariadb-fstype', 'fstype', 'xfs'),
+]:
+    nv = ET.SubElement(fs_inst, 'nvpair')
+    nv.set('id', nv_id)
+    nv.set('name', name)
+    nv.set('value', value)
+fs_ops = ET.SubElement(fs, 'operations')
+op = ET.SubElement(fs_ops, 'op')
+op.set('id', 'fs_mariadb-monitor')
+op.set('name', 'monitor')
+op.set('interval', '20s')
+
+svc = ET.SubElement(group, 'primitive')
+svc.set('id', 'svc_mariadb')
+svc.set('class', 'systemd')
+svc.set('type', 'mariadb')
+svc_ops = ET.SubElement(svc, 'operations')
+op = ET.SubElement(svc_ops, 'op')
+op.set('id', 'svc_mariadb-monitor')
+op.set('name', 'monitor')
+op.set('interval', '30s')
+op = ET.SubElement(svc_ops, 'op')
+op.set('id', 'svc_mariadb-start')
+op.set('name', 'start')
+op.set('interval', '0')
+op.set('timeout', '120s')
+op = ET.SubElement(svc_ops, 'op')
+op.set('id', 'svc_mariadb-stop')
+op.set('name', 'stop')
+op.set('interval', '0')
+op.set('timeout', '120s')
+
+vip = ET.SubElement(group, 'primitive')
+vip.set('id', 'vip_mariadb')
+vip.set('class', 'ocf')
+vip.set('provider', 'heartbeat')
+vip.set('type', 'IPaddr2')
+vip_inst = ET.SubElement(vip, 'instance_attributes')
+vip_inst.set('id', 'vip_mariadb-attrs')
+for nv_id, name, value in [
+    ('vip_mariadb-ip', 'ip', '10.1.0.10'),
+    ('vip_mariadb-cidr_netmask', 'cidr_netmask', '24'),
+    ('vip_mariadb-nic', 'nic', 'eth1'),
+]:
+    nv = ET.SubElement(vip_inst, 'nvpair')
+    nv.set('id', nv_id)
+    nv.set('name', name)
+    nv.set('value', value)
+vip_ops = ET.SubElement(vip, 'operations')
+op = ET.SubElement(vip_ops, 'op')
+op.set('id', 'vip_mariadb-monitor')
+op.set('name', 'monitor')
+op.set('interval', '10s')
+
+# Add constraints
+col = ET.SubElement(constraints, 'rsc_colocation')
+col.set('id', 'col_grp_drbd')
+col.set('rsc', 'grp_mariadb')
+col.set('with-rsc', 'ms_drbd_mariadb')
+col.set('with-rsc-role', 'Master')
+col.set('score', 'INFINITY')
+
+order = ET.SubElement(constraints, 'rsc_order')
+order.set('id', 'ord_drbd_grp')
+order.set('first', 'ms_drbd_mariadb')
+order.set('then', 'grp_mariadb')
+order.set('then-action', 'start')
+
+tree.write('/tmp/cib_new.xml', xml_declaration=True, encoding='UTF-8')
+print('Done')
+PYEOF
+
+
+# Validate before applying
+xmllint --relaxng /usr/share/pacemaker/pacemaker-3.5.rng /tmp/cib_new.xml 2>&1 | tail -1
+
+# Apply
+cibadmin --replace --xml-file /tmp/cib_new.xml
+
+sleep 15
+crm_mon -1
+```
+
+Grant MariaDB access to cluster nodes.
+
+* drbd101 only: MariaDB Cluster 1
+```
+mariadb-secure-installation
+mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'10.1.0.%' IDENTIFIED BY 'secret' WITH GRANT OPTION;"
+mysql -u root -e "FLUSH PRIVILEGES;"
+```
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+echo 'export PATH=/usr/local/src/pacemaker-Pacemaker-2.0.5/tools/:$PATH' > /etc/profile.d/pacemaker-path.sh
+source /etc/profile.d/pacemaker-path.sh
+which crm_node
+> /usr/local/src/pacemaker-Pacemaker-2.0.5/tools/crm_node
+crm_node --version
+> Pacemaker 2.0.5
+> Written by Andrew Beekhof
+
+crm_node -l
+> 1 drbd101 member
+> 2 drbd102 member
+> 3 drbd103 member
+```
+
+# Test cluster and failover
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+# Test VIP
+ping -c 3 10.1.0.10
+
+# Test MariaDB via VIP
+mysql -h 10.1.0.10 -u root -p -e "SELECT @@hostname;"
+
+# Test failover
+crm_standby -v on -N drbd101
+sleep 20
+crm_mon -1
+
+# Bring back
+crm_standby -v off -N drbd101
+sleep 20
+crm_mon -1
+```
+
+// Snapshot init_cluster (Test failover and recovery)
+
+# Move resource group to trigger failover
+
+```
+# Move resource group to a specific node
+crm_resource --move --resource grp_mariadb --node drbd102
+crm_mon -Af1
+> Cluster Summary:
+>   * Stack: corosync
+>   * Current DC: drbd102 (version 2.0.5-ba59be71228) - partition with quorum
+>   * Last updated: Sun Mar  1 02:31:49 2026
+>   * Last change:  Sun Mar  1 02:31:41 2026 by root via crm_resource on drbd101
+>   * 3 nodes configured
+>   * 6 resource instances configured
+> 
+> Node List:
+>   * Online: [ drbd101 drbd102 drbd103 ]
+> 
+> Active Resources:
+>   * Clone Set: ms_drbd_mariadb [drbd_mariadb] (promotable):
+>     * Masters: [ drbd102 ]
+>     * Slaves: [ drbd101 drbd103 ]
+>   * Resource Group: grp_mariadb:
+>     * fs_mariadb	(ocf::heartbeat:Filesystem):	 Started drbd102
+>     * svc_mariadb	(systemd:mariadb):	 Started drbd102
+>     * vip_mariadb	(ocf::heartbeat:IPaddr2):	 Started drbd102
+> 
+> Node Attributes:
+>   * Node: drbd101:
+>     * master-drbd_mariadb             	: 10000
+>   * Node: drbd102:
+>     * master-drbd_mariadb             	: 10000
+>   * Node: drbd103:
+>     * master-drbd_mariadb             	: 10000
+> 
+> Migration Summary:
+
+# Check constraints to verify resource is running on the same node as primary DRBD
+cibadmin --query --scope constraints
+> <constraints>
+>   <rsc_colocation id="col_grp_drbd" rsc="grp_mariadb" score="INFINITY" with-rsc="ms_drbd_mariadb" with-rsc-role="Master"/>
+>   <rsc_order first="ms_drbd_mariadb" id="ord_drbd_grp" then="grp_mariadb" then-action="start"/>
+>   <rsc_location id="cli-prefer-grp_mariadb" rsc="grp_mariadb" role="Started" node="drbd102" score="INFINITY"/>
+> </constraints>
+
+# IMPORTANT: Clear the migration constraint after verifying
+crm_resource --clear --resource grp_mariadb
+> Removing constraint: cli-prefer-grp_mariadb
+
+# Check constraints again to verify migration constraint is removed
+cibadmin --query --scope constraints
+> <constraints>
+>   <rsc_colocation id="col_grp_drbd" rsc="grp_mariadb" score="INFINITY" with-rsc="ms_drbd_mariadb" with-rsc-role="Master"/>
+>   <rsc_order first="ms_drbd_mariadb" id="ord_drbd_grp" then="grp_mariadb" then-action="start"/>
+>-  <rsc_location id="cli-prefer-grp_mariadb" rsc="grp_mariadb" role="Started" node="drbd102" score="INFINITY"/>
+> </constraints>
+```
+
+Put node in standby to trigger failover.
+
+```
+crm_standby -v on -N drbd102
+
+crm_standby -G -N drbd102
+> scope=nodes  name=standby value=on
+
+crm_mon -Af1
+> Cluster Summary:
+>   * Stack: corosync
+>   * Current DC: drbd102 (version 2.0.5-ba59be71228) - partition with quorum
+>   * Last updated: Sun Mar  1 02:40:29 2026
+>   * Last change:  Sun Mar  1 02:40:16 2026 by root via crm_attribute on drbd101
+>   * 3 nodes configured
+>   * 6 resource instances configured
+> 
+> Node List:
+>   * Node drbd102: standby
+>   * Online: [ drbd101 drbd103 ]
+> 
+> Active Resources:
+>   * Clone Set: ms_drbd_mariadb [drbd_mariadb] (promotable):
+>     * Masters: [ drbd101 ]
+>     * Slaves: [ drbd103 ]
+>   * Resource Group: grp_mariadb:
+>     * fs_mariadb	(ocf::heartbeat:Filesystem):	 Started drbd101
+>     * svc_mariadb	(systemd:mariadb):	 Started drbd101
+>     * vip_mariadb	(ocf::heartbeat:IPaddr2):	 Started drbd101
+> 
+> Node Attributes:
+>   * Node: drbd101:
+>     * master-drbd_mariadb             	: 10000
+>   * Node: drbd103:
+>     * master-drbd_mariadb             	: 10000
+> 
+> Migration Summary:
+
+crm_standby -v off -N drbd102
+crm_standby -G -N drbd102
+> scope=nodes  name=standby value=off
+
+crm_mon -Af1
+> Cluster Summary:
+>   * Stack: corosync
+>   * Current DC: drbd102 (version 2.0.5-ba59be71228) - partition with quorum
+>   * Last updated: Sun Mar  1 02:47:27 2026
+>   * Last change:  Sun Mar  1 02:47:15 2026 by root via crm_attribute on drbd101
+>   * 3 nodes configured
+>   * 6 resource instances configured
+> 
+> Node List:
+>   * Online: [ drbd101 drbd102 drbd103 ]
+> 
+> Active Resources:
+>   * Clone Set: ms_drbd_mariadb [drbd_mariadb] (promotable):
+>     * Masters: [ drbd101 ]
+>     * Slaves: [ drbd102 drbd103 ]
+>   * Resource Group: grp_mariadb:
+>     * fs_mariadb	(ocf::heartbeat:Filesystem):	 Started drbd101
+>     * svc_mariadb	(systemd:mariadb):	 Started drbd101
+>     * vip_mariadb	(ocf::heartbeat:IPaddr2):	 Started drbd101
+> 
+> Node Attributes:
+>   * Node: drbd101:
+>     * master-drbd_mariadb             	: 10000
+>   * Node: drbd102:
+>     * master-drbd_mariadb             	: 10000
+>   * Node: drbd103:
+>     * master-drbd_mariadb             	: 10000
+> 
+> Migration Summary:
+
+
 ```
 
 
