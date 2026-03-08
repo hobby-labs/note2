@@ -732,6 +732,176 @@ crm_mon -1
 
 // Snapshot init_cluster (Test failover and recovery)
 
+# Fencing
+
+TODO: This instruction should use the user that only be able to run virsh on hypervisor nodes not root.
+TODO: This instruction should implement hybrid fencing with fence_virsh as primary and fence_sbd as secondary. If fence_virsh fails, then use fence_sbd to fence the node.
+
+Create private keys for fencing.
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519_fence
+```
+
+Copy the public keys to the hypervisor nodes and add to `authorized_keys` with command restriction to only allow `fence_virsh` commands
+
+```
+cat >> /root/.ssh/authorized_keys << 'EOF'
+command="/usr/local/bin/fence_virsh_wrapper.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA...key-from-drbd101...
+command="/usr/local/bin/fence_virsh_wrapper.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA...key-from-drbd102...
+command="/usr/local/bin/fence_virsh_wrapper.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA...key-from-drbd103...
+EOF
+```
+
+
+
+# From any cluster node
+ssh -i /root/.ssh/id_fence root@<hypervisor-ip> 'virsh list --all'        # ✅
+ssh -i /root/.ssh/id_fence root@<hypervisor-ip> 'virsh domstate drbd101'  # ✅
+ssh -i /root/.ssh/id_fence root@<hypervisor-ip> 'whoami'                  # ❌
+ssh -i /root/.ssh/id_fence root@<hypervisor-ip>                           # ❌
+
+# Test fence agent directly
+fence_virsh -o list -a <hypervisor-ip> -l root -k /root/.ssh/id_fence -v
+fence_virsh -o status -a <hypervisor-ip> -l root -k /root/.ssh/id_fence -n drbd101 -v
+
+
+// Snapshot init_cluster_ssh_keygen
+
+* fence_virsh_wrapper.sh (/usr/local/bin/fence_virsh_wrapper.sh on each hypervisor node)
+```
+#!/bin/bash
+# filepath: /usr/local/bin/fence_virsh_wrapper.sh
+# Restrict SSH commands to only virsh operations needed by fence_virsh
+
+# List of allowed VM names
+ALLOWED_VMS="drbd101 drbd102 drbd103"
+
+# Get the original command sent via SSH
+ORIGINAL_CMD="$SSH_ORIGINAL_COMMAND"
+
+# Log for auditing
+logger -t fence_virsh_wrapper "Command received from ${SSH_CLIENT%% *}: $ORIGINAL_CMD"
+
+# If no command provided (interactive shell attempt), reject
+if [ -z "$ORIGINAL_CMD" ]; then
+    logger -t fence_virsh_wrapper "REJECTED: interactive shell attempt"
+    echo "Error: Interactive shell not allowed"
+    exit 1
+fi
+
+# Parse command
+CMD_VIRSH=$(echo "$ORIGINAL_CMD" | awk '{print $1}')
+CMD_ACTION=$(echo "$ORIGINAL_CMD" | awk '{print $2}')
+CMD_ARG1=$(echo "$ORIGINAL_CMD" | awk '{print $3}')
+CMD_ARG2=$(echo "$ORIGINAL_CMD" | awk '{print $4}')
+
+# Must start with "virsh"
+if [ "$CMD_VIRSH" != "virsh" ]; then
+    logger -t fence_virsh_wrapper "REJECTED: not a virsh command: $ORIGINAL_CMD"
+    echo "Error: Only virsh commands are allowed"
+    exit 1
+fi
+
+# Check allowed actions
+case "$CMD_ACTION" in
+    list)
+        # Allow: "virsh list" and "virsh list --all"
+        if [ -z "$CMD_ARG1" ] || [ "$CMD_ARG1" = "--all" ]; then
+            /usr/bin/virsh list $CMD_ARG1
+        else
+            logger -t fence_virsh_wrapper "REJECTED: invalid list argument: $CMD_ARG1"
+            echo "Error: Invalid argument"
+            exit 1
+        fi
+        ;;
+    domstate|destroy|start|reboot)
+        # Validate VM name is in allowed list
+        ALLOWED=false
+        for vm in $ALLOWED_VMS; do
+            if [ "$CMD_ARG1" = "$vm" ]; then
+                ALLOWED=true
+                break
+            fi
+        done
+
+        if [ "$ALLOWED" = true ]; then
+            # No extra arguments allowed
+            if [ -n "$CMD_ARG2" ]; then
+                logger -t fence_virsh_wrapper "REJECTED: extra arguments: $ORIGINAL_CMD"
+                echo "Error: Extra arguments not allowed"
+                exit 1
+            fi
+            /usr/bin/virsh "$CMD_ACTION" "$CMD_ARG1"
+        else
+            logger -t fence_virsh_wrapper "REJECTED: VM '$CMD_ARG1' not in allowed list"
+            echo "Error: VM not allowed"
+            exit 1
+        fi
+        ;;
+    *)
+        logger -t fence_virsh_wrapper "REJECTED: action '$CMD_ACTION' not allowed"
+        echo "Error: Action not allowed"
+        exit 1
+        ;;
+esac
+```
+
+```
+# On drbd101 only
+
+cibadmin --create --scope resources --xml-text '
+<primitive id="fence_virsh_drbd101" class="stonith" type="fence_virsh">
+  <instance_attributes id="fence_virsh_drbd101-attrs">
+    <nvpair id="fence_virsh_drbd101-ip" name="ip" value="<hypervisor-ip>"/>
+    <nvpair id="fence_virsh_drbd101-ssh" name="ssh" value="true"/>
+    <nvpair id="fence_virsh_drbd101-username" name="username" value="root"/>
+    <nvpair id="fence_virsh_drbd101-plug" name="plug" value="drbd101"/>
+    <nvpair id="fence_virsh_drbd101-identity_file" name="identity_file" value="/root/.ssh/id_fence"/>
+    <nvpair id="fence_virsh_drbd101-pcmk_host_list" name="pcmk_host_list" value="drbd101"/>
+  </instance_attributes>
+  <operations>
+    <op id="fence_virsh_drbd101-monitor" name="monitor" interval="60s"/>
+  </operations>
+</primitive>'
+
+cibadmin --create --scope resources --xml-text '
+<primitive id="fence_virsh_drbd102" class="stonith" type="fence_virsh">
+  <instance_attributes id="fence_virsh_drbd102-attrs">
+    <nvpair id="fence_virsh_drbd102-ip" name="ip" value="<hypervisor-ip>"/>
+    <nvpair id="fence_virsh_drbd102-ssh" name="ssh" value="true"/>
+    <nvpair id="fence_virsh_drbd102-username" name="username" value="root"/>
+    <nvpair id="fence_virsh_drbd102-plug" name="plug" value="drbd102"/>
+    <nvpair id="fence_virsh_drbd102-identity_file" name="identity_file" value="/root/.ssh/id_fence"/>
+    <nvpair id="fence_virsh_drbd102-pcmk_host_list" name="pcmk_host_list" value="drbd102"/>
+  </instance_attributes>
+  <operations>
+    <op id="fence_virsh_drbd102-monitor" name="monitor" interval="60s"/>
+  </operations>
+</primitive>'
+
+cibadmin --create --scope resources --xml-text '
+<primitive id="fence_virsh_drbd103" class="stonith" type="fence_virsh">
+  <instance_attributes id="fence_virsh_drbd103-attrs">
+    <nvpair id="fence_virsh_drbd103-ip" name="ip" value="<hypervisor-ip>"/>
+    <nvpair id="fence_virsh_drbd103-ssh" name="ssh" value="true"/>
+    <nvpair id="fence_virsh_drbd103-username" name="username" value="root"/>
+    <nvpair id="fence_virsh_drbd103-plug" name="plug" value="drbd103"/>
+    <nvpair id="fence_virsh_drbd103-identity_file" name="identity_file" value="/root/.ssh/id_fence"/>
+    <nvpair id="fence_virsh_drbd103-pcmk_host_list" name="pcmk_host_list" value="drbd103"/>
+  </instance_attributes>
+  <operations>
+    <op id="fence_virsh_drbd103-monitor" name="monitor" interval="60s"/>
+  </operations>
+</primitive>'
+```
+
+// TODO: Step 7: Add Location Constraints
+
+
+* authorized
+
 # Move resource group to trigger failover
 
 ```
