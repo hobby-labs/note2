@@ -668,17 +668,21 @@ mysql -u root -e "FLUSH PRIVILEGES;"
 * README_fence_virsh.md
 * README_fence_sbd.md
 
-
-| Command                              | Description                 |
-|--------------------------------------|-----------------------------|
-| pcs status                           | Overall cluster status      |
-| pcs resource show                    | List all resources          |
-| pcs cluster stop --all               | Stop cluster on all nodes   |
-| pcs cluster start --all              | Start cluster on all nodes  |
-| pcs node standby <node>              | Put node in standby         |
-| pcs node unstandby <node>            | Remove node from standby    |
-| pcs resource move svc_mariadb <node> | Move resource to node       |
-| pcs resource clear svc_mariadb       | Clear resource constraints  |
-| pcs resource cleanup                 | Clear failed actions        |
-| drbdadm status mariadb               | DRBD replication status     |
-| crm_mon -1                           | One-shot cluster monitor    |
+// ...existing code...
+| Command                                                        | Description                                              |
+|----------------------------------------------------------------|----------------------------------------------------------|
+| crm_mon -1                                                     | One-shot cluster monitor                                 |
+| crm_mon -Af1                                                   | Detailed cluster monitor                                 |
+| crm status                                                     | Overall cluster status                                   |
+| cibadmin --query --scope resources                             | List all resources                                       |
+| crm node standby <node>                                        | Put node in standby                                      |
+| crm node online <node>                                         | Remove node from standby                                 |
+| crm resource move grp_mariadb <node>                           | Move resource to node.                                   |
+|                                                                | We can also specify svc_mariadb which is in grp_mariadb. |
+| crm resource clear grp_mariadb                                 | Clear resource constraints.                              |
+|                                                                | We can also specify svc_mariadb which is in grp_mariadb. |
+| crm resource cleanup                                           | Clear failed actions                                     |
+| drbdadm status mariadb                                         | DRBD replication status                                  |
+| stonith_admin --fence <node>                                   | Manually fence a node                                    |
+| stonith_admin --list-registered                                | List STONITH devices                                     |
+| crm_attribute --type crm_config --name stonith-enabled --query | Check STONITH status                                     |
