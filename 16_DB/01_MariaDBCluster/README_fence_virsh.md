@@ -26,8 +26,6 @@ ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519
 chmod 600 /root/.ssh/id_ed25519
 ```
 
-
-
 # Test cluster and failover
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
@@ -49,7 +47,6 @@ sleep 20
 crm_mon -1
 ```
 
-// Snapshot init_cluster (Test failover and recovery)
 
 # Fencing
 
