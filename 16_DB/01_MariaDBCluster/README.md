@@ -654,10 +654,18 @@ mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'10.1.0.%' IDENTIFIED BY
 mysql -u root -e "FLUSH PRIVILEGES;"
 ```
 
+Verify stonith status.
+```
+crm_attribute --type crm_config --name stonith-enabled --query
+> scope=crm_config  name=stonith-enabled value=true
+crm_attribute --type crm_config --name stonith-watchdog-timeout --query
+> scope=crm_config  name=stonith-watchdog-timeout value=30
+```
+
 # Add STONITH
 ## Avilable agents
 | Fencing Method       | Requires                   | Reliability                  |
-|----------------------|----------------------------|-----------------------------|
+|----------------------|----------------------------|------------------------------|
 | fence_virsh          | KVM hypervisor SSH access  | ✅ High                     |
 | fence_ipmilan        | IPMI/BMC hardware          | ✅ High                     |
 | fence_sbd (watchdog) | Software/hardware watchdog | ✅ Medium-High              |
