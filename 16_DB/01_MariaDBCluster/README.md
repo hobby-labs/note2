@@ -673,16 +673,16 @@ mysql -u root -e "FLUSH PRIVILEGES;"
 |----------------------------------------------------------------|----------------------------------------------------------|
 | crm_mon -1                                                     | One-shot cluster monitor                                 |
 | crm_mon -Af1                                                   | Detailed cluster monitor                                 |
-| crm status                                                     | Overall cluster status                                   |
 | cibadmin --query --scope resources                             | List all resources                                       |
-| crm node standby <node>                                        | Put node in standby                                      |
-| crm node online <node>                                         | Remove node from standby                                 |
-| crm resource move grp_mariadb <node>                           | Move resource to node.                                   |
+| crm_standby --node <node> --attr-value on                      | Put node in standby                                      |
+| crm_standby --node <node> --attr-value off                     | Remove node from standby                                 |
+| crm_resource --move --resource grp_mariadb --node <node>       | Move resource group to node                              |
 |                                                                | We can also specify svc_mariadb which is in grp_mariadb. |
-| crm resource clear grp_mariadb                                 | Clear resource constraints.                              |
+| crm_resource --clear --resource grp_mariadb                    | Clear resource constraints                               |
 |                                                                | We can also specify svc_mariadb which is in grp_mariadb. |
-| crm resource cleanup                                           | Clear failed actions                                     |
+| crm_resource --cleanup                                         | Clear failed actions                                     |
 | drbdadm status mariadb                                         | DRBD replication status                                  |
 | stonith_admin --fence <node>                                   | Manually fence a node                                    |
 | stonith_admin --list-registered                                | List STONITH devices                                     |
 | crm_attribute --type crm_config --name stonith-enabled --query | Check STONITH status                                     |
+
