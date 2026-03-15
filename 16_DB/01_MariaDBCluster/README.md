@@ -676,6 +676,10 @@ crm_attribute --type crm_config --name stonith-watchdog-timeout --query
 * README_fence_virsh.md
 * README_fence_sbd.md
 
+// Snapshot init_fence_sbd (Test SBD fencing)
+
+* README_upgrade_mariadb.md
+
 // ...existing code...
 | Command                                                        | Description                                              |
 |----------------------------------------------------------------|----------------------------------------------------------|
