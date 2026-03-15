@@ -183,7 +183,6 @@ Broadcast message from systemd-journald@drbd103.localdomain (Sat 2026-03-14 15:1
 
 sbd[782]:    emerg: do_exit: Rebooting system: reboot
 
-
 Message from syslogd@drbd103 at Mar 14 15:16:37 ...
  sbd[782]:   emerg: do_exit: Rebooting system: reboot
 Read from remote host 172.31.101.13: Connection reset by peer
@@ -196,6 +195,6 @@ Cluster communication	~1 second	Fence request sent between nodes
 SBD detection	~1-5 seconds	SBD detects it should self-fence
 Watchdog timeout	10 seconds	SBD_WATCHDOG_TIMEOUT=10 in /etc/sysconfig/sbd
 stonith-watchdog-timeout	30 seconds	Pacemaker waits to confirm node is dead
-Total	~40 seconds	✅ Matches your observation
+Total	~40 seconds. Matches your observation
 ```
 
