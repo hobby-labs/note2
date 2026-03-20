@@ -21,8 +21,9 @@
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cat >> /etc/hosts << 'EOF'
+[root@drbd10[123] ~]# cat >> /etc/hosts << 'EOF'
 # Service
+10.1.0.10  drbd-vip
 10.1.0.11  drbd101
 10.1.0.12  drbd102
 10.1.0.13  drbd103
@@ -43,60 +44,61 @@ cat >> /etc/hosts << 'EOF'
 10.1.3.13  drbd103-drbd
 EOF
 
-cat /etc/hosts
+[root@drbd10[123] ~]# cat /etc/hosts
 ```
 
 Stop SELinux and firewalld on all nodes.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-# Disable SELinux
-sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-setenforce 0
+[root@drbd10[123] ~]# # Disable SELinux
+[root@drbd10[123] ~]# sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+[root@drbd10[123] ~]# setenforce 0
 
-# Disable firewalld
-systemctl stop firewalld
-systemctl disable firewalld
+[root@drbd10[123] ~]# # Disable firewalld
+[root@drbd10[123] ~]# systemctl stop firewalld
+[root@drbd10[123] ~]# systemctl disable firewalld
 ```
 
 Install DRBD 9 utils.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-yum install -y patch gcc make automake kernel-devel-$(uname -r) flex libxslt coccinelle
-# Download DRBD utils
-cd /usr/local/src
-curl -LO https://pkg.linbit.com//downloads/drbd/utils/drbd-utils-9.29.0.tar.gz
-tar xzf drbd-utils-9.29.0.tar.gz
-cd drbd-utils-9.29.0
-./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --without-manual
-make
-make install
+[root@drbd10[123] ~]# yum install -y patch gcc make automake kernel-devel-$(uname -r) flex libxslt coccinelle
+
+[root@drbd10[123] ~]# # Download DRBD utils
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# curl -LO https://pkg.linbit.com//downloads/drbd/utils/drbd-utils-9.29.0.tar.gz
+[root@drbd10[123] ~]# tar xzf drbd-utils-9.29.0.tar.gz
+[root@drbd10[123] ~]# cd drbd-utils-9.29.0
+[root@drbd10[123] ~]# ./configure --prefix=/usr --localstatedir=/var --sysconfdir=/etc --without-manual
+[root@drbd10[123] ~]# make
+[root@drbd10[123] ~]# make install
 ```
 
 Install DRBD kernel module.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-# Download DRBD kernel module source
-cd /usr/local/src
-curl -LO https://pkg.linbit.com//downloads/drbd/9/drbd-9.2.12.tar.gz
-tar xzf drbd-9.2.12.tar.gz
-cd drbd-9.2.12
-make KDIR=/lib/modules/$(uname -r)/build
-make install
+[root@drbd10[123] ~]# # Download DRBD kernel module source
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# curl -LO https://pkg.linbit.com//downloads/drbd/9/drbd-9.2.12.tar.gz
+[root@drbd10[123] ~]# tar xzf drbd-9.2.12.tar.gz
+[root@drbd10[123] ~]# cd drbd-9.2.12
+[root@drbd10[123] ~]# make KDIR=/lib/modules/$(uname -r)/build
+[root@drbd10[123] ~]# make install
 
-depmod -a
-echo "drbd" > /etc/modules-load.d/drbd.conf
-modprobe drbd
-lsmod | grep drbd
+[root@drbd10[123] ~]# depmod -a
+[root@drbd10[123] ~]# echo "drbd" > /etc/modules-load.d/drbd.conf
+[root@drbd10[123] ~]# modprobe drbd
+[root@drbd10[123] ~]# lsmod | grep drbd
 ```
 
 Prepare `/dev/vdb` for DRBD.
 
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-lsblk
-
+[root@drbd10[123] ~]# lsblk
 > NAME            MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
 > sr0              11:0    1 1024M  0 rom
 > vda             252:0    0   50G  0 disk
@@ -112,7 +114,7 @@ Configure DRBD resource.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cat > /etc/drbd.d/global_common.conf << 'EOF'
+[root@drbd10[123] ~]# cat > /etc/drbd.d/global_common.conf << 'EOF'
 global {
     usage-count no;
 }
@@ -129,7 +131,7 @@ common {
 }
 EOF
 
-cat > /etc/drbd.d/mariadb.res << 'EOF'
+[root@drbd10[123] ~]# cat > /etc/drbd.d/mariadb.res << 'EOF'
 resource mariadb {
     device    /dev/drbd0;
     disk      /dev/vdb;
@@ -159,37 +161,18 @@ Initialize DRBD resource.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-# Create metadata on all nodes
-drbdadm create-md mariadb
+[root@drbd10[123] ~]# # Create metadata on all nodes
+[root@drbd10[123] ~]# drbdadm create-md mariadb
 
-# Start DRBD on all nodes
-drbdadm up mariadb
-```
-
-* drbd101: MariaDB Cluster 1
-```
-# Force drbd101 as the initial primary
-drbdadm primary --force mariadb
-
-# Watch sync progress
-drbdadm status mariadb
-
-# After sync completes, create filesystem on /dev/drbd0
-mkfs.xfs /dev/drbd0
-mkdir -p /var/lib/mysql
-mount /dev/drbd0 /var/lib/mysql
-df -h /var/lib/mysql
-
-# Unmount for now (Pacemaker will manage this)
-umount /var/lib/mysql
-drbdadm secondary mariadb
+[root@drbd10[123] ~]# # Start DRBD on all nodes
+[root@drbd10[123] ~]# drbdadm up mariadb
 ```
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-rpm --import https://mariadb.org/mariadb_release_signing_key.pgp
+[root@drbd10[123] ~]# rpm --import https://mariadb.org/mariadb_release_signing_key.pgp
 
-cat > /etc/yum.repos.d/MariaDB.repo << 'EOF'
+[root@drbd10[123] ~]# cat > /etc/yum.repos.d/MariaDB.repo << 'EOF'
 [mariadb]
 name = MariaDB 10.6
 baseurl = https://mirror.mariadb.org/yum/10.6/centos7-amd64
@@ -198,18 +181,37 @@ gpgcheck = 1
 module_hotfixes = 1
 EOF
 
-yum install -y MariaDB-server-10.6.19 MariaDB-client-10.6.19
+[root@drbd10[123] ~]# yum install -y MariaDB-server-10.6.19 MariaDB-client-10.6.19
+```
+
+* drbd101: MariaDB Cluster 1
+```
+[root@drbd101 ~]# # Force drbd101 as the initial primary
+[root@drbd101 ~]# drbdadm primary --force mariadb
+
+[root@drbd101 ~]# # Watch sync progress
+[root@drbd101 ~]# drbdadm status mariadb
+
+[root@drbd101 ~]# # After sync completes, create filesystem on /dev/drbd0
+[root@drbd101 ~]# mkfs.xfs /dev/drbd0
+[root@drbd101 ~]# # `/var/lib/mysql` will be created after MariaDB has installed. Mount it to verify.
+[root@drbd101 ~]# mount /dev/drbd0 /var/lib/mysql
+[root@drbd101 ~]# df -h /var/lib/mysql
+
+[root@drbd101 ~]# # Unmount for now (Pacemaker will manage this)
+[root@drbd101 ~]# umount /var/lib/mysql
+[root@drbd101 ~]# drbdadm secondary mariadb
 ```
 
 * drbd101, drbd102, drbd103
 ```
-# On drbd101, drbd102, drbd103
-mkdir -p /var/log/mariadb/slowlog
-chown -R mysql:mysql /var/log/mariadb
-chmod 750 /var/log/mariadb
-chmod 750 /var/log/mariadb/slowlog
+[root@drbd10[123] ~]# # On drbd101, drbd102, drbd103
+[root@drbd10[123] ~]# mkdir -p /var/log/mariadb/slowlog
+[root@drbd10[123] ~]# chown -R mysql:mysql /var/log/mariadb
+[root@drbd10[123] ~]# chmod 750 /var/log/mariadb
+[root@drbd10[123] ~]# chmod 750 /var/log/mariadb/slowlog
 
-cat > /etc/my.cnf.d/server.cnf << 'EOF'
+[root@drbd10[123] ~]# cat > /etc/my.cnf.d/server.cnf << 'EOF'
 [mysqld]
 # === Data Directory (on DRBD) ===
 datadir=/var/lib/mysql/data
@@ -260,19 +262,55 @@ innodb_log_file_size=64M
 innodb_flush_log_at_trx_commit=1
 innodb_file_per_table=1
 
+# === Encryption ===
+plugin_load_add = file_key_management
+file_key_management_filename = /var/lib/mysql/encryption/keyfile.enc
+file_key_management_filekey = secret
+file_key_management_encryption_algorithm = AES_CTR
+
+innodb_encrypt_tables = ON
+innodb_encrypt_log = ON
+innodb_encryption_threads = 4
+innodb_encryption_rotate_key_age = 0
+
+aria_encrypt_tables = ON
+encrypt_binlog = ON
+encrypt_tmp_files = ON
+
 [mysqld_safe]
 log-error=/var/log/mariadb/error.log
 EOF
+
+[root@drbd10[123] ~]# chown root:mysql /etc/my.cnf.d/server.cnf
+[root@drbd10[123] ~]# chmod 640 /etc/my.cnf.d/server.cnf
 ```
 
 * drbd101 only: MariaDB Cluster 1
 ```
-# Temporarily make drbd101 primary and mount
-drbdadm primary mariadb
-mount /dev/drbd0 /var/lib/mysql
+[root@drbd101 ~]# # Specify "secret" as password in this example. Use a strong password in production environment.
+[root@drbd101 ~]# mkdir -p /var/lib/mysql/encryption/
+[root@drbd101 ~]# echo "1;$(openssl rand -hex 32)" > /tmp/keyfile
+[root@drbd101 ~]# echo "2;$(openssl rand -hex 32)" >> /tmp/keyfile
+[root@drbd101 ~]# # Newver MariaDB version can use `-md sha256` instead of `-md sha1`
+[root@drbd101 ~]# # Generate encrypted encryption key file
+[root@drbd101 ~]# openssl enc -aes-256-cbc -md sha1 \
+                      -in /tmp/keyfile \
+                      -out /var/lib/mysql/encryption/keyfile.enc \
+                      -pass pass:secret
+[root@drbd101 ~]# chown mysql:mysql /var/lib/mysql/encryption/keyfile.enc
+[root@drbd101 ~]# chmod 600 /var/lib/mysql/encryption/keyfile.enc
+[root@drbd101 ~]# # Verify encryption key file
+[root@drbd101 ~]# sudo -u mysql openssl enc -aes-256-cbc -md sha1 -d \
+                      -in /var/lib/mysql/encryption/keyfile.enc \
+                      -pass pass:secret
+[root@drbd101 ~]# rm -f /tmp/keyfile
 
-# Initialize MariaDB system tables
-mysql_install_db --user=mysql --datadir=/var/lib/mysql/data
+[root@drbd101 ~]# # Temporarily make drbd101 primary and mount
+[root@drbd101 ~]# drbdadm primary mariadb
+[root@drbd101 ~]# mount /dev/drbd0 /var/lib/mysql
+
+[root@drbd101 ~]# # Initialize MariaDB system tables
+[root@drbd101 ~]# mysql_install_db --user=mysql --datadir=/var/lib/mysql/data
 
 # Create binary log directory
 mkdir -p /var/lib/mysql/log/binary
@@ -291,6 +329,17 @@ cat > /root/.my.cnf << 'EOF'
 user=root
 password=secret
 EOF
+
+# Verify encryption is enabled
+mysql --defaults-extra-file=/root/.my.cnf -e "
+SELECT table_schema, table_name, engine, create_options
+FROM information_schema.tables
+WHERE table_schema = 'grocery_store';
+"
+mysql --defaults-extra-file=/root/.my.cnf -e "
+SELECT name, encryption_scheme, current_key_id
+FROM information_schema.innodb_tablespaces_encryption;
+"
 
 # Stop MariaDB (Pacemaker will manage it)
 systemctl stop mariadb
