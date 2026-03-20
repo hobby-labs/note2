@@ -213,8 +213,14 @@ mysql_install_db --user=mysql --datadir=/var/lib/mysql
 # Start MariaDB
 systemctl start mariadb
 
-# Secure installation
+# Secure installation (Specify "secret" as root password only in development environment. Answer "Y" to all questions.)
 mariadb-secure-installation
+
+cat > /root/.my.cnf << 'EOF'
+[client]
+user=root
+password=secret
+EOF
 
 # Stop MariaDB (Pacemaker will manage it)
 systemctl stop mariadb
@@ -649,7 +655,6 @@ Grant MariaDB access to cluster nodes.
 
 * drbd101 only: MariaDB Cluster 1
 ```
-mariadb-secure-installation
 mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'10.1.0.%' IDENTIFIED BY 'secret' WITH GRANT OPTION;"
 mysql -u root -e "FLUSH PRIVILEGES;"
 ```
@@ -909,7 +914,7 @@ Run queries create schema, insert sample data, and run sample queries.
 [root@drbd101 ~]# mysql -u root -p=secret < 02_insert_sample_data.sql
 
 [root@drbd101 ~]# # Count records
-[root@drbd101 ~]# mysql -u root  -p=secret -D grocery_store -e "
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -D grocery_store -e "
 SELECT 'categories' AS tbl, COUNT(*) AS cnt FROM categories
 UNION ALL SELECT 'products', COUNT(*) FROM products
 UNION ALL SELECT 'customers', COUNT(*) FROM customers
@@ -927,7 +932,7 @@ UNION ALL SELECT 'transaction_details', COUNT(*) FROM transaction_details;
 > +---------------------+-----+
 
 [root@drbd101 ~]# # Top spending customers
-[root@drbd101 ~]# mysql -u root  -p=secret -D grocery_store -e "
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -D grocery_store -e "
 SELECT
     c.first_name,
     c.last_name,
@@ -952,7 +957,7 @@ ORDER BY total_spent DESC;
 > +------------+-----------+------------------+-------------+
 
 [root@drbd101 ~]# # Most popular products
-[root@drbd101 ~]# mysql -u root  -p=secret -D grocery_store -e "
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -D grocery_store -e "
 SELECT
     p.product_name,
     cat.category_name,
@@ -981,7 +986,7 @@ LIMIT 10;
 > +---------------------+---------------+------------+---------------+
 
 [root@drbd101 ~]# # Daily sales summary
-[root@drbd101 ~]# mysql -u root  -p=secret -D grocery_store -e "
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -D grocery_store -e "
 SELECT
     DATE(t.transaction_date) AS sale_date,
     COUNT(DISTINCT t.transaction_id) AS num_transactions,
