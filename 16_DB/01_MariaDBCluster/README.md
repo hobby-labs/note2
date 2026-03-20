@@ -196,11 +196,8 @@ EOF
 [root@drbd101 ~]# mkfs.xfs /dev/drbd0
 [root@drbd101 ~]# # `/var/lib/mysql` will be created after MariaDB has installed. Mount it to verify.
 [root@drbd101 ~]# mount /dev/drbd0 /var/lib/mysql
+[root@drbd101 ~]# chown mysql:mysql /var/lib/mysql
 [root@drbd101 ~]# df -h /var/lib/mysql
-
-[root@drbd101 ~]# # Unmount for now (Pacemaker will manage this)
-[root@drbd101 ~]# umount /var/lib/mysql
-[root@drbd101 ~]# drbdadm secondary mariadb
 ```
 
 * drbd101, drbd102, drbd103
@@ -217,7 +214,7 @@ EOF
 datadir=/var/lib/mysql/data
 
 # === Socket and PID (local) ===
-socket=/var/lib/mysql/mysql.sock
+socket=/var/run/mariadb/mysql.sock
 pid-file=/var/run/mariadb/mariadb.pid
 
 # === Temp Directory (local) ===
@@ -279,10 +276,20 @@ encrypt_tmp_files = ON
 
 [mysqld_safe]
 log-error=/var/log/mariadb/error.log
+
+[client]
+socket=/var/run/mariadb/mysql.sock
 EOF
 
 [root@drbd10[123] ~]# chown root:mysql /etc/my.cnf.d/server.cnf
 [root@drbd10[123] ~]# chmod 640 /etc/my.cnf.d/server.cnf
+
+[root@drbd10[123] ~]# cat > /etc/tmpfiles.d/mariadb.conf << 'EOF'
+d /var/run/mariadb 0755 mysql mysql -
+EOF
+
+[root@drbd10[123] ~]# systemd-tmpfiles --create /etc/tmpfiles.d/mariadb.conf
+[root@drbd10[123] ~]# ls -la /var/run/mariadb/
 ```
 
 * drbd101 only: MariaDB Cluster 1
@@ -297,7 +304,7 @@ EOF
                       -in /tmp/keyfile \
                       -out /var/lib/mysql/encryption/keyfile.enc \
                       -pass pass:secret
-[root@drbd101 ~]# chown mysql:mysql /var/lib/mysql/encryption/keyfile.enc
+[root@drbd101 ~]# chown mysql:mysql -R /var/lib/mysql/encryption/
 [root@drbd101 ~]# chmod 600 /var/lib/mysql/encryption/keyfile.enc
 [root@drbd101 ~]# # Verify encryption key file
 [root@drbd101 ~]# sudo -u mysql openssl enc -aes-256-cbc -md sha1 -d \
@@ -305,63 +312,56 @@ EOF
                       -pass pass:secret
 [root@drbd101 ~]# rm -f /tmp/keyfile
 
-[root@drbd101 ~]# # Temporarily make drbd101 primary and mount
-[root@drbd101 ~]# drbdadm primary mariadb
-[root@drbd101 ~]# mount /dev/drbd0 /var/lib/mysql
-
 [root@drbd101 ~]# # Initialize MariaDB system tables
 [root@drbd101 ~]# mysql_install_db --user=mysql --datadir=/var/lib/mysql/data
 
 # Create binary log directory
-mkdir -p /var/lib/mysql/log/binary
-chown -R mysql:mysql /var/lib/mysql/log
-chmod 750 /var/lib/mysql/log
-chmod 750 /var/lib/mysql/log/binary
+[root@drbd101 ~]# mkdir -p /var/lib/mysql/log/binary
+[root@drbd101 ~]# chown -R mysql:mysql /var/lib/mysql/log
+[root@drbd101 ~]# chmod 750 /var/lib/mysql/log
+[root@drbd101 ~]# chmod 750 /var/lib/mysql/log/binary
 
-# Start MariaDB
-systemctl start mariadb
+[root@drbd101 ~]# # Start MariaDB
+[root@drbd101 ~]# systemctl start mariadb
 
-# Secure installation (Specify "secret" as root password only in development environment. Answer "Y" to all questions.)
-mariadb-secure-installation
+[root@drbd101 ~]# # Secure installation (Specify "secret" as root password only in development environment. Answer "Y" to all questions.)
+[root@drbd101 ~]# mariadb-secure-installation --socket=/var/run/mariadb/mysql.sock
 
-cat > /root/.my.cnf << 'EOF'
+[root@drbd101 ~]# # Stop MariaDB (Pacemaker will manage it)
+[root@drbd101 ~]# systemctl stop mariadb
+[root@drbd101 ~]# systemctl disable mariadb
+
+[root@drbd101 ~]# # Unmount
+[root@drbd101 ~]# umount /var/lib/mysql
+[root@drbd101 ~]# drbdadm secondary mariadb
+```
+
+Create client configuration.
+
+* drbd101, drbd102, drbd103
+```
+[root@drbd10[123] ~]# cat > /root/.my.cnf << 'EOF'
 [client]
 user=root
 password=secret
+socket=/var/run/mariadb/mysql.sock
 EOF
 
-# Verify encryption is enabled
-mysql --defaults-extra-file=/root/.my.cnf -e "
-SELECT table_schema, table_name, engine, create_options
-FROM information_schema.tables
-WHERE table_schema = 'grocery_store';
-"
-mysql --defaults-extra-file=/root/.my.cnf -e "
-SELECT name, encryption_scheme, current_key_id
-FROM information_schema.innodb_tablespaces_encryption;
-"
-
-# Stop MariaDB (Pacemaker will manage it)
-systemctl stop mariadb
-systemctl disable mariadb
-
-# Unmount
-umount /var/lib/mysql
-drbdadm secondary mariadb
+[root@drbd10[123] ~]# chmod 600 /root/.my.cnf
 ```
 
 Disable MariaDB auto-start on all nodes.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-systemctl disable mariadb
+[root@drbd10[123] ~]# systemctl disable mariadb
 ```
 
 ## Configure Corosync and Pacemaker
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-yum install -y \
+[root@drbd10[123] ~]# yum install -y \
   git gcc gcc-c++ make automake autoconf libtool \
   pkgconfig git \
   nss-devel openssl-devel \
@@ -389,19 +389,19 @@ yum install -y \
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cd /usr/local/src
-git clone https://github.com/ClusterLabs/libqb.git
-cd libqb
-git checkout v2.0.6
-./autogen.sh
-./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc
-make -j$(nproc)
-make install
-ldconfig
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# git clone https://github.com/ClusterLabs/libqb.git
+[root@drbd10[123] ~]# cd libqb
+[root@drbd10[123] ~]# git checkout v2.0.6
+[root@drbd10[123] ~]# ./autogen.sh
+[root@drbd10[123] ~]# ./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc
+[root@drbd10[123] ~]# make -j$(nproc)
+[root@drbd10[123] ~]# make install
+[root@drbd10[123] ~]# ldconfig
 
-# Library is installed
-ls -l /usr/lib64/libqb.so*
-pkg-config --modversion libqb
+[root@drbd10[123] ~]# # Library is installed
+[root@drbd10[123] ~]# ls -l /usr/lib64/libqb.so*
+[root@drbd10[123] ~]# pkg-config --modversion libqb
 > 2.0.6
 ```
 
@@ -409,134 +409,131 @@ pkg-config --modversion libqb
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-yum install -y lksctp-tools-devel doxygen libnl3-devel
+[root@drbd10[123] ~]# yum install -y lksctp-tools-devel doxygen libnl3-devel
 
-cd /usr/local/src
-wget -q https://github.com/kronosnet/kronosnet/archive/refs/tags/v1.20.tar.gz
-tar xzf v1.20.tar.gz
-cd kronosnet-1.20
-./autogen.sh
-./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
-  --disable-compress-zstd \
-  --disable-compress-lz4 \
-  --disable-compress-lzma \
-  --disable-compress-bzip2 \
-  --disable-compress-lzo2
-make -j$(nproc)
-make install
-ldconfig
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# wget -q https://github.com/kronosnet/kronosnet/archive/refs/tags/v1.20.tar.gz
+[root@drbd10[123] ~]# tar xzf v1.20.tar.gz
+[root@drbd10[123] ~]# cd kronosnet-1.20
+[root@drbd10[123] ~]# ./autogen.sh
+[root@drbd10[123] ~]# ./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
+                          --disable-compress-zstd \
+                          --disable-compress-lz4 \
+                          --disable-compress-lzma \
+                          --disable-compress-bzip2 \
+                          --disable-compress-lzo2
+
+[root@drbd10[123] ~]# make -j$(nproc)
+[root@drbd10[123] ~]# make install
+[root@drbd10[123] ~]# ldconfig
 ```
 
 ## Install corosync and pacemaker from source.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cd /usr/local/src
-wget -q https://github.com/corosync/corosync/archive/refs/tags/v3.1.0.tar.gz -O corosync-3.1.0.tar.gz
-tar xzf corosync-3.1.0.tar.gz
-cd corosync-3.1.0
-./autogen.sh
-./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
-  --localstatedir=/var \
-  --with-systemddir=/usr/lib/systemd/system \
-  --enable-systemd \
-  CFLAGS="-DGIT_VERSION='\"v3.1.0\"'"
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# wget -q https://github.com/corosync/corosync/archive/refs/tags/v3.1.0.tar.gz -O corosync-3.1.0.tar.gz
+[root@drbd10[123] ~]# tar xzf corosync-3.1.0.tar.gz
+[root@drbd10[123] ~]# cd corosync-3.1.0
+[root@drbd10[123] ~]# ./autogen.sh
+[root@drbd10[123] ~]# ./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
+                          --localstatedir=/var \
+                          --with-systemddir=/usr/lib/systemd/system \
+                          --enable-systemd \
+                          CFLAGS="-DGIT_VERSION='\"v3.1.0\"'"
 
-make -j$(nproc)
-make install
-ldconfig
+[root@drbd10[123] ~]# make -j$(nproc)
+[root@drbd10[123] ~]# make install
+[root@drbd10[123] ~]# ldconfig
+[root@drbd10[123] ~]# pkg-config --modversion corosync
 
-# Fix version string if needed
-pkg-config --modversion corosync
+[root@drbd10[123] ~]# # Create user and directories
+[root@drbd10[123] ~]# groupadd -r corosync 2>/dev/null || true
+[root@drbd10[123] ~]# useradd -r -g corosync -d / -s /sbin/nologin corosync 2>/dev/null || true
+[root@drbd10[123] ~]# mkdir -p /etc/corosync
+[root@drbd10[123] ~]# mkdir -p /var/log/cluster
+[root@drbd10[123] ~]# mkdir -p /var/lib/corosync
 
-# Create user and directories
-groupadd -r corosync 2>/dev/null || true
-useradd -r -g corosync -d / -s /sbin/nologin corosync 2>/dev/null || true
-mkdir -p /etc/corosync
-mkdir -p /var/log/cluster
-mkdir -p /var/lib/corosync
+[root@drbd10[123] ~]# # Reload systemd
+[root@drbd10[123] ~]# systemctl daemon-reload
 
-# Reload systemd
-systemctl daemon-reload
-
-# Verify
-corosync -v
+[root@drbd10[123] ~]# # Verify
+[root@drbd10[123] ~]# corosync -v
 ```
 
 ## Install pacemaker from source.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cd /usr/local/src
-wget -q https://github.com/ClusterLabs/resource-agents/archive/refs/tags/v4.7.0.tar.gz -O resource-agents-4.7.0.tar.gz
-tar xzf resource-agents-4.7.0.tar.gz
-cd resource-agents-4.7.0
-./autogen.sh
-./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
-  --localstatedir=/var \
-  --with-rsctmpdir=/run/resource-agents
-make -j$(nproc)
-make install
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# wget -q https://github.com/ClusterLabs/resource-agents/archive/refs/tags/v4.7.0.tar.gz -O resource-agents-4.7.0.tar.gz
+[root@drbd10[123] ~]# tar xzf resource-agents-4.7.0.tar.gz
+[root@drbd10[123] ~]# cd resource-agents-4.7.0
+[root@drbd10[123] ~]# ./autogen.sh
+[root@drbd10[123] ~]# ./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
+                          --localstatedir=/var \
+                          --with-rsctmpdir=/run/resource-agents
+[root@drbd10[123] ~]# make -j$(nproc)
+[root@drbd10[123] ~]# make install
 ```
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-yum install -y gnutls-devel
+[root@drbd10[123] ~]# yum install -y gnutls-devel
 
-cd /usr/local/src
-wget -q https://github.com/ClusterLabs/pacemaker/archive/refs/tags/Pacemaker-2.0.5.tar.gz
-tar xzf Pacemaker-2.0.5.tar.gz
-cd pacemaker-Pacemaker-2.0.5
-./autogen.sh
-./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
-  --localstatedir=/var \
-  --with-systemdsystemunitdir=/usr/lib/systemd/system \
-  --with-corosync
-make -j$(nproc)
-make install
-ldconfig
+[root@drbd10[123] ~]# cd /usr/local/src
+[root@drbd10[123] ~]# wget -q https://github.com/ClusterLabs/pacemaker/archive/refs/tags/Pacemaker-2.0.5.tar.gz
+[root@drbd10[123] ~]# tar xzf Pacemaker-2.0.5.tar.gz
+[root@drbd10[123] ~]# cd pacemaker-Pacemaker-2.0.5
+[root@drbd10[123] ~]# ./autogen.sh
+[root@drbd10[123] ~]# ./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc \
+                          --localstatedir=/var \
+                          --with-systemdsystemunitdir=/usr/lib/systemd/system \
+                          --with-corosync
+[root@drbd10[123] ~]# make -j$(nproc)
+[root@drbd10[123] ~]# make install
+[root@drbd10[123] ~]# ldconfig
 
-# Create user and directories
-groupadd -r haclient 2>/dev/null || true
-useradd -r -g haclient -d /var/lib/pacemaker -s /sbin/nologin hacluster 2>/dev/null || true
-mkdir -p /var/lib/pacemaker/{cib,cores,pengine}
-chown -R hacluster:haclient /var/lib/pacemaker
-mkdir -p /var/log/pacemaker
-chown hacluster:haclient /var/log/pacemaker
-systemctl daemon-reload
+[root@drbd10[123] ~]# # Create user and directories
+[root@drbd10[123] ~]# groupadd -r haclient 2>/dev/null || true
+[root@drbd10[123] ~]# useradd -r -g haclient -d /var/lib/pacemaker -s /sbin/nologin hacluster 2>/dev/null || true
+[root@drbd10[123] ~]# mkdir -p /var/lib/pacemaker/{cib,cores,pengine}
+[root@drbd10[123] ~]# chown -R hacluster:haclient /var/lib/pacemaker
+[root@drbd10[123] ~]# mkdir -p /var/log/pacemaker
+[root@drbd10[123] ~]# chown hacluster:haclient /var/log/pacemaker
+[root@drbd10[123] ~]# systemctl daemon-reload
 
-# Verify
-pacemakerd --version
-crm_mon --version
-cibadmin --version
+[root@drbd10[123] ~]# # Verify
+[root@drbd10[123] ~]# pacemakerd --version
+[root@drbd10[123] ~]# crm_mon --version
+[root@drbd10[123] ~]# cibadmin --version
 ```
-
---- Snapshot init_empty_cluster (Restart drbd if rebooted: systemctl restart drbd) ---
 
 # Configure Corosync
 
 * drbd101 only: MariaDB Cluster 1
 ```
-# On drbd101 only - generate auth key
-corosync-keygen
+[root@drbd101 ~]# # On drbd101 only - generate auth key
+[root@drbd101 ~]# corosync-keygen
 ```
 
 * drbd102, drbd103: MariaDB Cluster 1
 ```
-# Copy to other nodes
-scp /etc/corosync/authkey drbd102:/etc/corosync/authkey
-scp /etc/corosync/authkey drbd103:/etc/corosync/authkey
-```
-
-* drbd102, drbd103: MariaDB Cluster 1
-```
-chmod 400 /etc/corosync/authkey
-chown root:root /etc/corosync/authkey
+[root@drbd101 ~]# # Copy to other nodes
+[root@drbd101 ~]# scp /etc/corosync/authkey drbd102:/etc/corosync/authkey
+[root@drbd101 ~]# scp /etc/corosync/authkey drbd103:/etc/corosync/authkey
 ```
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-cat > /etc/corosync/corosync.conf << 'EOF'
+[root@drbd10[123] ~]# chmod 400 /etc/corosync/authkey
+[root@drbd10[123] ~]# chown root:root /etc/corosync/authkey
+```
+
+* drbd101, drbd102, drbd103: MariaDB Cluster 1
+```
+[root@drbd10[123] ~]# cat > /etc/corosync/corosync.conf << 'EOF'
 totem {
     version: 2
     cluster_name: mariadb_cluster
@@ -583,29 +580,30 @@ Start and enable corosync and pacemaker on all nodes.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-systemctl start corosync
-systemctl start pacemaker
-systemctl enable corosync
-systemctl enable pacemaker
+[root@drbd10[123] ~]# systemctl start corosync
+[root@drbd10[123] ~]# systemctl start pacemaker
+[root@drbd10[123] ~]# systemctl enable corosync
+[root@drbd10[123] ~]# systemctl enable pacemaker
 
-# Verify corosync members
-corosync-cmapctl | grep members
+[root@drbd10[123] ~]# # Verify corosync members
+[root@drbd10[123] ~]# corosync-cmapctl | grep members
 
-# Verify pacemaker
-crm_mon -1
+[root@drbd10[123] ~]# # Verify pacemaker
+[root@drbd10[123] ~]# crm_mon -1
 ```
 
 * drbd101 only: MariaDB Cluster 1
 ```
-crm_attribute --type crm_config --name stonith-enabled --update false
-crm_attribute --type crm_config --name no-quorum-policy --update ignore
+[root@drbd101 ~]# crm_attribute --type crm_config --name stonith-enabled --update false
+[root@drbd101 ~]# crm_attribute --type crm_config --name no-quorum-policy --update ignore
 
-# Modify CIB
-cibadmin --query > /tmp/cib.xml
-sed -i.bak 's|<constraints/>|<constraints/>\n  <rsc_defaults>\n    <meta_attributes id="rsc-options">\n      <nvpair id="rsc-options-resource-stickiness" name="resource-stickiness" value="100"/>\n    </meta_attributes>\n  </rsc_defaults>|' /tmp/cib.xml
-grep -A4 'rsc_defaults' /tmp/cib.xml
-cibadmin --replace --xml-file /tmp/cib.xml
-cibadmin --query --scope rsc_defaults
+[root@drbd101 ~]# # Modify CIB
+[root@drbd101 ~]# cibadmin --query > /tmp/cib.xml
+[root@drbd101 ~]# sed -i.bak 's|<constraints/>|<constraints/>\n  <rsc_defaults>\n    <meta_attributes id="rsc-options">\n      <nvpair id="rsc-options-resource-stickiness" name="resource-stickiness" value="100"/>\n    </meta_attributes>\n  </rsc_defaults>|' /tmp/cib.xml
+[root@drbd101 ~]# grep -A4 'rsc_defaults' /tmp/cib.xml
+[root@drbd101 ~]# diff -u /tmp/cib.xml.bak /tmp/cib.xml
+[root@drbd101 ~]# cibadmin --replace --xml-file /tmp/cib.xml
+[root@drbd101 ~]# cibadmin --query --scope rsc_defaults
 > # Expected output
 > <rsc_defaults>
 >   <meta_attributes id="rsc-options">
@@ -614,16 +612,11 @@ cibadmin --query --scope rsc_defaults
 > </rsc_defaults>
 ```
 
-* drbd101, drbd102, drbd103: MariaDB Cluster 1
-```
-drbdadm secondary mariadb
-```
-
 * drbd101 only: MariaDB Cluster 1
 ```
-cibadmin --query > /tmp/cib.xml
+[root@drbd101 ~]# cibadmin --query > /tmp/cib.xml
 
-sed -i.bak 's|<resources/>|<resources>\
+[root@drbd101 ~]# sed -i.bak 's|<resources/>|<resources>\
   <master id="ms_drbd_mariadb">\
     <meta_attributes id="ms_drbd_mariadb-meta">\
       <nvpair id="ms_drbd_mariadb-promoted-max" name="promoted-max" value="1"/>\
@@ -644,27 +637,24 @@ sed -i.bak 's|<resources/>|<resources>\
   </master>\
 </resources>|' /tmp/cib.xml
 
-grep -A20 '<resources>' /tmp/cib.xml
-cibadmin --replace --xml-file /tmp/cib.xml
-
-sleep 10
-crm_mon -1
+[root@drbd101 ~]# grep -A20 '<resources>' /tmp/cib.xml
+[root@drbd101 ~]# diff -u /tmp/cib.xml.bak /tmp/cib.xml
+[root@drbd101 ~]# cibadmin --replace --xml-file /tmp/cib.xml
+[root@drbd101 ~]# crm_mon -1
 ```
 
-//////// Next instructions will fail after `cibadmin --replace --xml-file /tmp/cib.xml`.
-//////// Call cib_replace failed (-203): Update does not conform to the configured schema
 Add resource group and constraints.
 
 * drbd101, drbd102, drbd103: MariaDB Cluster 1
 ```
-yum install -y psmisc
+[root@drbd10[123] ~]# yum install -y psmisc
 ```
 
 * drbd101 only: MariaDB Cluster 1
 ```
-cibadmin --query > /tmp/cib.xml
+[root@drbd101 ~]# cibadmin --query > /tmp/cib.xml
 
-python2 << 'PYEOF'
+[root@drbd101 ~]# python2 << 'PYEOF'
 import xml.etree.ElementTree as ET
 
 tree = ET.parse('/tmp/cib.xml')
@@ -759,31 +749,22 @@ tree.write('/tmp/cib_new.xml', xml_declaration=True, encoding='UTF-8')
 print('Done')
 PYEOF
 
+[root@drbd101 ~]# # Validate before applying
+[root@drbd101 ~]# xmllint --relaxng /usr/share/pacemaker/pacemaker-3.5.rng /tmp/cib_new.xml 2>&1 | tail -1
 
-# Validate before applying
-xmllint --relaxng /usr/share/pacemaker/pacemaker-3.5.rng /tmp/cib_new.xml 2>&1 | tail -1
-
-# Apply
-cibadmin --replace --xml-file /tmp/cib_new.xml
-
-sleep 15
-crm_mon -1
+[root@drbd101 ~]# # Apply
+[root@drbd101 ~]# cibadmin --replace --xml-file /tmp/cib_new.xml
+[root@drbd101 ~]# crm_mon -1
+> ... If drbd101 is not primary, run the command next.
+[root@drbd101 ~]# crm_resource --move --resource grp_mariadb --node drbd101
 ```
 
 Grant MariaDB access to cluster nodes.
 
 * drbd101 only: MariaDB Cluster 1
 ```
-mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'10.1.0.%' IDENTIFIED BY 'secret' WITH GRANT OPTION;"
-mysql -u root -e "FLUSH PRIVILEGES;"
-```
-
-Verify stonith status.
-```
-crm_attribute --type crm_config --name stonith-enabled --query
-> scope=crm_config  name=stonith-enabled value=true
-crm_attribute --type crm_config --name stonith-watchdog-timeout --query
-> scope=crm_config  name=stonith-watchdog-timeout value=30
+[root@drbd101 ~]# mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'10.1.0.%' IDENTIFIED BY 'secret' WITH GRANT OPTION;"
+[root@drbd101 ~]# mysql -u root -e "FLUSH PRIVILEGES;"
 ```
 
 # Create sample data
@@ -1031,6 +1012,43 @@ Run queries create schema, insert sample data, and run sample queries.
 ```
 [root@drbd101 ~]# mysql -u root -p=secret < 01_create_schema.sql
 [root@drbd101 ~]# mysql -u root -p=secret < 02_insert_sample_data.sql
+
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -e "
+SELECT name, encryption_scheme, current_key_id
+FROM information_schema.innodb_tablespaces_encryption;
+"
+> +-----------------------------------+-------------------+----------------+
+> | name                              | encryption_scheme | current_key_id |
+> +-----------------------------------+-------------------+----------------+
+> | innodb_system                     |                 1 |              1 |
+> | mysql/gtid_slave_pos              |                 1 |              1 |
+> | mysql/innodb_index_stats          |                 1 |              1 |
+> | mysql/innodb_table_stats          |                 1 |              1 |
+> | mysql/transaction_registry        |                 1 |              1 |
+> | grocery_store/customers           |                 1 |              1 |
+> | grocery_store/categories          |                 1 |              1 |
+> | grocery_store/products            |                 1 |              1 |
+> | grocery_store/transactions        |                 1 |              1 |
+> | grocery_store/transaction_details |                 1 |              1 |
+> +-----------------------------------+-------------------+----------------+
+
+[root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -e "
+SELECT 'innodb_encrypt_tables' AS setting, @@innodb_encrypt_tables AS value
+UNION ALL SELECT 'innodb_encrypt_log', @@innodb_encrypt_log
+UNION ALL SELECT 'encrypt_binlog', @@encrypt_binlog
+UNION ALL SELECT 'encrypt_tmp_files', @@encrypt_tmp_files
+UNION ALL SELECT 'aria_encrypt_tables', @@aria_encrypt_tables;
+"
+> +-----------------------+-------+
+> | setting               | value |
+> +-----------------------+-------+
+> | innodb_encrypt_tables | ON    |
+> | innodb_encrypt_log    | 1     |
+> | encrypt_binlog        | 1     |
+> | encrypt_tmp_files     | 1     |
+> | aria_encrypt_tables   | 1     |
+> +-----------------------+-------+
+> Value "ON" or 1 means encryption is enabled for that setting.
 
 [root@drbd101 ~]# # Count records
 [root@drbd101 ~]# mysql --defaults-extra-file=/root/.my.cnf -D grocery_store -e "
