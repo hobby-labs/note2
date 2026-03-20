@@ -201,6 +201,70 @@ EOF
 yum install -y MariaDB-server-10.6.19 MariaDB-client-10.6.19
 ```
 
+* drbd101, drbd102, drbd103
+```
+# On drbd101, drbd102, drbd103
+mkdir -p /var/log/mariadb/slowlog
+chown -R mysql:mysql /var/log/mariadb
+chmod 750 /var/log/mariadb
+chmod 750 /var/log/mariadb/slowlog
+
+cat > /etc/my.cnf.d/server.cnf << 'EOF'
+[mysqld]
+# === Data Directory (on DRBD) ===
+datadir=/var/lib/mysql/data
+
+# === Socket and PID (local) ===
+socket=/var/lib/mysql/mysql.sock
+pid-file=/var/run/mariadb/mariadb.pid
+
+# === Temp Directory (local) ===
+tmpdir=/tmp
+
+# === InnoDB Redo Logs (on DRBD — default location /var/lib/mysql/) ===
+# innodb_log_group_home_dir=/var/lib/mysql/
+# (Default is datadir parent, which is /var/lib/mysql/ — no change needed)
+
+# === InnoDB System Tablespace (on DRBD) ===
+innodb_data_home_dir=/var/lib/mysql/
+innodb_data_file_path=ibdata1:12M:autoextend
+
+# === Aria Logs (on DRBD) ===
+aria_log_dir_path=/var/lib/mysql/
+
+# === Binary Logs (on DRBD) ===
+log_bin=/var/lib/mysql/log/binary/binlog
+log_bin_index=/var/lib/mysql/log/binary/binlog.index
+expire_logs_days=7
+max_binlog_size=100M
+
+# === Error Log (local) ===
+log_error=/var/log/mariadb/error.log
+
+# === General Log (local — disabled by default, enable for debugging) ===
+general_log=0
+general_log_file=/var/log/mariadb/general.log
+
+# === Slow Query Log (local) ===
+slow_query_log=1
+slow_query_log_file=/var/log/mariadb/slowlog/slow.log
+long_query_time=1
+
+# === Character Set ===
+character-set-server=utf8mb4
+collation-server=utf8mb4_general_ci
+
+# === InnoDB Settings ===
+innodb_buffer_pool_size=512M
+innodb_log_file_size=64M
+innodb_flush_log_at_trx_commit=1
+innodb_file_per_table=1
+
+[mysqld_safe]
+log-error=/var/log/mariadb/error.log
+EOF
+```
+
 * drbd101 only: MariaDB Cluster 1
 ```
 # Temporarily make drbd101 primary and mount
@@ -208,7 +272,13 @@ drbdadm primary mariadb
 mount /dev/drbd0 /var/lib/mysql
 
 # Initialize MariaDB system tables
-mysql_install_db --user=mysql --datadir=/var/lib/mysql
+mysql_install_db --user=mysql --datadir=/var/lib/mysql/data
+
+# Create binary log directory
+mkdir -p /var/lib/mysql/log/binary
+chown -R mysql:mysql /var/lib/mysql/log
+chmod 750 /var/lib/mysql/log
+chmod 750 /var/lib/mysql/log/binary
 
 # Start MariaDB
 systemctl start mariadb
