@@ -102,9 +102,9 @@ dev-storage01 # uuidgen
 * /etc/ceph/ceph.conf @ dev-storage01
 ```
 [global]
-# specify cluster network for monitoring
+# specify cluster network for internal OSD replication
 cluster network = 172.22.0.0/16
-# specify public network
+# specify public network for clients and monitor daemons
 public network = 172.22.0.0/16
 
 # specify UUID genarated above
