@@ -600,3 +600,167 @@ sudo virsh start office-router-01
 ```
 
 スナップショットへの復元は、`vps-wire-guard-01` の手順 11 と同じ手順で行います。
+
+## vps-wire-guard-01 と office-router-01 の疎通確認
+
+`office-server-01` を構築する前に、2台の間の経路と、それぞれのファイアウォールを確認します。
+この時点ではトンネルは確立していないため、確認するのはダミーインターネット (`br0`) 上の通信です。
+以下の確認は、どちらの VM にも永続的な変更を加えません。
+
+### 1. 基本的な疎通
+
+`office-router-01` 上で実行します。
+
+```sh
+ping -c 3 172.31.20.199
+nc -zv -w 2 172.31.20.199 22222
+```
+
+`vps-wire-guard-01` 上で実行します。
+
+```sh
+ping -c 3 172.31.20.198
+```
+
+- どちらの `ping` も応答があること
+- `22222` 番ポート (`vps-wire-guard-01` の sshd) が `open` であること
+
+### 2. office-router-01 の MTU
+
+busybox の `ping` は DF ビットを指定できないため、フラグメントの発生数で確認します。
+`office-router-01` 上で実行します。
+
+```sh
+frag() { awk '/^Ip:/ {n++; if (n==1) {for(i=1;i<=NF;i++) if($i=="FragCreates") c=i} else print $c}' /proc/net/snmp; }
+cat /sys/class/net/eth0/mtu
+a=$(frag); ping -c 2 -s 1432 172.31.20.199 >/dev/null
+b=$(frag); ping -c 2 -s 1433 172.31.20.199 >/dev/null
+c=$(frag); echo "size1432=$((b-a)) size1433=$((c-b))"
+```
+
+- MTU が `1460` であること
+- `size1432=0` (1432 + 28 = 1460 バイトはフラグメントされない)
+- `size1433=4` (1461 バイトは 2パケット × 2フラグメントに分割される)
+
+### 3. WireGuard のポートへの到達
+
+WireGuard は不正なパケットに応答しないため、ポートスキャンでは確認できません。
+`vps-wire-guard-01` に一時的なカウンタを追加して確認します。
+
+`vps-wire-guard-01` 上で実行します。
+
+```sh
+nft insert rule inet filter input udp dport 51820 counter
+```
+
+`office-router-01` 上で実行します。
+
+```sh
+echo test | nc -u -w 1 172.31.20.199 51820
+```
+
+`vps-wire-guard-01` 上で、カウンタが増えていることを確認し、一時的なルールを削除します。
+
+```sh
+nft list chain inet filter input | grep '51820 counter'
+rc-service nftables restart
+```
+
+- `counter packets 1` になっていること
+
+### 4. ファイアウォールで遮断されること
+
+`vps-wire-guard-01` 上で実行します。
+
+```sh
+nc -zv -w 2 172.31.20.198 22
+ping -c 2 -W 1 192.168.99.1
+```
+
+- `office-router-01` への SSH がタイムアウトすること(Host OS 以外からは許可していないため)
+- オフィス LAN (`192.168.99.1`) へ到達できないこと
+
+`office-router-01` 上で実行します。
+
+```sh
+nc -zv -w 2 172.31.20.199 443
+```
+
+- `Host is unreachable` になること(DNAT 先の `10.8.0.2` がまだ存在しないため)
+
+### 5. masquerade の確認 (Host OS)
+
+`office-server-01` の代わりに、Host OS 上に一時的な network namespace を作成し、`br1` に接続して確認します。
+
+```sh
+sudo ip netns add wgtest
+sudo ip link add veth-wgt type veth peer name veth-wgt-ns
+sudo ip link set veth-wgt master br1
+sudo ip link set veth-wgt up
+sudo ip link set veth-wgt-ns netns wgtest
+sudo ip -n wgtest link set lo up
+sudo ip -n wgtest addr add 192.168.99.250/24 dev veth-wgt-ns
+sudo ip -n wgtest link set veth-wgt-ns up
+sudo ip -n wgtest route add default via 192.168.99.1
+```
+
+namespace から `office-router-01` を経由して `vps-wire-guard-01` に接続します。
+
+```sh
+sudo ip netns exec wgtest ping -c 2 192.168.99.1
+sudo ip netns exec wgtest ping -c 2 172.31.20.199
+sudo ip netns exec wgtest sudo -u "$USER" ssh -i ~/.ssh/id_ed25519 -p 22222 root@172.31.20.199 'echo $SSH_CLIENT'
+```
+
+- どちらの `ping` も応答があること
+- `$SSH_CLIENT` の接続元が `192.168.99.250` ではなく、`172.31.20.198` (`office-router-01` の `eth0`) になっていること
+
+確認後、namespace を削除します。`veth-wgt` も同時に削除されます。
+
+```sh
+sudo ip netns del wgtest
+```
+
+# 補足
+
+## 本番環境での MTU について
+
+本番環境に適用する際、**オフィスのルータの MTU を 1460 に設定する必要はありません**。
+
+この検証環境で `office-router-01` の `eth0` を MTU 1460 にしているのは、MTU が 1500 より小さい実際の回線を模倣するためです。
+本番環境ではルータの WAN 側の MTU は回線によって決まり、通常はルータが自動的に設定します。
+ISP から指示があった場合や、実際に問題を計測した場合を除き、変更しません。
+
+| 回線の種類 | 一般的な MTU |
+|---|---|
+| Ethernet / ケーブル / トンネルを使わない IPoE | 1500 |
+| PPPoE (一般) | 1492 |
+| PPPoE (NTT フレッツ) | 1454 |
+| IPv4 over IPv6 (DS-Lite, MAP-E) | 1460 |
+
+本番環境で設定が必要なのは、`wg0.conf` の `MTU` です。`vps-wire-guard-01` と `office-server-01` の両方に同じ値を設定します。
+
+- トンネルを IPv4 で張る場合: WireGuard の MTU = 経路の MTU − 60
+- トンネルを IPv6 で張る場合: WireGuard の MTU = 経路の MTU − 80
+
+この構成の `1380` は、IPv4 であれば経路の MTU が 1440 以上、IPv6 であれば 1460 以上の回線で利用できます。
+上の表の回線は、IPv4 でトンネルを張る場合はすべて該当するため、`1380` のままで問題ありません。
+
+### 経路の MTU の計測
+
+VPS を用意した後に、オフィス内の Linux マシンから VPS に対して、フラグメントされずに届く最大のサイズを計測します。
+Alpine (busybox) の `ping` は `-M do` を指定できないため、Ubuntu などで実行します。
+
+```sh
+ping -c 2 -M do -s 1432 <VPS のグローバル IP アドレス>
+```
+
+`-s` の値を増減させ、応答がある最大の値を調べます。その値に 28 を足したものが経路の MTU です。
+
+> この計測は、本番用の VPS を用意した後に実施します(未実施)。
+
+### 検証環境との違い
+
+この検証環境では、`vps-wire-guard-01` と `office-router-01` が同じブリッジ (`br0`) に直接接続されています。
+そのため、MTU 1460 の制限がかかるのは `office-router-01` が送信するパケットだけで、受信するパケットには制限がかかりません。
+`vps-wire-guard-01` から 1500 バイトのパケットを送っても `office-router-01` は受信できるため、`wg0` の MTU を大きくしすぎる設定ミスは、この検証環境では検出できません。
