@@ -97,27 +97,47 @@ sudo virt-install \
 
 ### 2. Alpine Linux のインストール (ゲスト)
 
-`root` (パスワードなし) でログインし、`setup-alpine` を実行します。
+`root` (パスワードなし) でログインし、`setup-alpine` 用の answer file を作成します。
+`ROOTSSHKEY` には Host OS の公開鍵 (`~/.ssh/id_ed25519.pub` の内容) を指定します。
 
 ```sh
-setup-alpine
+cat > /tmp/answers <<'EOT'
+KEYMAPOPTS=none
+HOSTNAMEOPTS=vps-wire-guard-01
+DEVDOPTS=mdev
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 172.31.20.199/16
+    gateway 172.31.0.1
+"
+DNSOPTS="172.31.0.1 8.8.8.8"
+TIMEZONEOPTS="Asia/Tokyo"
+PROXYOPTS=none
+APKREPOSOPTS="-1"
+USEROPTS=none
+SSHDOPTS=openssh
+ROOTSSHKEY="<Host OS の公開鍵>"
+NTPOPTS=none
+DISKOPTS="-m sys /dev/vda"
+LBUOPTS=none
+APKCACHEOPTS=none
+EOT
 ```
 
-主な入力値は以下の通りです。それ以外は環境に合わせて入力します。
+answer file を指定してインストールします。
 
-| 項目 | 値 |
-|---|---|
-| Hostname | `vps-wire-guard-01` |
-| Interface | `eth0` |
-| IP address | `172.31.20.199/16` |
-| Gateway | `172.31.0.1` |
-| SSH server | `openssh` |
-| Allow root ssh login | `prohibit-password` |
-| ssh key for root | Host OS の公開鍵 |
-| Disk | `vda` |
-| How would you like to use it | `sys` |
+```sh
+ERASE_DISKS=/dev/vda setup-alpine -e -f /tmp/answers
+```
 
-インストール完了後、電源を切り、ディスクから起動し直します。
+- `-e` は root のパスワードを空にします。SSH は公開鍵認証のみのため、影響するのはコンソールログインだけです。必要に応じて、インストール後に `passwd` で設定します。
+- `ERASE_DISKS=/dev/vda` は、ディスク消去の確認を省略します。
+- KVM ゲスト(kvm-clock)では、`setup-alpine` は NTP の設定をスキップします。NTP は手順 8 で設定します。
+
+`Installation is complete. Please reboot.` と表示されたら電源を切り、ディスクから起動し直します。
 
 ```sh
 poweroff
@@ -126,6 +146,12 @@ poweroff
 ```sh
 sudo virsh start vps-wire-guard-01
 sudo sh -c 'virsh dumpxml vps-wire-guard-01 > /var/kvm/distros/vps-wire-guard-01/domain.xml'
+```
+
+Host OS から SSH で接続できることを確認します。以降のゲスト上の作業は SSH 経由で行えます。
+
+```sh
+ssh root@172.31.20.199
 ```
 
 ### 3. sshd のポート変更 (ゲスト)
@@ -195,7 +221,13 @@ rc-service wg-quick.wg0 start
 
 ### 7. nftables の設定 (ゲスト)
 
-`/etc/nftables.nft` を以下の内容に置き換えます。
+Alpine の標準の `/etc/nftables.nft` は input / forward が `policy drop` で、SSH も許可されていません。
+元のファイルを退避した上で、`/etc/nftables.nft` を以下の内容に置き換えます。
+
+```sh
+cp -p /etc/nftables.nft /etc/nftables.nft.orig
+```
+
 `wg0` 側では masquerade を行わないため、`office-server-01` からはクライアントの IP アドレスがそのまま見えます。
 
 ```nft
@@ -237,15 +269,33 @@ rc-update add nftables default
 rc-service nftables start
 ```
 
-### 8. 確認
+### 8. chrony の設定 (ゲスト)
+
+```sh
+setup-ntp chrony
+```
+
+### 9. 確認
+
+再起動後も設定が有効であることを確認します。
+
+```sh
+reboot
+```
 
 ゲスト上で確認します。
 
 ```sh
 wg show
+ip addr show wg0
 nft list ruleset
 sysctl net.ipv4.ip_forward
+rc-status default
+chronyc tracking
 ```
+
+- `wg0` が `10.8.0.1/24`, MTU 1380, listening port 51820 で起動していること
+- `rc-status default` で `sshd`, `nftables`, `wg-quick.wg0`, `chronyd` が `started` であること
 
 Host OS から sshd に接続できることを確認します。
 
@@ -253,8 +303,11 @@ Host OS から sshd に接続できることを確認します。
 ssh -p 22222 root@172.31.20.199
 ```
 
+`office-server-01` の `[Peer]` に設定する公開鍵は、以下で確認できます。
+
+```sh
+cat /etc/wireguard/publickey
+```
+
 トンネルの疎通と DNAT (22, 80, 443) の確認は、`office-server-01` の構築後に行います。
-
-
-
-
+それまでは、Host OS から `172.31.20.199` の 22, 80, 443 番ポートへの接続は `No route to host` になります。
