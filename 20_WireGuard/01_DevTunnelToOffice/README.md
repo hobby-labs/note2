@@ -18,7 +18,7 @@ flowchart LR
 
     subgraph office["Office (emulated)"]
         or["office-router-01<br/>Alpine Linux<br/>eth0: 172.31.20.198/16 (MTU 1460)<br/>eth1: 192.168.99.1/24<br/>masquerade, no inbound"]
-        br2{{"br2<br/>192.168.99.0/24"}}
+        br1{{"br1<br/>192.168.99.0/24"}}
         os["office-server-01<br/>Ubuntu 26.04<br/>NIC: 192.168.99.11/24<br/>wg0: 10.8.0.2/24 (MTU 1380)<br/>Caddy :80 :443 (tls internal)<br/>sshd :22"]
     end
 
@@ -26,8 +26,8 @@ flowchart LR
     host --- br0
     br0 ---|eth0| vps
     br0 ---|eth0| or
-    or ---|eth1| br2
-    br2 --- os
+    or ---|eth1| br1
+    br1 --- os
 
     os -.->|"WireGuard UDP 51820<br/>(initiated from office)"| vps
     host -->|"HTTPS / SSH<br/>to 172.31.20.199"| vps
@@ -372,3 +372,231 @@ sudo virsh start vps-wire-guard-01
 ```sh
 ssh -p 22222 root@172.31.20.199 'wg show; rc-status default'
 ```
+
+## office-router-01
+
+オフィスのルータをエミュレートします。
+`eth1` (オフィス LAN) から `eth0` (ダミーインターネット) への通信を masquerade し、外部からオフィス LAN への通信は転送しません。
+
+### 前提
+
+| 項目 | 値 |
+|---|---|
+| ISO | `/var/kvm/iso/alpine-virt-3.24.2-x86_64.iso` |
+| ディスク格納先 | `/var/kvm/distros/office-router-01/` |
+| ディスク | `disk.qcow2` (qcow2, 4GB) |
+| vCPU / メモリ | 1 / 512MB |
+| NIC 1 (`eth0`) | `br0` (virtio), `172.31.20.198/16`, MTU 1460 |
+| NIC 2 (`eth1`) | `br1` (virtio), `192.168.99.1/24` |
+
+### 1. VM の作成 (Host OS)
+
+VM 用のディレクトリとディスクイメージを作成します。
+
+```sh
+sudo mkdir /var/kvm/distros/office-router-01
+sudo qemu-img create -f qcow2 /var/kvm/distros/office-router-01/disk.qcow2 4G
+```
+
+VM を作成します。1つ目の `--network` が `eth0`、2つ目が `eth1` になります。
+
+```sh
+sudo virt-install \
+  --connect qemu:///system \
+  --name office-router-01 \
+  --memory 512 --vcpus 1 \
+  --disk path=/var/kvm/distros/office-router-01/disk.qcow2,format=qcow2,bus=virtio \
+  --cdrom /var/kvm/iso/alpine-virt-3.24.2-x86_64.iso \
+  --network bridge=br0,model=virtio \
+  --network bridge=br1,model=virtio \
+  --osinfo alpinelinux3.24 \
+  --graphics none --console pty,target_type=serial
+```
+
+### 2. Alpine Linux のインストール (ゲスト)
+
+`root` (パスワードなし) でログインし、`setup-alpine` 用の answer file を作成します。
+`ROOTSSHKEY` には Host OS の公開鍵 (`~/.ssh/id_ed25519.pub` の内容) を指定します。
+
+```sh
+cat > /tmp/answers <<'EOT'
+KEYMAPOPTS=none
+HOSTNAMEOPTS=office-router-01
+DEVDOPTS=mdev
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 172.31.20.198/16
+    gateway 172.31.0.1
+    mtu 1460
+
+auto eth1
+iface eth1 inet static
+    address 192.168.99.1/24
+"
+DNSOPTS="172.31.0.1 8.8.8.8"
+TIMEZONEOPTS="Asia/Tokyo"
+PROXYOPTS=none
+APKREPOSOPTS="-1"
+USEROPTS=none
+SSHDOPTS=openssh
+ROOTSSHKEY="<Host OS の公開鍵>"
+NTPOPTS=none
+DISKOPTS="-m sys /dev/vda"
+LBUOPTS=none
+APKCACHEOPTS=none
+EOT
+```
+
+answer file を指定してインストールします。オプションの意味は `vps-wire-guard-01` の手順 2 と同じです。
+
+```sh
+ERASE_DISKS=/dev/vda setup-alpine -e -f /tmp/answers
+```
+
+`Installation is complete. Please reboot.` と表示されたら電源を切り、ディスクから起動し直します。
+
+```sh
+poweroff
+```
+
+```sh
+sudo virsh start office-router-01
+sudo sh -c 'virsh dumpxml office-router-01 > /var/kvm/distros/office-router-01/domain.xml'
+```
+
+Host OS から SSH で接続できることを確認します。以降のゲスト上の作業は SSH 経由で行えます。
+
+```sh
+ssh root@172.31.20.198
+```
+
+### 3. パッケージのインストール (ゲスト)
+
+```sh
+apk add nftables
+```
+
+### 4. IP フォワードの有効化 (ゲスト)
+
+```sh
+echo 'net.ipv4.ip_forward = 1' > /etc/sysctl.d/99-forward.conf
+sysctl -p /etc/sysctl.d/99-forward.conf
+rc-update add sysctl boot
+```
+
+### 5. nftables の設定 (ゲスト)
+
+元のファイルを退避した上で、`/etc/nftables.nft` を以下の内容に置き換えます。
+
+```sh
+cp -p /etc/nftables.nft /etc/nftables.nft.orig
+```
+
+- オフィス LAN (`eth1`) から外部 (`eth0`) への通信のみ転送し、`eth0` から出る際に masquerade します。
+- 外部から始まる通信は、ルータ自身宛て・オフィス LAN 宛てのどちらも破棄します。
+- 例外として、検証環境の管理のために、Host OS (`172.31.1.1`) からルータへの SSH のみ許可します。Host OS の IP アドレスが異なる場合は、読み替えてください。
+- `eth0` の MTU が 1460 のため、転送する TCP の MSS を経路の MTU に合わせて調整します。
+
+```nft
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+        ct state established,related accept
+        ct state invalid drop
+        iifname "lo" accept
+        meta l4proto { icmp, ipv6-icmp } accept
+        iifname "eth1" tcp dport 22 accept
+        iifname "eth0" ip saddr 172.31.1.1 tcp dport 22 accept
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+        tcp flags syn tcp option maxseg size set rt mtu
+        ct state established,related accept
+        iifname "eth1" oifname "eth0" accept
+    }
+}
+
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "eth0" masquerade
+    }
+}
+```
+
+構文を確認してから有効化します。
+
+```sh
+nft -c -f /etc/nftables.nft
+rc-update add nftables default
+rc-service nftables start
+```
+
+### 6. chrony の設定 (ゲスト)
+
+```sh
+setup-ntp chrony
+```
+
+### 7. 確認
+
+再起動後も設定が有効であることを確認します。
+
+```sh
+reboot
+```
+
+ゲスト上で確認します。
+
+```sh
+ip addr show eth0
+ip addr show eth1
+ip route
+nft list ruleset
+sysctl net.ipv4.ip_forward
+rc-status default
+```
+
+- `eth0` が `172.31.20.198/16`, MTU 1460 であること
+- `eth1` が `192.168.99.1/24` であること
+- `rc-status default` で `sshd`, `nftables`, `chronyd` が `started` であること
+
+ゲストから `vps-wire-guard-01` に到達できることを確認します(`vps-wire-guard-01` が起動している必要があります)。
+
+```sh
+ping -c 3 172.31.20.199
+```
+
+オフィス LAN からの masquerade の確認は、`office-server-01` の構築後に行います。
+
+### 8. スナップショットの取得 (Host OS)
+
+```sh
+sudo virsh shutdown office-router-01
+sudo virsh domstate office-router-01
+```
+
+`shut off` になったことを確認してから、スナップショットを取得します。
+
+```sh
+sudo virsh snapshot-create-as office-router-01 base-configured \
+  --description "Alpine 3.24.2 installed; eth0 172.31.20.198/16 (MTU 1460), eth1 192.168.99.1/24, nftables masquerade, chrony." \
+  --atomic
+sudo virsh snapshot-list office-router-01
+```
+
+VM を起動し直します。
+
+```sh
+sudo virsh start office-router-01
+```
+
+スナップショットへの復元は、`vps-wire-guard-01` の手順 11 と同じ手順で行います。
