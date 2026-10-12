@@ -311,3 +311,64 @@ cat /etc/wireguard/publickey
 
 トンネルの疎通と DNAT (22, 80, 443) の確認は、`office-server-01` の構築後に行います。
 それまでは、Host OS から `172.31.20.199` の 22, 80, 443 番ポートへの接続は `No route to host` になります。
+
+### 10. スナップショットの取得 (Host OS)
+
+`office-server-01` を `[Peer]` に追加する前の状態を、スナップショットとして保存します。
+VM を停止してから取得します。
+
+```sh
+sudo virsh shutdown vps-wire-guard-01
+sudo virsh domstate vps-wire-guard-01
+```
+
+`shut off` になったことを確認してから、スナップショットを取得します。
+スナップショットは `disk.qcow2` の内部に保存されます(内部スナップショット)。
+
+```sh
+sudo virsh snapshot-create-as vps-wire-guard-01 base-configured \
+  --description "Alpine 3.24.2 installed; sshd :22222, wg0 10.8.0.1/24 (no peer), nftables DNAT 22/80/443 -> 10.8.0.2, chrony. Before office-server-01 peer is added." \
+  --atomic
+sudo virsh snapshot-list vps-wire-guard-01
+```
+
+VM を起動し直します。
+
+```sh
+sudo virsh start vps-wire-guard-01
+```
+
+### 11. スナップショットへの復元 (Host OS)
+
+手順 10 で取得した時点の状態に戻す場合の手順です。
+スナップショット取得後にディスクへ加えた変更は、すべて失われます。
+
+取得済みのスナップショットを確認します。
+
+```sh
+sudo virsh snapshot-list vps-wire-guard-01
+sudo virsh snapshot-info vps-wire-guard-01 base-configured
+```
+
+VM を停止してから、スナップショットに戻します。
+
+```sh
+sudo virsh shutdown vps-wire-guard-01
+sudo virsh domstate vps-wire-guard-01
+```
+
+```sh
+sudo virsh snapshot-revert vps-wire-guard-01 base-configured
+```
+
+`base-configured` は停止状態で取得しているため、復元後の VM は `shut off` のままです。起動し直します。
+
+```sh
+sudo virsh start vps-wire-guard-01
+```
+
+復元後の状態を確認します。`wg show` に `[Peer]` が表示されないことを確認します。
+
+```sh
+ssh -p 22222 root@172.31.20.199 'wg show; rc-status default'
+```
