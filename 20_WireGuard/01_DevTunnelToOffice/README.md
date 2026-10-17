@@ -721,6 +721,335 @@ sudo ip netns exec wgtest sudo -u "$USER" ssh -i ~/.ssh/id_ed25519 -p 22222 root
 sudo ip netns del wgtest
 ```
 
+## office-server-01
+
+オフィス内のサーバです。WireGuard で `vps-wire-guard-01` に接続し、VPS で DNAT された 22, 80, 443 番ポートの通信を受け付けます。
+Ubuntu のクラウドイメージを backing file とする overlay ディスクから作成し、cloud-init で初期設定します。
+
+### 前提
+
+| 項目 | 値 |
+|---|---|
+| ベースイメージ | `/var/kvm/iso/ubuntu-26.04-server-cloudimg-amd64.img` (backing file。編集しないこと) |
+| ディスク格納先 | `/var/kvm/distros/office-server-01/` |
+| ディスク | `disk.qcow2` (qcow2 overlay, 10GB) |
+| vCPU / メモリ | 2 / 2GB |
+| NIC (`enp1s0`) | `br1` (virtio), `192.168.99.11/24` |
+| ログインユーザ | `me` (sudo 可) |
+
+> ベースイメージは、この VM を含む複数の VM の backing file です。編集・移動・同名ファイルでの置き換えを行うと、それらの VM のディスクが壊れます。
+
+### 1. VM の作成 (Host OS)
+
+ベースイメージを backing file とする overlay ディスクを作成します。
+
+```sh
+sudo mkdir /var/kvm/distros/office-server-01
+sudo qemu-img create -f qcow2 -F qcow2 \
+  -b /var/kvm/iso/ubuntu-26.04-server-cloudimg-amd64.img \
+  /var/kvm/distros/office-server-01/disk.qcow2 10G
+```
+
+cloud-init 用の `user-data` を作成します。`ssh_authorized_keys` には Host OS の公開鍵 (`~/.ssh/id_ed25519.pub` の内容) を指定します。
+
+```sh
+sudo tee /var/kvm/distros/office-server-01/user-data > /dev/null <<'EOF'
+#cloud-config
+hostname: office-server-01
+manage_etc_hosts: true
+timezone: Asia/Tokyo
+
+users:
+  - name: me
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - <Host OS の公開鍵>
+EOF
+```
+
+`network-config` を作成します。
+
+```sh
+sudo tee /var/kvm/distros/office-server-01/network-config > /dev/null <<'EOF'
+version: 2
+ethernets:
+  enp1s0:
+    dhcp4: false
+    addresses:
+      - 192.168.99.11/24
+    routes:
+      - to: default
+        via: 192.168.99.1
+    nameservers:
+      addresses:
+        - 172.31.0.1
+        - 8.8.8.8
+EOF
+```
+
+`seed.iso` を作成します。
+
+```sh
+cd /var/kvm/distros/office-server-01
+sudo cloud-localds seed.iso user-data -N network-config
+```
+
+VM を作成します。
+
+```sh
+sudo virt-install \
+  --connect qemu:///system \
+  --name office-server-01 \
+  --memory 2048 --vcpus 2 \
+  --disk path=/var/kvm/distros/office-server-01/disk.qcow2,format=qcow2,bus=virtio \
+  --disk path=/var/kvm/distros/office-server-01/seed.iso,device=cdrom \
+  --network bridge=br1,model=virtio \
+  --osinfo ubuntu26.04 \
+  --import \
+  --graphics none --console pty,target_type=serial \
+  --noautoconsole
+sudo sh -c 'virsh dumpxml office-server-01 > /var/kvm/distros/office-server-01/domain.xml'
+```
+
+### 2. 初回ログインとパッケージの更新
+
+Host OS からはオフィス LAN に直接到達できないため、`office-router-01` を中継して接続します。
+`office-router-01` の sshd は `AllowTcpForwarding no` のため、`ProxyJump` ではなく、`nc` で中継します。
+`~/.ssh/config` に以下を追加します。
+
+```
+Host office-server-01
+    HostName 192.168.99.11
+    Port 22
+    User me
+    IdentityFile ~/.ssh/id_ed25519
+    PreferredAuthentications publickey
+    ProxyCommand ssh -q -i ~/.ssh/id_ed25519 root@172.31.20.198 nc %h %p
+```
+
+cloud-init の完了を確認し、パッケージを更新します。
+
+```sh
+ssh office-server-01
+```
+
+```sh
+cloud-init status --wait
+sudo apt update
+sudo apt full-upgrade -y
+```
+
+カーネルが更新された場合は再起動します。
+
+```sh
+[ -f /var/run/reboot-required ] && sudo reboot
+```
+
+### 3. WireGuard の設定 (office-server-01)
+
+```sh
+sudo apt install -y wireguard
+```
+
+鍵ペアを作成します。
+
+```sh
+sudo sh -c 'umask 077; wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey'
+sudo cat /etc/wireguard/publickey
+```
+
+`/etc/wireguard/wg0.conf` を作成します。
+
+- `Table = off`: `AllowedIPs = 0.0.0.0/0` によって、サーバのデフォルトルートが `wg0` に切り替わることを防ぎます。
+- `PostUp` / `PostDown`: 送信元が `10.8.0.2` のパケットだけを `wg0` に送ります(ポリシールーティング)。DNAT ではクライアントの IP アドレスが保持されるため、クライアントへの応答を `wg0` 経由で VPS に戻すために必要です。それ以外の通信は、これまで通り `office-router-01` を経由します。
+- `AllowedIPs = 0.0.0.0/0`: 任意のクライアントの IP アドレス宛ての応答を、VPS へ送れるようにします。
+
+```ini
+[Interface]
+Address = 10.8.0.2/24
+PrivateKey = <office-server-01 の privatekey>
+MTU = 1380
+Table = off
+PostUp = ip rule add from 10.8.0.2 table 51820 priority 100; ip route add default dev wg0 table 51820
+PostDown = ip rule del from 10.8.0.2 table 51820 priority 100; ip route flush table 51820
+
+[Peer]
+# vps-wire-guard-01
+PublicKey = <vps-wire-guard-01 の publickey>
+Endpoint = 172.31.20.199:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+```
+
+```sh
+sudo chmod 600 /etc/wireguard/wg0.conf
+sudo systemctl enable --now wg-quick@wg0
+```
+
+### 4. WireGuard の設定 (vps-wire-guard-01)
+
+`vps-wire-guard-01` の `/etc/wireguard/wg0.conf` を退避した上で、`office-server-01` を `[Peer]` として追記します。
+
+```sh
+cp -p /etc/wireguard/wg0.conf /etc/wireguard/wg0.conf.before-peer
+```
+
+```ini
+[Peer]
+# office-server-01
+PublicKey = <office-server-01 の publickey>
+AllowedIPs = 10.8.0.2/32
+```
+
+```sh
+rc-service wg-quick.wg0 restart
+```
+
+### 5. Caddy の設定 (office-server-01)
+
+```sh
+sudo apt install -y caddy
+```
+
+元のファイルを退避した上で、`/etc/caddy/Caddyfile` を以下の内容に置き換えます。
+
+```sh
+sudo cp -p /etc/caddy/Caddyfile /etc/caddy/Caddyfile.orig
+```
+
+- `tls internal`: Caddy 内部の CA で証明書を発行します(検証環境のため)。
+- `default_sni`: IP アドレスでアクセスした場合、クライアントは SNI を送らないため、使用する証明書を指定します。
+- `skip_install_trust`: Caddy の CA を OS の信頼ストアに登録しません。
+- 応答にクライアントの IP アドレス (`{remote_host}`) を含め、送信元 IP アドレスが保持されていることを確認できるようにします。
+- 80番ポートへのアクセスは、HTTPS へリダイレクトされます(Caddy の自動 HTTPS)。
+
+```
+{
+	default_sni 172.31.20.199
+	skip_install_trust
+}
+
+172.31.20.199 {
+	tls internal
+	respond "Hello from office-server-01. Your IP address is {remote_host}.
+"
+}
+```
+
+```sh
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl restart caddy
+```
+
+### 6. 確認
+
+`office-server-01` を再起動し、再起動後も設定が有効であることを確認します。
+
+```sh
+sudo reboot
+```
+
+`office-server-01` 上で確認します。
+
+```sh
+sudo wg show
+ip rule show
+ip route show table 51820
+ping -c 3 10.8.0.1
+ping -c 2 -M do -s 1352 10.8.0.1
+ping -c 2 -M do -s 1353 10.8.0.1
+systemctl is-active wg-quick@wg0 caddy ssh
+```
+
+- `wg show` の `latest handshake` が表示されていること
+- `10.8.0.1` に応答があること
+- `-s 1352` (1352 + 28 = 1380 バイト) は応答があり、`-s 1353` は `message too long` になること
+
+`vps-wire-guard-01` 上で確認します。
+
+```sh
+wg show
+ping -c 3 10.8.0.2
+```
+
+Host OS から、`vps-wire-guard-01` 経由で `office-server-01` に接続できることを確認します。
+
+```sh
+curl -k https://172.31.20.199
+curl -sI http://172.31.20.199
+```
+
+- HTTPS の応答に `Your IP address is 172.31.1.1.` (Host OS の IP アドレス) が含まれていること
+- HTTP は `308 Permanent Redirect` で `https://172.31.20.199/` へリダイレクトされること
+
+SSH (22番ポート) で接続します。
+
+`vps-wire-guard-01` の構築時に 22番ポートで接続しているため、`known_hosts` には `172.31.20.199` のホスト鍵として `vps-wire-guard-01` の鍵が登録されています。
+22222 番ポートへの接続も、`[172.31.20.199]:22222` の登録がない場合はこの鍵で検証されています。
+そのため、この鍵を削除すると、`vps-wire-guard-01` (22222 番ポート) にも接続できなくなります。
+以下の手順で、`vps-wire-guard-01` の鍵を `[172.31.20.199]:22222` として登録し直します。
+
+削除する前に、`vps-wire-guard-01` のホスト鍵のフィンガープリントを控えておきます。
+
+```sh
+ssh vps-wire-guard-01 'for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf $f; done'
+```
+
+古い鍵を削除します。元のファイルは `~/.ssh/known_hosts.old` に保存されます。
+
+```sh
+ssh-keygen -R 172.31.20.199
+```
+
+`vps-wire-guard-01` に接続し、表示されるフィンガープリントが控えたものと一致することを確認してから `yes` を入力します。
+
+```sh
+ssh vps-wire-guard-01 hostname
+```
+
+22番ポート (DNAT 先の `office-server-01`) に接続します。
+表示されるフィンガープリントは、`office-router-01` 経由で接続した `office-server-01` のもの (`ssh-keygen -F 192.168.99.11` で確認できます) と一致します。
+
+```sh
+ssh -p 22 me@172.31.20.199 hostname
+```
+
+- `office-server-01` と表示されること
+- クライアントの IP アドレスが保持されていることは、`office-server-01` 上の `$SSH_CLIENT` でも確認できます(`172.31.1.1` になります)
+
+### 7. スナップショットの取得 (Host OS)
+
+`office-server-01` のスナップショットを取得します。
+
+```sh
+sudo virsh shutdown office-server-01
+sudo virsh domstate office-server-01
+```
+
+```sh
+sudo virsh snapshot-create-as office-server-01 base-configured \
+  --description "Ubuntu 26.04; enp1s0 192.168.99.11/24, wg0 10.8.0.2/24 (MTU 1380, policy routing), Caddy tls internal." \
+  --atomic
+sudo virsh start office-server-01
+```
+
+`vps-wire-guard-01` は、`base-configured` の取得後に `[Peer]` を追加したため、改めてスナップショットを取得します。
+
+```sh
+sudo virsh shutdown vps-wire-guard-01
+sudo virsh domstate vps-wire-guard-01
+```
+
+```sh
+sudo virsh snapshot-create-as vps-wire-guard-01 peer-added \
+  --description "office-server-01 added as WireGuard peer (10.8.0.2/32)." \
+  --atomic
+sudo virsh start vps-wire-guard-01
+```
+
+スナップショットへの復元は、`vps-wire-guard-01` の手順 11 と同じ手順で行います。
+
 # 補足
 
 ## 本番環境での MTU について
