@@ -1,4 +1,4 @@
-# 
+# Alpine Linux をKVM 環境へインストールする方法
 
 ```
 $ osinfo-query os | grep -i alpine
@@ -41,8 +41,6 @@ Welcome to Alpine!
 ...
 ```
 
-
-
 ```
 $ echo "alpine" > /etc/hostname
 $ hostname -F /etc/hostname
@@ -59,7 +57,6 @@ iface eth0 inet static
     gateway 172.31.0.1
 EOF
 ```
-
 
 ```
 $ cat > /etc/resolv.conf <<'EOF'
@@ -88,7 +85,6 @@ EOF
 # apk update
 ```
 
-
 ```
 # setup-disk -m sys /dev/vda
 
@@ -98,7 +94,6 @@ WARNING: The following disk(s) will be erased:
 WARNING: Erase the above disk(s) and continue? (y/n) [n] y
 ...
 ```
-
 
 ```
 $ sudo virsh domblklist alpine3
@@ -112,6 +107,4 @@ $ sudo virsh change-media alpine3 sda --eject
 
 $ sudo virsh start alpine3 --console
 ```
-
-
 
